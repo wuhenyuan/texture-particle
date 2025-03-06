@@ -19,7 +19,7 @@ void main() {
 
     // if (colA.r < 0.133333) {
 	// || uv.x > 1.0 || uv.y > 1.0
-	if (colA.r < 0.133333 || uv.x > 1.0 || uv.y > 1.0) {
+	if (uv.x > 1.0 || uv.y > 1.0) {
 		gl_FragColor = vec4(.0);
 	} else {
 		// greyscale
@@ -32,7 +32,7 @@ void main() {
 			gl_FragColor = vec4(.0);
 		} else {
 
-		grey *= grey2;
+		// grey += grey2 *grey;
 		vec4 colB = vec4(grey, grey, grey, 1.0);
 		color = colB;
 		color.a = 1.0;

@@ -3,6 +3,11 @@
     <div class="control">
       <button id="start" @click="start">开始</button>
       <button id="stop" @click="stop">结束</button>
+      <div>
+        <h3>对话</h3>
+        <input v-model="inputValue" />
+        <button @click="send">发送</button>
+      </div>
       <div class="asr-result">
         <textarea
           rows="10"
@@ -26,29 +31,38 @@
         <!-- src="./tiger.mp4" -->
       </div>
     </div>
-    <ThreeScene class="three-scene" />
+    <ThreeScene ref="threescene" class="three-scene" />
   </div>
 </template>
 
 <script>
 import ThreeScene from "./components/ThreeScene.vue";
-import { start, stop } from "./medium/client";
+import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
 export default {
   name: "App",
   components: {
     ThreeScene,
   },
+  data() {
+    return {
+      inputValue: "",
+    };
+  },
   methods: {
     start() {
+      this.$refs.threescene.initThree();
+      // return;
       startConnect();
-
       // 开启视频链接
       start();
     },
     stop() {
       stopAsr();
       stop();
+    },
+    send() {
+      uploadToHuman(this.inputValue);
     },
   },
 };
@@ -86,6 +100,6 @@ div {
   flex: 1;
 }
 #video {
-  /* display: none; */
+  display: none;
 }
 </style>

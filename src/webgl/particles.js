@@ -8,6 +8,7 @@ import {
   PlaneGeometry,
   RawShaderMaterial,
   InstancedBufferGeometry,
+  LinearMipMapLinearFilter,
   InstancedBufferAttribute,
   LinearFilter,
   RGBFormat,
@@ -21,20 +22,26 @@ import { InstancedMesh } from "three";
 // import TouchTexture from "./TouchTexture";
 
 export default class Particles extends Object3D {
-  constructor(scene) {
+  constructor(scene, ratio) {
     super();
     this.scene = scene;
     this.scene.add(this);
     window.points = this;
     this.time = 0;
     this.progress = 0;
+    // 可调节参数，2表示每2像素采样一次
+    // this.sampleStep = 2;
+    this.sampleStep = 1;
+    debugger;
+    this.sampleStepX = this.sampleStep;
+    // this.sampleStepY = this.sampleStepX / ratio;
+    this.sampleStepY = this.sampleStep;
     // this.webgl = webgl;
     // this.container = new Object3D();
     // todo init width, height
   }
 
   init(videoTexture, video) {
-    debugger;
     this.texture = videoTexture;
     this.texture.minFilter = LinearFilter;
     this.texture.magFilter = LinearFilter;
@@ -48,6 +55,13 @@ export default class Particles extends Object3D {
       this.width = texture.image.width;
       this.height = texture.image.height;
     }
+    debugger;
+    const maxWidth = 180;
+    if (this.width > maxWidth && this.width < this.height) {
+      const ratio = this.width / this.height;
+      this.width = maxWidth;
+      this.height = maxWidth / ratio;
+    }
     this.initPoints(true);
     // this.initHitArea();
     // this.initTouch();
@@ -57,26 +71,33 @@ export default class Particles extends Object3D {
 
   setParticleMap(texture) {
     debugger;
-    this.material.uniforms.uPTexture.value = texture;
+    this.uPTexture = texture;
+    if (this.material) {
+      this.material.uniforms.uPTexture.value = texture;
+    }
     // this.material.needsUpdate = true;
   }
 
   initPoints(discard) {
     if (this.instancePoints) {
       this.remove(this.instancePoints);
+      // this.destroy();
     }
-    this.numPoints = this.width * this.height;
+    // 间隔采样
+    const width = Math.floor(this.width / this.sampleStepX);
+    const height = Math.floor(this.height / this.sampleStepY);
+    this.numPoints = width * height;
 
     let numVisible = this.numPoints;
     const uniforms = {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
       uDepth: { value: 2.0 },
-      uSize: { value: 2.5 },
+      uSize: { value: 1.5 },
       uTextureSize: { value: new Vector2(this.width, this.height) },
       uTexture: { value: this.texture },
-      uPTexture: { value: null },
-      uProgress: { value: null },
+      uPTexture: { value: this.uPTexture },
+      uProgress: { value: this.progress },
     };
 
     const material = new RawShaderMaterial({
@@ -118,11 +139,22 @@ export default class Particles extends Object3D {
     const offsets = new Float32Array(numVisible * 3);
     const angles = new Float32Array(numVisible);
 
+    // 修改offset计算逻辑
+    // for (let i = 0, j = 0; i < this.width; i += this.sampleStep) {
+    //   for (let k = 0; k < this.height; k += this.sampleStep) {
+    //     offsets[j * 3 + 0] = i;
+    //     offsets[j * 3 + 1] = k;
+    //     indices[j] = j;
+    //     angles[j] = Math.random() * Math.PI;
+    //     j++;
+    //   }
+    // }
+
     for (let i = 0, j = 0; i < this.numPoints; i++) {
       // if (discard && originalColors[i * 4 + 0] <= threshold) continue;
 
-      offsets[j * 3 + 0] = i % this.width;
-      offsets[j * 3 + 1] = Math.floor(i / this.width);
+      offsets[j * 3 + 0] = (i % width) * this.sampleStepX;
+      offsets[j * 3 + 1] = Math.floor(i / width) * this.sampleStepY;
 
       indices[j] = i;
 
@@ -130,6 +162,19 @@ export default class Particles extends Object3D {
 
       j++;
     }
+
+    // for (let i = 0, j = 0; i < this.numPoints; i++) {
+    //   // if (discard && originalColors[i * 4 + 0] <= threshold) continue;
+
+    //   offsets[j * 3 + 0] = i % this.width;
+    //   offsets[j * 3 + 1] = Math.floor(i / this.width);
+
+    //   indices[j] = i;
+
+    //   angles[j] = Math.random() * Math.PI;
+
+    //   j++;
+    // }
 
     geometry.setAttribute(
       "pindex",
@@ -173,11 +218,12 @@ export default class Particles extends Object3D {
     if (!this.material) return;
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
-    console.log(this.time);
     if (this.progress < 1) {
       this.progress = this.time / 3;
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
+    } else {
+      this.material.uniforms.uProgress.value = 1;
     }
   }
 

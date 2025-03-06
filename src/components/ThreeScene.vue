@@ -30,7 +30,7 @@ import { ClampToEdgeWrapping } from "three";
 export default {
   name: "ThreeScene",
   mounted() {
-    this.initThree();
+    // this.initThree();
   },
   methods: {
     initThree() {
@@ -83,7 +83,12 @@ export default {
 
       const video = document.getElementById("video");
 
+      // test particle
+      const textureLoader = new TextureLoader();
+      const particles = new Particles(scene, ratio);
+
       video.addEventListener("loadedmetadata", () => {
+        debugger;
         const { videoWidth, videoHeight } = video;
 
         const ratio = videoWidth / videoHeight;
@@ -101,39 +106,12 @@ export default {
 
         particles.init(texture, video);
 
-        textureLoader.load("/src/assets/3.png", (texture) => {
-          debugger;
-          console.log(texture.image.width);
-          // const ratio = texture.image.width / texture.image.height;
-          let repeatX = 1,
-            repeatY = 1;
-          let offsetX = 0,
-            offsetY = 0;
-          if (ratio < 1) {
-            repeatX = 1 / ratio;
-            offsetX = (1 - repeatX) / 2;
-          } else {
-            repeatY = ratio;
-            offsetY = (1 - repeatY) / 2;
-          }
-          // texture.repeat.set(repeatX, repeatY);
-          // texture.offset.set(offsetX, offsetY);
-          // texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
-          particles.setParticleMap(texture);
-          texture.needsUpdate = true;
-        });
         // scene.add(plane);
         // 如果隐藏了需要调用一次播放
         video.play();
       });
-
-      // test particle
-      const textureLoader = new TextureLoader();
-      const particles = new Particles(scene);
-
-      textureLoader.load("/src/assets/sampler.png", (texture) => {
+      textureLoader.load("/src/assets/haoge.png", (texture) => {
         const ratio = texture.image.width / texture.image.height;
-        debugger;
         let repeatX = 1,
           repeatY = 1;
         let offsetX = 0,
@@ -150,8 +128,37 @@ export default {
         texture.offset.set(offsetX, offsetY);
         texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
         texture.needsUpdate = true;
-        particles.init(texture);
+        // particles.init(texture);
       });
+
+      textureLoader.load("/src/assets/3.png", (texture) => {
+        debugger;
+        console.log(texture.image.width);
+        // const ratio = texture.image.width / texture.image.height;
+        let repeatX = 1,
+          repeatY = 1;
+        let offsetX = 0,
+          offsetY = 0;
+        if (ratio < 1) {
+          repeatX = 1 / ratio;
+          offsetX = (1 - repeatX) / 2;
+        } else {
+          repeatY = ratio;
+          offsetY = (1 - repeatY) / 2;
+        }
+        // texture.repeat.set(repeatX, repeatY);
+        // texture.offset.set(offsetX, offsetY);
+        // texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
+        particles.setParticleMap(texture);
+        texture.needsUpdate = true;
+      });
+
+      // scene.add(
+      //   new Mesh(
+      //     new PlaneGeometry(5, 5),
+      //     new MeshBasicMaterial({ color: 0xffffff })
+      //   )
+      // );
 
       window.scene = scene;
 
