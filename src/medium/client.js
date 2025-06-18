@@ -35,7 +35,7 @@ function negotiate() {
       // );
       // return;
       // return fetch("http://10.7.9.111:8010/offer", {
-      return fetch("http://10.7.11.243:8010/offer", {
+      return fetch("http://10.7.9.111:8010/offer", {
         body: JSON.stringify({
           sdp: offer.sdp,
           type: offer.type,
@@ -61,7 +61,7 @@ function negotiate() {
 
 export function uploadToHuman(text) {
   if (!sessionid) return;
-  fetch("http://10.7.11.243:8010/human", {
+  fetch("http://10.7.9.111:8010/human", {
     body: JSON.stringify({
       text: text,
       type: "chat",
@@ -87,7 +87,6 @@ export function start() {
   pc = new RTCPeerConnection(config);
   window.pc = pc;
 
-  debugger;
   let a = document.getElementById("video");
   let b = document.getElementById("audio");
   // connect audio / video
@@ -107,7 +106,6 @@ export function start() {
 export function stop() {
   // close peer connection
   setTimeout(() => {
-    debugger;
     pc.close();
   }, 500);
 }
@@ -115,7 +113,6 @@ export function stop() {
 window.onunload = function (event) {
   // 在这里执行你想要的操作
   setTimeout(() => {
-    debugger;
     pc.close();
   }, 500);
 };

@@ -53,9 +53,9 @@ export default {
     start() {
       this.$refs.threescene.initThree();
       // return;
-      startConnect();
+      // startConnect();
       // 开启视频链接
-      start();
+      // start();
     },
     stop() {
       stopAsr();

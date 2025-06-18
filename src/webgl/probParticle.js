@@ -13,15 +13,20 @@ import {
   LinearFilter,
   RGBFormat,
   RGBAFormat,
+  NearestFilter,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
-import particleFrag from "./particles.frag";
-import particleVert from "./particles.vert";
+
+import particleFrag from "./probParticles.frag";
+import particleVert from "./probParticles.vert";
 import { InstancedMesh } from "three";
+import { ShaderMaterial } from "three/webgpu";
+import { uniform, vec2 } from "three/tsl";
 
 // import TouchTexture from "./TouchTexture";
 
-export default class Particles extends Object3D {
+/**概率粒子 */
+export default class ProbParticle extends Object3D {
   constructor(scene, ratio) {
     super();
     this.scene = scene;
@@ -35,6 +40,7 @@ export default class Particles extends Object3D {
     this.sampleStepX = this.sampleStep;
     // this.sampleStepY = this.sampleStepX / ratio;
     this.sampleStepY = this.sampleStep;
+    this.resolution = new Vector2();
     // this.webgl = webgl;
     // this.container = new Object3D();
     // todo init width, height
@@ -42,8 +48,10 @@ export default class Particles extends Object3D {
 
   init(videoTexture, video) {
     this.texture = videoTexture;
-    this.texture.minFilter = LinearFilter;
-    this.texture.magFilter = LinearFilter;
+    // this.texture.minFilter = NearestFilter;
+    // this.texture.magFilter = NearestFilter;
+    this.texture.minFilter = NearestFilter;
+    this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
     if (video) {
       const { videoWidth, videoHeight } = video;
@@ -70,7 +78,7 @@ export default class Particles extends Object3D {
   setParticleMap(texture) {
     this.uPTexture = texture;
     if (this.material) {
-      this.material.uniforms.uPTexture.value = texture;
+      // this.material.uniforms.uPTexture.value = texture;
     }
     // this.material.needsUpdate = true;
   }
@@ -90,14 +98,19 @@ export default class Particles extends Object3D {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
       uDepth: { value: 2.0 },
-      uSize: { value: 1.5 },
+      uSize: { value: 0.5 },
       uTextureSize: { value: new Vector2(this.width, this.height) },
-      uTexture: { value: this.texture },
-      uPTexture: { value: this.uPTexture },
+      uProbabilityMap: { value: this.texture },
+      //   uProbabilityMap: { value: this.uPTexture },
       uProgress: { value: this.progress },
+      uResolution: { value: this.resolution },
+      uThreshold: { value: 0.01 },
+      uAlphaScale: { value: 1.0 },
+      uFade: { value: 1.0 },
+      uSuppress: { value: 1.0 },
     };
 
-    const material = new RawShaderMaterial({
+    const material = new ShaderMaterial({
       uniforms,
       // vertexShader: glslify(require("../../../shaders/particle.vert")),
       // fragmentShader: glslify(require("../../../shaders/particle.frag")),
@@ -193,7 +206,7 @@ export default class Particles extends Object3D {
     // this.container.add(this.instancePoints);
     // instancedMesh.frustumCulled = false;
     // this.add(this.instancePoints);
-    // this.add(this.instancePoints);
+    this.add(this.instancePoints);
     // updatePartile
   }
 
@@ -215,6 +228,9 @@ export default class Particles extends Object3D {
 
   update(t) {
     if (!this.material) return;
+    if (this.config) {
+      this.material.uniforms.uSuppress.value = this.config.suppress;
+    }
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
