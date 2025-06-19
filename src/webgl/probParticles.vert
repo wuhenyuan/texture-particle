@@ -101,7 +101,6 @@ uniform float uRandom;
 uniform float uDepth;
 uniform float uSize;
 uniform vec2 uTextureSize;
-uniform vec2 uResolution;
 uniform sampler2D uTexture;
 uniform float uProgress;
 // uniform sampler2D uTouch;
@@ -118,12 +117,47 @@ void main() {
     vec2 puv = offset.xy / uTextureSize;
     vPUv = puv;
 
-    // 第N个像素
-    vec2 pixelCenter = offset.xy + 0.5; // 粒子中心落在像素中心
-    vec2 pixelNum = (pixelCenter - uTextureSize / 2.0);
+	// pixel color
+	// vec4 colA = texture2D(uTexture, puv);
+	// float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-    vec2 center = pixelNum / uResolution * 8.0;
+	// displacement
+    vec3 displaced = offset;
+    displaced.z = 0.1;
+	// center
+    displaced.xy -= uTextureSize * 0.5;
 
-    gl_Position = vec4(center + position.xy / uResolution * 8.0, 0.0, 1.0);
+  // progress noise
+    float multiplier = uTextureSize.x * 2.0; // distance factor
+  // float modX = mod(displaced.x, 2.0)  < 1.0 ? 1.0 : -1.0;
+  // float modY = mod(displaced.y, 2.0) < 1.0 ? 1.0 : -1.0;
+  // float modZ = mod(displaced.z, 2.0)   < 1.0 ? 1.0 : -1.0;
 
+    vec3 randomDir = vec3(noise(displaced.x) * 2.0 - 1.0, noise(displaced.y) * 2.0 - 1.0, noise(200.0) * 2.0 - 1.0);
+    vec3 positionTarget = displaced + normalize(randomDir) * multiplier;
+
+  // vec3 positionTarget = vec3(noise(position.x)  * multiplier * modX, noise(position.y) * multiplier * modY, noise(position.z)  * multiplier * modZ );
+
+    float noiseOrigin = simplexNoise3d(positionTarget);
+    float noiseTarget = simplexNoise3d(displaced);
+    float noise = mix(noiseOrigin, noiseTarget, uProgress);
+
+    float duration = 0.6;
+    float delay = (1.0 - duration) * noise;
+    float end = delay + duration;
+    float progress = smoothstep(delay, end, uProgress);
+
+    vec3 mixedPosition = mix(positionTarget, displaced, progress);
+
+	// particle size
+    float psize = 2.0;
+	// psize *= max(grey, 0.2);
+    psize *= uSize;
+
+	// final position
+    vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
+    mvPosition.xyz += position * psize;
+    vec4 finalPosition = projectionMatrix * mvPosition;
+
+    gl_Position = finalPosition;
 }

@@ -21,6 +21,7 @@
 
         <audio id="audio" autoplay="true"></audio>
         <video
+          src="./assets/testVideo.mp4"
           id="video"
           style="width: 600px"
           muted="true"

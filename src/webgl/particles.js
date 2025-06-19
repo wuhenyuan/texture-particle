@@ -13,6 +13,7 @@ import {
   LinearFilter,
   RGBFormat,
   RGBAFormat,
+  NearestFilter,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
 import particleFrag from "./particles.frag";
@@ -42,8 +43,8 @@ export default class Particles extends Object3D {
 
   init(videoTexture, video) {
     this.texture = videoTexture;
-    this.texture.minFilter = LinearFilter;
-    this.texture.magFilter = LinearFilter;
+    this.texture.minFilter = NearestFilter;
+    this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
     if (video) {
       const { videoWidth, videoHeight } = video;

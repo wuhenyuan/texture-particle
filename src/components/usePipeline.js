@@ -22,11 +22,11 @@ import {
   Float32BufferAttribute,
   ClampToEdgeWrapping,
   Vector2,
+  NearestFilter,
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
-import { getFloatLength } from "three/src/renderers/common/BufferUtils.js";
 import useGui from "./useGUi";
-import { densityFog } from "three/tsl";
+import { uniform } from "three/tsl";
 
 const vertexShader = /*glsl*/ `
           varying vec2 vUv;
@@ -68,7 +68,72 @@ export default function usePileline(scene, renderer, camera) {
 
     return fsGeometry;
   };
-  const initMask = () => {};
+
+  const backgroundMaterial = new ShaderMaterial({
+    name: "backgroundMaterial",
+    uniforms: {
+      tDiffuse: { value: null },
+      resolution: { value: resulution },
+    },
+    vertexShader,
+    fragmentShader: /* glsl */ `
+          precision mediump float;
+          uniform sampler2D tDiffuse;
+          uniform vec2 resolution;
+          varying vec2 vUv;
+
+          void main() {
+    `,
+  });
+  const backgroundRT = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
+
+  // 可以作为mask
+  // init gray , eliminate background 剔除背景了
+  const grayMaterial = new ShaderMaterial({
+    name: "grayMaterial",
+    uniforms: {
+      tDiffuse: { value: null },
+    },
+    vertexShader,
+    fragmentShader: /* glsl */ `
+          precision mediump float;
+          uniform sampler2D tDiffuse;
+          varying vec2 vUv;
+
+          float euclideanDistance(vec3 col1, vec3 col2) {
+          vec3 diff = col1 - col2;
+          return (dot(diff, diff)); // √(ΔR² + ΔG² + ΔB²)
+          }
+
+          void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            vec4 bgColor = texture2D(tDiffuse, vec2(0.05, 0.05));
+            float diff = distance(color.rgb, bgColor.rgb);
+            if ( diff <= 0.1) 
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            else {
+              float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+              gl_FragColor = vec4(gray, gray, gray, 1.0);
+            }
+          }
+          `,
+  });
+  const grayWrapper = new Mesh(getFSGeometry(), grayMaterial);
+  const grayRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
+
+  grayMaterial.onBeforeRender = () => {
+    grayMaterial.uniforms.tDiffuse.value = texture;
+  };
 
   //  const    initEdgeDetection = ()=>{
   // init edge detection
@@ -82,7 +147,12 @@ export default function usePileline(scene, renderer, camera) {
     edgeDetectionMaterial.uniforms.tdiff.value = texture;
     edgeDetectionMaterial.uniforms.iResolution.value = resulution;
   };
-  const edgeDetectionRT = new WebGLRenderTarget(1, 1);
+  const edgeDetectionRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
 
   // };
 
@@ -91,7 +161,7 @@ export default function usePileline(scene, renderer, camera) {
   const expandMaterial = new ShaderMaterial({
     name: "expandMaterial",
     uniforms: {
-      tDiffuse: { value: edgeDetectionRT.texture },
+      tDiffuse: { value: edgeDetectionRt.texture },
       resolution: {
         value: resulution,
       },
@@ -132,7 +202,12 @@ export default function usePileline(scene, renderer, camera) {
         `,
   });
   const expandWrapper = new Mesh(getFSGeometry(), expandMaterial);
-  const expandRT = new WebGLRenderTarget(1, 1);
+  const expandRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
 
   //init blur
   //   const initBlur = () => {
@@ -140,7 +215,7 @@ export default function usePileline(scene, renderer, camera) {
   const blurMaterial = new ShaderMaterial({
     name: "blurMaterial",
     uniforms: {
-      tDiffuse: { value: expandRT.texture },
+      tDiffuse: { value: expandRt.texture },
       iResolution: { value: resulution },
       direction: { value: direction },
     },
@@ -182,8 +257,18 @@ export default function usePileline(scene, renderer, camera) {
           `,
   });
   const blurWrapper = new Mesh(getFSGeometry(), blurMaterial);
-  const blurRt1 = new WebGLRenderTarget(1, 1);
-  const blurRt2 = new WebGLRenderTarget(1, 1);
+  const blurRt1 = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
+  const blurRt2 = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
   //   };
 
   //   init blend
@@ -192,6 +277,7 @@ export default function usePileline(scene, renderer, camera) {
     uniforms: {
       tDiffuse: { value: null },
       tDiffuse2: { value: blurRt2.texture },
+      maskDiffuse: { value: grayRt.texture },
       blendRatio: { value: 0.8 },
       time: { value: 0 },
     },
@@ -202,6 +288,7 @@ export default function usePileline(scene, renderer, camera) {
           precision highp float;
           uniform sampler2D tDiffuse;
           uniform sampler2D tDiffuse2;
+          uniform sampler2D maskDiffuse;
           uniform float blendRatio;
           varying vec2 vUv;
           uniform float time;
@@ -213,7 +300,13 @@ export default function usePileline(scene, renderer, camera) {
         }
 
           void main() {
+            // 过滤模糊导致的边框溢出
+            vec4 maskColor = texture2D(maskDiffuse, vUv);
+            float mask = distance(maskColor.rgb, vec3(0.0));
+            if (mask < 0.01) discard;
+
             vec4 c1 = texture2D(tDiffuse, vUv);
+
             float grey = c1.r * 0.21 + c1.g * 0.71 + c1.b * 0.07;
             vec4 c2 = texture2D(tDiffuse2, vUv);
             // vec3 color = vec3(c2.rgb * blendRatio + vec3( grey * (1.0 - blendRatio)));
@@ -260,7 +353,12 @@ export default function usePileline(scene, renderer, camera) {
           `,
   });
   const blendWrapper = new Mesh(getFSGeometry(), blendMaterial);
-  const blendRt = new WebGLRenderTarget(1, 1);
+  const blendRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
 
   // init prob
   const probMaterial = new ShaderMaterial({
@@ -305,7 +403,12 @@ void main() {
     `,
   });
   const probWrapper = new Mesh(getFSGeometry(), probMaterial);
-  const probRt = new WebGLRenderTarget(1, 1);
+  const probRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
 
   //   initresult
   const showHandleResult = (texture, offset) => {
@@ -327,10 +430,12 @@ void main() {
   };
 
   const show = () => {
+    showHandleResult(grayRt.texture, 0);
+
     // showHandleResult(edgeDetectionRT.texture, 0);
     // showHandleResult(expandRT.texture, 0);
     // showHandleResult(blurRt2.texture, 0);
-    showHandleResult(blendRt.texture, 0);
+    // showHandleResult(blendRt.texture, 0);
     showHandleResult(probRt.texture, 1);
   };
 
@@ -344,13 +449,19 @@ void main() {
   function preTreatment(time) {
     if (!texture) return;
     updateRenderConfig();
+
+    // 提取灰度
+    renderer.setRenderTarget(grayRt);
+    renderer.clear();
+    renderer.render(grayWrapper, camera);
+
     // render edge detection
-    renderer.setRenderTarget(edgeDetectionRT);
+    renderer.setRenderTarget(edgeDetectionRt);
     renderer.clear();
     renderer.render(edgeDetectionWrapper, camera);
 
     // render expand
-    renderer.setRenderTarget(expandRT);
+    renderer.setRenderTarget(expandRt);
     renderer.clear();
     renderer.render(expandWrapper, camera);
 
@@ -358,7 +469,7 @@ void main() {
     renderer.setRenderTarget(blurRt1);
     renderer.clear();
     direction.set(1, 0);
-    blurMaterial.uniforms.tDiffuse.value = expandRT.texture;
+    blurMaterial.uniforms.tDiffuse.value = expandRt.texture;
     renderer.render(blurWrapper, camera);
     renderer.setRenderTarget(blurRt2);
     renderer.clear();
@@ -394,13 +505,20 @@ void main() {
 
     renderer.setRenderTarget(null);
   }
-  function updatePipelineConfig(_texture) {
+  function updatePipelineConfig(_texture, video) {
     texture = _texture;
-    width = _texture.image.width;
-    height = _texture.image.height;
+    if (video) {
+      const { videoWidth, videoHeight } = video;
+      width = videoWidth;
+      height = videoHeight;
+    } else {
+      width = _texture.image.width;
+      height = _texture.image.height;
+    }
     resulution.set(width, height);
-    edgeDetectionRT.setSize(width, height);
-    expandRT.setSize(width, height);
+    grayRt.setSize(width, height);
+    edgeDetectionRt.setSize(width, height);
+    expandRt.setSize(width, height);
     blurRt1.setSize(width, height);
     blurRt2.setSize(width, height);
     blendRt.setSize(width, height);

@@ -1,44 +1,36 @@
+// @author brunoimbrizi / http://brunoimbrizi.com
+
 precision highp float;
 
-// uniform sampler2D uColorMap;      // 原图或上色图
-uniform sampler2D uProbabilityMap; // 概率图（灰度，采样密度）
-uniform sampler2D uMaskMap;       // 可选：遮罩贴图，黑色区域剔除
-uniform float uThreshold;         // 采样阈值，控制保留概率
-uniform float uAlphaScale;        // Alpha 强度调节
-uniform float uFade;              // 可选的淡出因子
+uniform sampler2D uTexture;
 
-uniform float uSuppress; // 压制强度(>1时低亮度更低，1为线性，越大压制越狠)
-
-varying vec2 vPUv;                // 粒子在贴图中的 UV
+varying vec2 vPUv;
+varying vec2 vUv;
 
 void main() {
-  // --- 获取概率 ---
-  // float p = texture2D(uProbabilityMap, vPUv).r;
+  vec4 color = vec4(0.0);
+  vec2 uv = vUv;
+  vec2 puv = vPUv;
 
-  float g = texture2D(uProbabilityMap, vPUv).r;
-  float prob = pow(g, uSuppress); // g^uSuppress 低亮度更低概率
- // 生成随机数
-  float rand = fract(sin(dot(vPUv, vec2(12.9898, 78.233))) * 43758.5453);
+	// pixel color
+  vec4 colA = texture2D(uTexture, puv);
 
-  // --- 采样判定：如果不满足概率阈值，剔除粒子 ---
-  if(rand > prob)
-    discard;
+    // if (colA.r < 0.133333) {
+	// || uv.x > 1.0 || uv.y > 1.0
+  if(uv.x > 1.0 || uv.y > 1.0) {
+    gl_FragColor = vec4(.0);
+  } else {
+		// greyscale
+    float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-  // --- 颜色映射 ---
-  // vec3 color = texture2D(uColorMap, vPUv).rgb;
-  // vec3 color = vec3(0.0);
-  vec3 color = vec3(74.0, 159.0, 212.0) / 255.0;
+		// grey += grey2 *grey;
+    vec4 colB = vec4(grey, grey, grey, 1.0);
+    color = colB;
+    color.a = 1.0;
 
-  // --- 遮罩判定（可选） ---
-  #ifdef USE_MASK
-  float mask = texture2D(uMaskMap, vPUv).r;
-  if(mask < 0.5)
-    discard;
-  #endif
+    if(grey < 0.0001)
+      discard;
+    gl_FragColor = vec4(grey, grey, grey, 1.0);
+  }
 
-  // --- 透明度控制 ---
-  // float alpha = pow(p, uFade) * uAlphaScale;
-
-  gl_FragColor = vec4(color, g);
-  // gl_FragColor = vec4(color, alpha);
 }
