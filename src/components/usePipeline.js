@@ -26,7 +26,9 @@ import {
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import useGui from "./useGUi";
-import { uniform } from "three/tsl";
+import generateDigitTextureAtlas from "./useNumberTexture";
+import { highpModelViewMatrix } from "three/src/nodes/TSL.js";
+import { render } from "vue";
 
 const vertexShader = /*glsl*/ `
           varying vec2 vUv;
@@ -43,10 +45,18 @@ const config = {
   sharpen: 0.4,
   blendRatio: 0.13,
   suppress: 0.5,
+  contrast: 10,
+  // uLowProb: 0.5,
+  uLowProb: 0.08,
+  uHighProb: 0.8,
+  pointSize: 0.25,
+  sampleStep: 40,
+  particleColor: 0x8299b1,
 };
 
 export default function usePileline(scene, renderer, camera) {
   useGui(config);
+  const digitTexture = generateDigitTextureAtlas();
   let resulution = new Vector2(1, 1);
 
   let width;
@@ -68,29 +78,6 @@ export default function usePileline(scene, renderer, camera) {
 
     return fsGeometry;
   };
-
-  const backgroundMaterial = new ShaderMaterial({
-    name: "backgroundMaterial",
-    uniforms: {
-      tDiffuse: { value: null },
-      resolution: { value: resulution },
-    },
-    vertexShader,
-    fragmentShader: /* glsl */ `
-          precision mediump float;
-          uniform sampler2D tDiffuse;
-          uniform vec2 resolution;
-          varying vec2 vUv;
-
-          void main() {
-    `,
-  });
-  const backgroundRT = new WebGLRenderTarget(1, 1, {
-    minFilter: NearestFilter,
-    magFilter: NearestFilter,
-    wrapS: ClampToEdgeWrapping,
-    wrapT: ClampToEdgeWrapping,
-  });
 
   // 可以作为mask
   // init gray , eliminate background 剔除背景了
@@ -134,6 +121,91 @@ export default function usePileline(scene, renderer, camera) {
   grayMaterial.onBeforeRender = () => {
     grayMaterial.uniforms.tDiffuse.value = texture;
   };
+
+  // 低概率图
+  const lowProbabilityMaterial = new ShaderMaterial({
+    name: "lowProbabilityMaterial",
+    uniforms: {
+      tMask: { value: grayRt.texture },
+      uLowProb: { value: 0.5 },
+    },
+    vertexShader,
+    fragmentShader: /* glsl */ `
+          precision mediump float;
+          uniform sampler2D tMask;
+          uniform float uLowProb;
+          varying vec2 vUv;
+          void main() {
+            vec4 maskColor = texture2D(tMask, vUv);
+            if (distance(maskColor.rgb, vec3(0.0)) < 0.01) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            } else {
+              
+             
+             float rand = fract(sin(dot(vUv ,vec2(12.9898,78.233))) * 43758.5453);
+             if (rand < uLowProb) {
+              gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+             } else {
+               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+             }
+            }
+          }
+`,
+  });
+  const lowProbabilityWrapper = new Mesh(
+    getFSGeometry(),
+    lowProbabilityMaterial
+  );
+  const lowProbabilityRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
+
+  // 低概率图
+  const highProbabilityMaterial = new ShaderMaterial({
+    name: "highProbabilityMaterial",
+    uniforms: {
+      tMask: { value: grayRt.texture },
+      uHighProb: { value: 0.5 },
+    },
+    vertexShader,
+    fragmentShader: /* glsl */ `
+          precision mediump float;
+          uniform sampler2D tMask;
+          uniform float uHighProb;
+          varying vec2 vUv;
+          void main() {
+            vec4 maskColor = texture2D(tMask, vUv);
+            if (distance(maskColor.rgb, vec3(0.0)) < 0.001) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+              discard;
+            }
+             
+             float gray = 0.299 * maskColor.r + 0.587 * maskColor.g + 0.114 * maskColor.b;
+
+             if (gray > uHighProb) {
+              gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+             }
+          }
+`,
+  });
+  const highProbabilityWrapper = new Mesh(
+    getFSGeometry(),
+    highProbabilityMaterial
+  );
+  const highProbabilityRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
+  highProbabilityMaterial.onBeforeRender = () => {
+    highProbabilityMaterial.uniforms.tMask.value = edgeDetectionRt.texture;
+  };
+
+  let needUpdateLowProbabilityRt = true;
 
   //  const    initEdgeDetection = ()=>{
   // init edge detection
@@ -276,9 +348,10 @@ export default function usePileline(scene, renderer, camera) {
     name: "blendMaterial",
     uniforms: {
       tDiffuse: { value: null },
-      tDiffuse2: { value: blurRt2.texture },
+      tArea: { value: blurRt2.texture },
       maskDiffuse: { value: grayRt.texture },
       blendRatio: { value: 0.8 },
+      uContrast: { value: 10 },
       time: { value: 0 },
     },
     vertexShader,
@@ -287,9 +360,10 @@ export default function usePileline(scene, renderer, camera) {
           // gaussianBlurH.frag
           precision highp float;
           uniform sampler2D tDiffuse;
-          uniform sampler2D tDiffuse2;
+          uniform sampler2D tArea;
           uniform sampler2D maskDiffuse;
           uniform float blendRatio;
+          uniform float uContrast;
           varying vec2 vUv;
           uniform float time;
 
@@ -308,9 +382,9 @@ export default function usePileline(scene, renderer, camera) {
             vec4 c1 = texture2D(tDiffuse, vUv);
 
             float grey = c1.r * 0.21 + c1.g * 0.71 + c1.b * 0.07;
-            vec4 c2 = texture2D(tDiffuse2, vUv);
+            vec4 c2 = texture2D(tArea, vUv);
             // vec3 color = vec3(c2.rgb * blendRatio + vec3( grey * (1.0 - blendRatio)));
-            vec3 color = vec3(c2.rgb * 0.5 + vec3( grey * blendRatio));
+            vec3 color = vec3(c2.rgb * 0.8 + vec3( grey * blendRatio));
 
             // color = pow(color, vec3(0.7)); // 提高亮度
             // color =  smoothstep(vec3(0.05), vec3(0.8), color.rgb);; // 增强对比
@@ -331,7 +405,7 @@ export default function usePileline(scene, renderer, camera) {
             // else g = smoothstep(0.5, 0.8, g) * 1.0;
 
             g = clamp((g - 0.1) / (0.9 - 0.1), 0.0, 1.0);  // 将 0.1~0.9 映射到 0~1
-            // g = contrast(g, 20.0);  // k 越大，对比越强（推荐 8~12）
+            g = contrast(g, uContrast);  // k 越大，对比越强（推荐 8~12）
 
             // 高光脉冲
             // float pulse = sin(time * 5.0 + vUv.y * 20.0) * 0.5 + 0.5;
@@ -354,6 +428,46 @@ export default function usePileline(scene, renderer, camera) {
   });
   const blendWrapper = new Mesh(getFSGeometry(), blendMaterial);
   const blendRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
+
+  //   init blend prob
+  const blendProbMaterial = new ShaderMaterial({
+    name: "blendMaterial",
+    uniforms: {
+      tLow: { value: lowProbabilityRt.texture },
+      tHigh: { value: highProbabilityRt.texture },
+      // tArea: { value: blurRt2.texture },
+      // maskDiffuse: { value: grayRt.texture },
+      // blendRatio: { value: 0.8 },
+      // uContrast: { value: 10 },
+      // time: { value: 0 },
+    },
+    vertexShader,
+    fragmentShader: /* glsl */ `
+
+          // gaussianBlurH.frag
+          precision highp float;
+          uniform sampler2D tLow;
+          uniform sampler2D tHigh;
+
+          varying vec2 vUv;
+
+          void main() {
+            vec4 low = texture2D(tLow, vUv);
+            vec4 high = texture2D(tHigh, vUv);
+            gl_FragColor = low;
+            if (high.r > 0.0) {
+              gl_FragColor = high;
+            }
+          }
+          `,
+  });
+  const blendProbWrapper = new Mesh(getFSGeometry(), blendProbMaterial);
+  const blendProbRt = new WebGLRenderTarget(1, 1, {
     minFilter: NearestFilter,
     magFilter: NearestFilter,
     wrapS: ClampToEdgeWrapping,
@@ -430,22 +544,35 @@ void main() {
   };
 
   const show = () => {
-    showHandleResult(grayRt.texture, 0);
-
-    // showHandleResult(edgeDetectionRT.texture, 0);
-    // showHandleResult(expandRT.texture, 0);
-    // showHandleResult(blurRt2.texture, 0);
-    // showHandleResult(blendRt.texture, 0);
-    showHandleResult(probRt.texture, 1);
+    // showHandleResult(grayRt.texture, 0);
+    // showHandleResult(digitTexture, 0);
+    // showHandleResult(lowProbabilityRt.texture, 0);
+    // showHandleResult(edgeDetectionRt.texture, 0);
+    // showHandleResult(expandRt.texture, 1);
+    // showHandleResult(blurRt2.texture, 1);
+    // showHandleResult(highProbabilityRt.texture, 1);
+    // showHandleResult(blendProbRt.texture, 1);
+    // showHandleResult(blendRt.texture, 1);
+    // showHandleResult(probRt.texture, 1);
   };
 
   function updateRenderConfig() {
+    if (lowProbabilityMaterial.uniforms.uLowProb.value !== config.uLowProb) {
+      needUpdateLowProbabilityRt = true;
+      renderTime = -2;
+    }
+
+    lowProbabilityMaterial.uniforms.uLowProb.value = config.uLowProb;
+    highProbabilityMaterial.uniforms.uHighProb.value = config.uHighProb;
     blendMaterial.uniforms.blendRatio.value = config.blendRatio;
+    blendMaterial.uniforms.uContrast.value = config.contrast;
     probMaterial.uniforms.uDensity.value = config.density;
     probMaterial.uniforms.uThreshold.value = config.threshold;
     probMaterial.uniforms.uSharpness.value = config.sharpen;
     // probMaterial
   }
+
+  let renderTime = -2;
   function preTreatment(time) {
     if (!texture) return;
     updateRenderConfig();
@@ -454,6 +581,15 @@ void main() {
     renderer.setRenderTarget(grayRt);
     renderer.clear();
     renderer.render(grayWrapper, camera);
+
+    // 渲染低概率图
+    if (needUpdateLowProbabilityRt > 0) {
+      // needUpdateLowProbabilityRt = false;
+      lowProbabilityMaterial.uniforms.tMask.value = grayRt.texture;
+      renderer.setRenderTarget(lowProbabilityRt);
+      renderer.clear();
+      renderer.render(lowProbabilityWrapper, camera);
+    }
 
     // render edge detection
     renderer.setRenderTarget(edgeDetectionRt);
@@ -477,7 +613,7 @@ void main() {
     blurMaterial.uniforms.tDiffuse.value = blurRt1.texture;
     renderer.render(blurWrapper, camera);
 
-    const numPasses = 5;
+    const numPasses = 0;
 
     for (let i = 0; i < numPasses; i++) {
       renderer.setRenderTarget(blurRt1);
@@ -492,9 +628,20 @@ void main() {
       renderer.render(blurWrapper, camera);
     }
 
+    renderer.setRenderTarget(highProbabilityRt);
+    renderer.clear();
+    renderer.render(highProbabilityWrapper, camera);
+
+    renderer.setRenderTarget(blendProbRt);
+    renderer.clear();
+    renderer.render(blendProbWrapper, camera);
+
     blendMaterial.uniforms.tDiffuse.value = texture;
     blendMaterial.uniforms.time.value += time * 1000 * 10;
     // console.log(blendMaterial.uniforms.time.value);
+    // 不blur了呢
+    blendMaterial.uniforms.tArea.value = edgeDetectionRt.texture;
+    // blendMaterial.uniforms.tArea.value = expandRt.texture;
     renderer.setRenderTarget(blendRt);
     renderer.clear();
     renderer.render(blendWrapper, camera);
@@ -517,9 +664,12 @@ void main() {
     }
     resulution.set(width, height);
     grayRt.setSize(width, height);
+    lowProbabilityRt.setSize(width, height);
+    highProbabilityRt.setSize(width, height);
     edgeDetectionRt.setSize(width, height);
     expandRt.setSize(width, height);
     blurRt1.setSize(width, height);
+    blendProbRt.setSize(width, height);
     blurRt2.setSize(width, height);
     blendRt.setSize(width, height);
     probRt.setSize(width, height);
@@ -528,7 +678,12 @@ void main() {
 
   function getRenderResultTexture() {
     // return probRt.texture;
-    return blendRt.texture;
+    // return blendRt.texture;
+    // return lowProbabilityRt.texture;
+    return {
+      probTexture: blendProbRt.texture,
+      maskTexture: grayRt.texture,
+    };
   }
 
   return {

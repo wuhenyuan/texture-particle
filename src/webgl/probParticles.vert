@@ -150,9 +150,7 @@ void main() {
     vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
 	// particle size
-    float psize = 2.0;
-	// psize *= max(grey, 0.2);
-    psize *= uSize;
+    float psize = uSize;
 
 	// final position
     vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

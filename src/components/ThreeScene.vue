@@ -35,6 +35,8 @@ import { edgeDetection } from "../webgl/edgedetection";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Particles from "../webgl/particles";
 import { onMounted, ref, render } from "vue";
+import generateDigitTextureAtlas from "./useNumberTexture";
+import usePostprocessing from "./usePostprocessing";
 
 import usePileline from "./usePipeline";
 import ProbParticle from "../webgl/probParticle";
@@ -51,6 +53,8 @@ let width;
 let height;
 let ratio;
 let particles;
+let composer;
+
 const initThree = () => {
   // 创建场景
   scene = new Scene();
@@ -99,6 +103,7 @@ const initThree = () => {
   // const particles = new Particles(scene, ratio);
   particles = new ProbParticle(scene, ratio);
 
+  let videoTexture;
   video.addEventListener("loadedmetadata", () => {
     debugger;
     const { videoWidth, videoHeight } = video;
@@ -111,21 +116,33 @@ const initThree = () => {
     texture.magFilter = NearestFilter;
     texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
 
+    videoTexture = texture;
     const base = 100;
     const geometry = new PlaneGeometry(base, base / ratio);
     const material = new MeshBasicMaterial({ map: texture });
     // const material = new MeshBasicMaterial({ color: "#ffffff" });
     const plane = new Mesh(geometry, material);
 
-    debugger;
-    updateTexture(texture, video);
-    //   // 使用概率分布图作为采样图
-    const probTexture = getRenderResultTexture();
-    particles.init(probTexture, video);
-
     // scene.add(plane);
     // 如果隐藏了需要调用一次播放
     video.play();
+
+    // 播放好像还需要处理
+    setTimeout(() => {
+      // updateTexture(texture, video);
+      // //   // 使用概率分布图作为采样图
+      // const probTexture = getRenderResultTexture();
+      // particles.init(probTexture, video);
+    }, 10);
+  });
+
+  // play 是异步的
+  video.addEventListener("canplay", () => {
+    updateTexture(videoTexture, video);
+    //   // 使用概率分布图作为采样图
+    const { probTexture, maskTexture } = getRenderResultTexture();
+    particles.init(probTexture, video);
+    particles.setMaskMap(maskTexture);
   });
   // textureLoader.load("/src/assets/haoge.png", (texture) => {
   //   // textureLoader.load("/src/assets/meizi.png", (texture) => {
@@ -177,17 +194,20 @@ const initThree = () => {
     // texture.repeat.set(repeatX, repeatY);
     // texture.offset.set(offsetX, offsetY);
     // texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
-    particles.setParticleMap(texture);
+    // particles.setParticleMap(texture);
     texture.needsUpdate = true;
   });
 
   window.scene = scene;
+
+  composer = usePostprocessing(scene, renderer, camera);
 
   // 动画循环
   const animate = () => {
     requestAnimationFrame(animate);
     orbitControls.update();
 
+    renderer.clear();
     const delta = clock.getDelta();
     // if (particles.material) {
     //   particles.material.uniforms.uTime.value += delta;
@@ -200,7 +220,8 @@ const initThree = () => {
       preTreatment(delta);
     }
 
-    renderer.render(scene, camera);
+    // renderer.render(scene, camera);
+    composer.render();
   };
 
   animate();
@@ -228,6 +249,9 @@ onMounted(() => {
 
   particles.resolution.set(width, height);
   particles.config = config;
+
+  const numberTexture = generateDigitTextureAtlas();
+  particles.setParticleMap(numberTexture);
 });
 </script>
 

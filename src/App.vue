@@ -1,5 +1,6 @@
 <template>
   <div id="app">
+    <ThreeScene ref="threescene" class="three-scene" />
     <div class="control">
       <button id="start" @click="start">开始</button>
       <button id="stop" @click="stop">结束</button>
@@ -32,7 +33,6 @@
         <!-- src="./tiger.mp4" -->
       </div>
     </div>
-    <ThreeScene ref="threescene" class="three-scene" />
   </div>
 </template>
 
@@ -101,6 +101,6 @@ div {
   flex: 1;
 }
 #video {
-  display: none;
+  /* display: none; */
 }
 </style>

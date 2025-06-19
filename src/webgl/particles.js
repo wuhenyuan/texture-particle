@@ -18,7 +18,6 @@ import {
 // import { particleFrag, particleVert } from "./shader";
 import particleFrag from "./particles.frag";
 import particleVert from "./particles.vert";
-import { InstancedMesh } from "three";
 
 // import TouchTexture from "./TouchTexture";
 

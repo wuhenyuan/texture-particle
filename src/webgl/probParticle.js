@@ -6,22 +6,23 @@ import {
   BufferAttribute,
   MeshBasicMaterial,
   PlaneGeometry,
-  RawShaderMaterial,
+  ShaderMaterial,
   InstancedBufferGeometry,
   LinearMipMapLinearFilter,
+  AdditiveBlending,
   InstancedBufferAttribute,
   LinearFilter,
   RGBFormat,
   RGBAFormat,
   NearestFilter,
+  Color,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
+// import lightSpot from "./lightSpot.png";
+import lightSpot from "./point.png";
 
 import particleFrag from "./probParticles.frag";
 import particleVert from "./probParticles.vert";
-import { InstancedMesh } from "three";
-import { ShaderMaterial } from "three/webgpu";
-import { uniform, vec2 } from "three/tsl";
 
 // import TouchTexture from "./TouchTexture";
 
@@ -36,7 +37,9 @@ export default class ProbParticle extends Object3D {
     this.progress = 0;
     // 可调节参数，2表示每2像素采样一次
     // this.sampleStep = 2;
+    this._sampleStep = 5;
     this.sampleStep = 1;
+    this.pointSize = 1;
     this.sampleStepX = this.sampleStep;
     // this.sampleStepY = this.sampleStepX / ratio;
     this.sampleStepY = this.sampleStep;
@@ -62,6 +65,8 @@ export default class ProbParticle extends Object3D {
       this.width = texture.image.width;
       this.height = texture.image.height;
     }
+    const textureLoader = new TextureLoader();
+    this.pMap = textureLoader.load(lightSpot);
     const maxWidth = 180;
     if (this.width > maxWidth && this.width < this.height) {
       const ratio = this.width / this.height;
@@ -76,11 +81,22 @@ export default class ProbParticle extends Object3D {
   }
 
   setParticleMap(texture) {
-    this.uPTexture = texture;
+    // this.uPTexture = texture;
+    // if (this.material) {
+    // this.material.uniforms.uPTexture.value = texture;
+    // }
+    this.uNumberMap = texture;
     if (this.material) {
-      // this.material.uniforms.uPTexture.value = texture;
+      this.material.uniforms.uNumberMap.value = texture;
     }
     // this.material.needsUpdate = true;
+  }
+
+  setMaskMap(texture) {
+    this.uMaskMap = texture;
+    if (this.material) {
+      this.material.uniforms.uMaskMap.value = texture;
+    }
   }
 
   initPoints(discard) {
@@ -98,11 +114,16 @@ export default class ProbParticle extends Object3D {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
       uDepth: { value: 2.0 },
-      uSize: { value: 0.5 },
+      uSize: { value: this.pointSize },
       uTextureSize: { value: new Vector2(this.width, this.height) },
       uProbabilityMap: { value: this.texture },
       //   uProbabilityMap: { value: this.uPTexture },
+      // uNumberMap: { value: this.uNumberMap },
+      uNumberMap: { value: this.pMap },
+
       uProgress: { value: this.progress },
+      uMaskMap: { value: this.uMaskMap },
+      uParticleColor: { value: new Color(0x4a9fd4) },
       uResolution: { value: this.resolution },
       uThreshold: { value: 0.01 },
       uAlphaScale: { value: 1.0 },
@@ -118,7 +139,7 @@ export default class ProbParticle extends Object3D {
       fragmentShader: particleFrag,
       depthTest: false,
       transparent: true,
-      // blending: AdditiveBlending
+      blending: AdditiveBlending,
     });
     material.onBeforeRender = () => {};
 
@@ -228,9 +249,33 @@ export default class ProbParticle extends Object3D {
 
   update(t) {
     if (!this.material) return;
+    const config = this.config;
     if (this.config) {
       this.material.uniforms.uSuppress.value = this.config.suppress;
     }
+
+    this.material.uniforms.uParticleColor.value.set(config.particleColor);
+
+    if (this._sampleStep !== config.sampleStep) {
+      this._sampleStep = config.sampleStep;
+      if (config.sampleStep >= 10) {
+        this.sampleStep = 5 / config.sampleStep;
+      } else if (config.sampleStep >= 5) {
+        const sampleStep = 10 - config.sampleStep;
+        this.sampleStep = sampleStep / 5;
+      } else {
+        const sampleStep = 10 - config.sampleStep;
+        this.sampleStep = sampleStep / 5;
+      }
+      console.log(this.sampleStep);
+      // this.sampleStep = config.sampleStep;
+      this.sampleStepX = this.sampleStep;
+      // this.sampleStepY = this.sampleStepX / ratio;
+      this.sampleStepY = this.sampleStep;
+      this.initPoints();
+    }
+    this.pointSize = config.pointSize;
+    this.material.uniforms.uSize.value = this.pointSize;
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
