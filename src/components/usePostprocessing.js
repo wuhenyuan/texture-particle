@@ -18,9 +18,9 @@ export default function usePostprocessing(scene, renderer, camera) {
 
   const bloomEffect = new BloomEffect({
     blendFunction: BlendFunction.ADD,
-    luminanceThreshold: 0.01,
+    luminanceThreshold: 0.1,
     luminanceSmoothing: 0.01,
-    intensity: 10,
+    intensity: 0.8,
     mipmapBlur: false,
   });
 
@@ -28,7 +28,7 @@ export default function usePostprocessing(scene, renderer, camera) {
   // luminanceThreshold: 0.5,
   // luminanceSmoothing: 1.3,
 
-  //   composer.addPass(new EffectPass(camera, bloomEffect));
+  composer.addPass(new EffectPass(camera, bloomEffect));
 
   return composer;
 }

@@ -102,6 +102,7 @@ uniform float uDepth;
 uniform float uSize;
 uniform vec2 uTextureSize;
 uniform sampler2D uTexture;
+uniform sampler2D uMaskMap;
 uniform float uProgress;
 // uniform sampler2D uTouch;
 
@@ -129,14 +130,9 @@ void main() {
 
   // progress noise
     float multiplier = uTextureSize.x * 2.0; // distance factor
-  // float modX = mod(displaced.x, 2.0)  < 1.0 ? 1.0 : -1.0;
-  // float modY = mod(displaced.y, 2.0) < 1.0 ? 1.0 : -1.0;
-  // float modZ = mod(displaced.z, 2.0)   < 1.0 ? 1.0 : -1.0;
 
     vec3 randomDir = vec3(noise(displaced.x) * 2.0 - 1.0, noise(displaced.y) * 2.0 - 1.0, noise(200.0) * 2.0 - 1.0);
     vec3 positionTarget = displaced + normalize(randomDir) * multiplier;
-
-  // vec3 positionTarget = vec3(noise(position.x)  * multiplier * modX, noise(position.y) * multiplier * modY, noise(position.z)  * multiplier * modZ );
 
     float noiseOrigin = simplexNoise3d(positionTarget);
     float noiseTarget = simplexNoise3d(displaced);
@@ -149,8 +145,16 @@ void main() {
 
     vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
+    // float noiseStrength = 1.0; // Adjust this value to control the intensity of the noise
+    // // vec3 noiseOffset = vec3((random2D(mixedPosition.xy + uTime * 0.1) - 0.5) * noiseStrength, (random2D(mixedPosition.yx - uTime * 0.1) - 0.5) * noiseStrength, (random2D(mixedPosition.yz + uTime * 0.05) - 0.5) * noiseStrength);
+    // vec3 noiseOffset = vec3((random2D(mixedPosition.xy) - 0.5) * noiseStrength, (random2D(mixedPosition.yx) - 0.5) * noiseStrength, (random2D(mixedPosition.yz) - 0.5) * noiseStrength);
+    // mixedPosition += noiseOffset;
+
+    float mask = texture2D(uMaskMap, vPUv).r;
+
+    float scale1 = sin(uTime * 4. + rand(float(gl_InstanceID)) * 351354.0);
 	// particle size
-    float psize = uSize;
+    float psize = uSize + scale1 * uSize * mix(10., 0.2, uProgress);
 
 	// final position
     vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

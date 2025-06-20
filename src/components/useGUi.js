@@ -50,7 +50,7 @@ export default function useGui(config) {
     .onChange((value) => console.log("uHighProb", value));
 
   gui
-    .add(config, "pointSize", 0, 20, 1)
+    .add(config, "pointSize", 0, 20, 0.01)
     .name("pointSize")
     .onChange((value) => console.log("pointSize", value));
 

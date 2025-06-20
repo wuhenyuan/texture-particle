@@ -8,10 +8,8 @@ import {
   PlaneGeometry,
   ShaderMaterial,
   InstancedBufferGeometry,
-  LinearMipMapLinearFilter,
   AdditiveBlending,
   InstancedBufferAttribute,
-  LinearFilter,
   RGBFormat,
   RGBAFormat,
   NearestFilter,
@@ -139,7 +137,7 @@ export default class ProbParticle extends Object3D {
       fragmentShader: particleFrag,
       depthTest: false,
       transparent: true,
-      blending: AdditiveBlending,
+      // blending: AdditiveBlending,
     });
     material.onBeforeRender = () => {};
 
@@ -278,12 +276,17 @@ export default class ProbParticle extends Object3D {
     this.material.uniforms.uSize.value = this.pointSize;
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
-    if (this.progress < 1) {
-      this.progress = this.time / 3;
+    const max = 0.8;
+    let layer = 4;
+    this.progress = 1 - Math.exp(-0.2 * this.time);
+    if (this.progress < max) {
+      // this.progress = this.time / layer;
+      this.progress = this.progress;
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
+      console.log(this.progress);
     } else {
-      this.material.uniforms.uProgress.value = 1;
+      this.material.uniforms.uProgress.value = max;
     }
   }
 

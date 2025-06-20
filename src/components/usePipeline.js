@@ -13,7 +13,6 @@ import {
   MeshBasicMaterial,
   Mesh,
   VideoTexture,
-  LinearFilter,
   TextureLoader,
   ShaderMaterial,
   WebGLRenderTarget,
@@ -23,6 +22,7 @@ import {
   ClampToEdgeWrapping,
   Vector2,
   NearestFilter,
+  TextureUtils,
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import useGui from "./useGUi";
@@ -49,8 +49,8 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 0.25,
-  sampleStep: 40,
+  pointSize: 0.3,
+  sampleStep: 33,
   particleColor: 0x8299b1,
 };
 
@@ -99,9 +99,9 @@ export default function usePileline(scene, renderer, camera) {
 
           void main() {
             vec4 color = texture2D(tDiffuse, vUv);
-            vec4 bgColor = texture2D(tDiffuse, vec2(0.05, 0.05));
+            vec4 bgColor = texture2D(tDiffuse, vec2(0.1, 0.1));
             float diff = distance(color.rgb, bgColor.rgb);
-            if ( diff <= 0.1) 
+            if ( diff <= 0.4) 
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
             else {
               float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
@@ -183,11 +183,12 @@ export default function usePileline(scene, renderer, camera) {
               discard;
             }
              
-             float gray = 0.299 * maskColor.r + 0.587 * maskColor.g + 0.114 * maskColor.b;
+            //  float gray = 0.299 * maskColor.r + 0.587 * maskColor.g + 0.114 * maskColor.b;
+            float gray = maskColor.r;
 
-             if (gray > uHighProb) {
+            //  if (gray > uHighProb) {
               gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-             }
+            //  }
           }
 `,
   });
@@ -202,7 +203,8 @@ export default function usePileline(scene, renderer, camera) {
     wrapT: ClampToEdgeWrapping,
   });
   highProbabilityMaterial.onBeforeRender = () => {
-    highProbabilityMaterial.uniforms.tMask.value = edgeDetectionRt.texture;
+    highProbabilityMaterial.uniforms.tMask.value = grayRt.texture;
+    // highProbabilityMaterial.uniforms.tMask.value = edgeDetectionRt.texture;
   };
 
   let needUpdateLowProbabilityRt = true;
@@ -682,7 +684,8 @@ void main() {
     // return lowProbabilityRt.texture;
     return {
       probTexture: blendProbRt.texture,
-      maskTexture: grayRt.texture,
+      // maskTexture: grayRt.texture,
+      maskTexture: texture,
     };
   }
 

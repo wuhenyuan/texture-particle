@@ -20,7 +20,6 @@ import {
   MeshBasicMaterial,
   Mesh,
   VideoTexture,
-  LinearFilter,
   NearestFilter,
   TextureLoader,
   ShaderMaterial,

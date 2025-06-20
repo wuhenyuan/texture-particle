@@ -11,14 +11,14 @@ uniform vec3 uParticleColor;
 
 uniform float uTime;
 
+vec4 LinearTosRGB(in vec4 value) {
+  return vec4(mix(pow(value.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), value.rgb * 12.92, vec3(lessThanEqual(value.rgb, vec3(0.0031308)))), value.a);
+}
+
 uniform float uSuppress; // 压制强度(>1时低亮度更低，1为线性，越大压制越狠)
 
 varying vec2 vPUv;                // 粒子在贴图中的 UV
 varying vec2 vUv;
-
-float rand(vec2 co) {
-  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
-}
 
 float randomDigitIndex(vec2 seed) {
   float step = floor(uTime * 3.0); // 每0.5秒变化一次
@@ -63,7 +63,7 @@ void main() {
   // vec4 texColor = texture2D(uNumberMap, atlasUV);
   vec4 texColor = texture2D(uNumberMap, vUv);
   //  字符透明值小于阈值，则不绘制
-  if(texColor.a < 0.1)
+  if(texColor.r < 0.1 || texColor.a < 0.1)
     discard;
 
   // --- 颜色映射 ---
@@ -74,11 +74,12 @@ void main() {
   // vec3 color = vec3(index, index, index);
 
   // --- 遮罩判定（可选） ---
-  float mask = texture2D(uMaskMap, vPUv).r;
+  vec3 mask = texture2D(uMaskMap, vPUv).rgb;
 
   // --- 透明度控制 ---
   // float alpha = pow(p, uFade) * uAlphaScale;
 
   // gl_FragColor = vec4(color, 1.0);
-  gl_FragColor = vec4(color, mix(0.2, .5, mask));
+  gl_FragColor = vec4(color * texColor.r * mask, texColor.r);
+  gl_FragColor = LinearTosRGB(gl_FragColor);
 }
