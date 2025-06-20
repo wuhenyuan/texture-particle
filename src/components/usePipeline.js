@@ -49,10 +49,13 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 0.3,
-  sampleStep: 33,
+  pointSize: 1,
+  sampleStep: 10,
   particleColor: 0x8299b1,
 };
+
+// 是否使用一半
+const useHalf = true;
 
 export default function usePileline(scene, renderer, camera) {
   useGui(config);
@@ -78,6 +81,32 @@ export default function usePileline(scene, renderer, camera) {
 
     return fsGeometry;
   };
+
+  const halfMaterial = new ShaderMaterial({
+    name: "halfMaterial",
+    uniforms: {
+      tDiffuse: { value: null },
+    },
+    vertexShader,
+    fragmentShader: /* glsl */ `
+          precision mediump float;
+          uniform sampler2D tDiffuse;
+          varying vec2 vUv;
+          void main() {
+            vec2 uv = vUv;
+            uv.y = uv.y / 2.0 + 0.5;
+            gl_FragColor = texture2D(tDiffuse, uv);
+          }
+        `,
+  });
+
+  const halfWrapper = new Mesh(getFSGeometry(), halfMaterial);
+  const halfRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+  });
 
   // 可以作为mask
   // init gray , eliminate background 剔除背景了
@@ -119,7 +148,7 @@ export default function usePileline(scene, renderer, camera) {
   });
 
   grayMaterial.onBeforeRender = () => {
-    grayMaterial.uniforms.tDiffuse.value = texture;
+    // grayMaterial.uniforms.tDiffuse.value = texture;
   };
 
   // 低概率图
@@ -218,7 +247,11 @@ export default function usePileline(scene, renderer, camera) {
   edgeDetectionMaterial.uniforms.tdiff.value = texture;
   edgeDetectionMaterial.uniforms.iResolution.value = resulution;
   edgeDetectionMaterial.onBeforeRender = () => {
-    edgeDetectionMaterial.uniforms.tdiff.value = texture;
+    if (useHalf) {
+      edgeDetectionMaterial.uniforms.tdiff.value = halfRt.texture;
+    } else {
+      edgeDetectionMaterial.uniforms.tdiff.value = texture;
+    }
     edgeDetectionMaterial.uniforms.iResolution.value = resulution;
   };
   const edgeDetectionRt = new WebGLRenderTarget(1, 1, {
@@ -579,6 +612,16 @@ void main() {
     if (!texture) return;
     updateRenderConfig();
 
+    if (useHalf) {
+      halfMaterial.uniforms.tDiffuse.value = texture;
+      grayMaterial.uniforms.tDiffuse.value = halfRt.texture;
+      renderer.setRenderTarget(halfRt);
+      renderer.clear();
+      renderer.render(halfWrapper, camera);
+    } else {
+      grayMaterial.uniforms.tDiffuse.value = texture;
+    }
+
     // 提取灰度
     renderer.setRenderTarget(grayRt);
     renderer.clear();
@@ -638,7 +681,11 @@ void main() {
     renderer.clear();
     renderer.render(blendProbWrapper, camera);
 
-    blendMaterial.uniforms.tDiffuse.value = texture;
+    if (useHalf) {
+      blendMaterial.uniforms.tDiffuse.value = halfRt.texture;
+    } else {
+      blendMaterial.uniforms.tDiffuse.value = texture;
+    }
     blendMaterial.uniforms.time.value += time * 1000 * 10;
     // console.log(blendMaterial.uniforms.time.value);
     // 不blur了呢
@@ -664,6 +711,13 @@ void main() {
       width = _texture.image.width;
       height = _texture.image.height;
     }
+
+    debugger;
+
+    if (useHalf) height = height / 2;
+
+    halfRt.setSize(width, height);
+
     resulution.set(width, height);
     grayRt.setSize(width, height);
     lowProbabilityRt.setSize(width, height);
@@ -683,9 +737,10 @@ void main() {
     // return blendRt.texture;
     // return lowProbabilityRt.texture;
     return {
-      probTexture: blendProbRt.texture,
+      // probTexture: blendProbRt.texture,
+      probTexture: halfRt.texture,
       // maskTexture: grayRt.texture,
-      maskTexture: texture,
+      maskTexture: grayRt.texture,
     };
   }
 

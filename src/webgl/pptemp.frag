@@ -35,11 +35,11 @@ void main() {
   vec3 color = vec3(74.0, 159.0, 212.0) / 255.0;
 
   // --- 遮罩判定（可选） ---
-  #ifdef USE_MASK
+  // #ifdef USE_MASK
   float mask = texture2D(uMaskMap, vPUv).r;
-  if(mask < 0.5)
+  if(mask < 0.1)
     discard;
-  #endif
+  // #endif
 
   // --- 透明度控制 ---
   // float alpha = pow(p, uFade) * uAlphaScale;

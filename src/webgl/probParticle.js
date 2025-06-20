@@ -16,8 +16,8 @@ import {
   Color,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
-// import lightSpot from "./lightSpot.png";
-import lightSpot from "./point.png";
+import lightSpot from "./lightSpot.png";
+// import lightSpot from "./point.png";
 
 import particleFrag from "./probParticles.frag";
 import particleVert from "./probParticles.vert";
@@ -49,20 +49,19 @@ export default class ProbParticle extends Object3D {
 
   init(videoTexture, video) {
     this.texture = videoTexture;
-    // this.texture.minFilter = NearestFilter;
-    // this.texture.magFilter = NearestFilter;
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
     if (video) {
       const { videoWidth, videoHeight } = video;
       this.width = videoWidth;
-      this.height = videoHeight;
+      this.height = videoHeight / 2;
     } else {
       const texture = videoTexture;
       this.width = texture.image.width;
       this.height = texture.image.height;
     }
+    // this.height = this.height / 2;init
     const textureLoader = new TextureLoader();
     this.pMap = textureLoader.load(lightSpot);
     const maxWidth = 180;
@@ -83,9 +82,9 @@ export default class ProbParticle extends Object3D {
     // if (this.material) {
     // this.material.uniforms.uPTexture.value = texture;
     // }
-    this.uNumberMap = texture;
+    this.uParticleMap = texture;
     if (this.material) {
-      this.material.uniforms.uNumberMap.value = texture;
+      this.material.uniforms.uParticleMap.value = texture;
     }
     // this.material.needsUpdate = true;
   }
@@ -94,6 +93,13 @@ export default class ProbParticle extends Object3D {
     this.uMaskMap = texture;
     if (this.material) {
       this.material.uniforms.uMaskMap.value = texture;
+    }
+  }
+
+  setHighLightMap(texture) {
+    this.uHighLightMap = texture;
+    if (this.material) {
+      this.material.uniforms.uHighLightMap.value = texture;
     }
   }
 
@@ -106,6 +112,7 @@ export default class ProbParticle extends Object3D {
     const width = Math.floor(this.width / this.sampleStepX);
     const height = Math.floor(this.height / this.sampleStepY);
     this.numPoints = width * height;
+    console.log("sampleStepX", this.sampleStepX);
 
     let numVisible = this.numPoints;
     const uniforms = {
@@ -116,17 +123,15 @@ export default class ProbParticle extends Object3D {
       uTextureSize: { value: new Vector2(this.width, this.height) },
       uProbabilityMap: { value: this.texture },
       //   uProbabilityMap: { value: this.uPTexture },
-      // uNumberMap: { value: this.uNumberMap },
-      uNumberMap: { value: this.pMap },
+      // uParticleMap: { value: this.uParticleMap },
+      uParticleMap: { value: this.pMap },
 
       uProgress: { value: this.progress },
       uMaskMap: { value: this.uMaskMap },
       uParticleColor: { value: new Color(0x4a9fd4) },
       uResolution: { value: this.resolution },
-      uThreshold: { value: 0.01 },
-      uAlphaScale: { value: 1.0 },
-      uFade: { value: 1.0 },
-      uSuppress: { value: 1.0 },
+      uHighLightMap: { value: this.uHighLightMap },
+      uHighLightColor: { value: new Color(0x4a9fd4) },
     };
 
     const material = new ShaderMaterial({
@@ -192,6 +197,7 @@ export default class ProbParticle extends Object3D {
       j++;
     }
 
+    debugger;
     // for (let i = 0, j = 0; i < this.numPoints; i++) {
     //   // if (discard && originalColors[i * 4 + 0] <= threshold) continue;
 
@@ -248,9 +254,9 @@ export default class ProbParticle extends Object3D {
   update(t) {
     if (!this.material) return;
     const config = this.config;
-    if (this.config) {
-      this.material.uniforms.uSuppress.value = this.config.suppress;
-    }
+    // if (this.config) {
+    //   this.material.uniforms.uSuppress.value = this.config.suppress;
+    // }
 
     this.material.uniforms.uParticleColor.value.set(config.particleColor);
 
@@ -276,7 +282,7 @@ export default class ProbParticle extends Object3D {
     this.material.uniforms.uSize.value = this.pointSize;
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
-    const max = 0.8;
+    const max = 1;
     let layer = 4;
     this.progress = 1 - Math.exp(-0.2 * this.time);
     if (this.progress < max) {
@@ -284,7 +290,7 @@ export default class ProbParticle extends Object3D {
       this.progress = this.progress;
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
-      console.log(this.progress);
+      // console.log(this.progress);
     } else {
       this.material.uniforms.uProgress.value = max;
     }

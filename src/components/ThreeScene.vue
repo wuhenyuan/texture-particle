@@ -135,8 +135,11 @@ const initThree = () => {
     }, 10);
   });
 
+  let isInit = false;
   // play 是异步的
   video.addEventListener("canplay", () => {
+    if (isInit) return;
+    isInit = true;
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
     const { probTexture, maskTexture } = getRenderResultTexture();
