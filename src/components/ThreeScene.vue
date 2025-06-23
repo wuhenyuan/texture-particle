@@ -41,9 +41,7 @@ import usePostprocessing from "./usePostprocessing";
 
 import usePileline from "./usePipeline";
 import ProbParticle from "../webgl/probParticle";
-// import useMediaPipe from "./useMediaPipe";
-
-// const { startDetecte } = useMediaPipe();
+import useMediaPipe from "./useMediaPipe";
 
 let preTreatment, updateTexture, getRenderResultTexture;
 
@@ -59,7 +57,9 @@ let height;
 let ratio;
 let particles;
 let composer;
+let startDetecte, detectPicture;
 
+let image;
 const initThree = (isLocal) => {
   // 创建场景
   scene = new Scene();
@@ -91,7 +91,8 @@ const initThree = (isLocal) => {
   const video = document.getElementById("video");
 
   if (isLocal) {
-    video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
+    // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
+    video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     video.loop = true;
     video.autoplay = true;
     video.muted = true; // 在某些浏览器中，视频需要静音才能自动播放
@@ -132,12 +133,13 @@ const initThree = (isLocal) => {
     video.play();
 
     // 播放好像还需要处理
-    setTimeout(() => {
-      // updateTexture(texture, video);
-      // //   // 使用概率分布图作为采样图
-      // const probTexture = getRenderResultTexture();
-      // particles.init(probTexture, video);
-    }, 10);
+    // setTimeout(() => {
+    //   // updateTexture(texture, video);
+    //   // //   // 使用概率分布图作为采样图
+    //   // const probTexture = getRenderResultTexture();
+    //   // particles.init(probTexture, video);
+    // }, 10);
+    // startDetecte();
   });
 
   let isInit = false;
@@ -154,15 +156,17 @@ const initThree = (isLocal) => {
     particles.setHighLightMap(highLightTexture);
   });
 
-  // const image = new Image();
-  // // imageContainer.value.appendChild(image);
-  // // image.src = "/src/assets/haoge.png";
-  // image.onload = () => {
-  //   debugger;
-  //   setTimeout(() => {
-  //     startDetecte(image);
-  //   }, 2000);
-  // };
+  if (isLocal) {
+    image = new Image();
+    // imageContainer.value.appendChild(image);
+    // image.src = "/src/assets/nvde2.png";
+    // image.src = "/src/assets/haoge.png";
+    image.src = "/src/assets/jialuo.jpg";
+
+    image.onload = () => {
+      // detectPicture(image);
+    };
+  }
   // textureLoader.load("/src/assets/haoge.png", (texture) => {
   //   // textureLoader.load("/src/assets/meizi.png", (texture) => {
   //   console.log(texture.image.width, texture.image.height);
@@ -266,8 +270,17 @@ const initThree = (isLocal) => {
   particles.setParticleMap(numberTexture);
 };
 
+function startFaceDetect() {
+  startDetecte();
+}
+
+function detectP() {
+  detectPicture(image);
+}
 defineExpose({
   initThree,
+  startFaceDetect,
+  detectP,
 });
 
 onMounted(() => {
@@ -275,6 +288,9 @@ onMounted(() => {
   height = threeContainer.value.clientHeight;
   ratio = width / height;
   // initThree();
+  const { startDetecte: _start, detectPicture: _dp } = useMediaPipe();
+  startDetecte = _start;
+  detectPicture = _dp;
 });
 </script>
 

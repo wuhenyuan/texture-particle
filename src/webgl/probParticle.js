@@ -203,7 +203,6 @@ export default class ProbParticle extends Object3D {
       j++;
     }
 
-    debugger;
     // for (let i = 0, j = 0; i < this.numPoints; i++) {
     //   // if (discard && originalColors[i * 4 + 0] <= threshold) continue;
 

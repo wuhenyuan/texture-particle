@@ -2,6 +2,7 @@
   <div id="app">
     <ThreeScene ref="threescene" class="three-scene" />
     <div class="control">
+      <button id="startFace" @click="startFace">开始人脸</button>
       <button id="start" @click="start">开始</button>
       <button id="stop" @click="stop">结束</button>
       <div>
@@ -16,6 +17,9 @@
           readonly="true"
           style="width: 100%; height: 100%"
         ></textarea>
+      </div>
+      <div id="outputContianer">
+        <canvas id="output"></canvas>
       </div>
       <div id="media">
         <h2>Media</h2>
@@ -52,12 +56,20 @@ export default {
     };
   },
   methods: {
+    startFace() {
+      this.$refs.threescene.startFaceDetect();
+      // this.$refs.threescene.detectP();
+    },
     start() {
       const isLocal = true;
-      // debugger;
       this.$refs.threescene.initThree(isLocal);
+      // debugger;
       if (isLocal) return;
-      // startConnect();
+      try {
+        startConnect();
+      } catch (e) {
+        console.log(e);
+      }
       // return;
 
       // 开启视频链接;
@@ -70,8 +82,8 @@ export default {
       } catch (error) {
         console.log(error);
       } finally {
-        stop();
       }
+      stop();
     },
     send() {
       uploadToHuman(this.inputValue);
@@ -110,6 +122,11 @@ div {
 }
 .three-scene {
   flex: 1;
+}
+
+#output {
+  width: 200px;
+  height: 200px;
 }
 #video {
 }

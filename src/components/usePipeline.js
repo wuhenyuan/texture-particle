@@ -49,7 +49,7 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1.5,
+  pointSize: 1.2,
   sampleStep: 1,
   diff: 0.2,
   // particleColor: 0x8299b1,
@@ -141,10 +141,10 @@ export default function usePileline(scene, renderer, camera) {
             vec4 color = texture2D(tDiffuse, vUv);
             vec4 bgColor = texture2D(tDiffuse, vec2(0.1, 0.1));
             float diff = distance(color.rgb, bgColor.rgb);
+            float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
             if ( diff <= uDiff) 
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
             else {
-              float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
               gl_FragColor = vec4(gray, gray, gray, 1.0);
             }
           }
@@ -596,7 +596,7 @@ void main() {
     );
     plane.position.z = 0;
     const offset1 = offset ? 1 : -1;
-    plane.position.x = offset1 * (texture.image.width / scale / 3);
+    plane.position.x = offset1 * (texture.image.width / scale / 4);
     // console.log(plane.position);
     // plane.position.y = -texture.image.height / 2;
     scene.add(plane);
@@ -607,7 +607,7 @@ void main() {
     // showHandleResult(digitTexture, 0);
     // showHandleResult(lowProbabilityRt.texture, 0);
     showHandleResult(edgeDetectionRt.texture, 0);
-    showHandleResult(expandRt.texture, 1);
+    // showHandleResult(expandRt.texture, 1);
     // showHandleResult(blurRt2.texture, 1);
     // showHandleResult(highProbabilityRt.texture, 1);
     // showHandleResult(blendProbRt.texture, 1);
@@ -762,7 +762,7 @@ void main() {
     blurRt2.setSize(width, height);
     blendRt.setSize(width, height);
     probRt.setSize(width, height);
-    // show();
+    show();
   }
 
   function getRenderResultTexture() {
