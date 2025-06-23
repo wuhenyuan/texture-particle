@@ -14,14 +14,19 @@ import {
   RGBAFormat,
   NearestFilter,
   Color,
+  ShaderChunk,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
-import lightSpot from "./lightSpot.png";
+// import lightSpot from "./lightSpot.png";
+import lightSpot from "./point1234.png";
 // import lightSpot from "./point.png";
 
 import particleFrag from "./probParticles.frag";
 import particleVert from "./probParticles.vert";
+import noise from "./noiseShader";
 
+ShaderChunk.noise = noise;
+// console.log(ShaderChunk);
 // import TouchTexture from "./TouchTexture";
 
 /**概率粒子 */
@@ -123,8 +128,8 @@ export default class ProbParticle extends Object3D {
       uTextureSize: { value: new Vector2(this.width, this.height) },
       uProbabilityMap: { value: this.texture },
       //   uProbabilityMap: { value: this.uPTexture },
-      // uParticleMap: { value: this.uParticleMap },
-      uParticleMap: { value: this.pMap },
+      uParticleMap: { value: this.uParticleMap },
+      uHparticleMap: { value: this.pMap },
 
       uProgress: { value: this.progress },
       uMaskMap: { value: this.uMaskMap },
@@ -142,6 +147,7 @@ export default class ProbParticle extends Object3D {
       fragmentShader: particleFrag,
       depthTest: false,
       transparent: true,
+      toneMapped: true,
       // blending: AdditiveBlending,
     });
     material.onBeforeRender = () => {};
@@ -259,6 +265,8 @@ export default class ProbParticle extends Object3D {
     // }
 
     this.material.uniforms.uParticleColor.value.set(config.particleColor);
+    this.material.uniforms.uHighLightColor.value.set(config.uHighLightColor);
+    // console.log(this.material.uniforms.uHighLightColor.value);
 
     if (this._sampleStep !== config.sampleStep) {
       this._sampleStep = config.sampleStep;
@@ -271,7 +279,6 @@ export default class ProbParticle extends Object3D {
         const sampleStep = 10 - config.sampleStep;
         this.sampleStep = sampleStep / 5;
       }
-      console.log(this.sampleStep);
       // this.sampleStep = config.sampleStep;
       this.sampleStepX = this.sampleStep;
       // this.sampleStepY = this.sampleStepX / ratio;

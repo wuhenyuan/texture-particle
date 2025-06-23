@@ -20,9 +20,9 @@
       <div id="media">
         <h2>Media</h2>
 
+        <!-- src="./assets/testVideo.mp4" -->
         <audio id="audio" autoplay="true"></audio>
         <video
-          src="./assets/testVideo.mp4"
           id="video"
           style="width: 600px"
           muted="true"
@@ -40,6 +40,7 @@
 import ThreeScene from "./components/ThreeScene.vue";
 import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
+import { DebugEnvironment } from "three/examples/jsm/Addons.js";
 export default {
   name: "App",
   components: {
@@ -52,15 +53,25 @@ export default {
   },
   methods: {
     start() {
-      this.$refs.threescene.initThree();
-      // return;
+      const isLocal = true;
+      // debugger;
+      this.$refs.threescene.initThree(isLocal);
+      if (isLocal) return;
       // startConnect();
-      // 开启视频链接
-      // start();
+      // return;
+
+      // 开启视频链接;
+      start();
     },
     stop() {
-      stopAsr();
-      stop();
+      try {
+        stopAsr();
+        stop();
+      } catch (error) {
+        console.log(error);
+      } finally {
+        stop();
+      }
     },
     send() {
       uploadToHuman(this.inputValue);
@@ -101,6 +112,5 @@ div {
   flex: 1;
 }
 #video {
-  /* display: none; */
 }
 </style>

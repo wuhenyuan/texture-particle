@@ -18,12 +18,12 @@ export default defineConfig({
     port: 9990,
     proxy: {
       "/offer": {
-        target: "http://10.7.9.111:8010",
+        target: "http://10.7.3.50:8010",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/offer/, "/offer"), //请求路径加上'/train'
       },
       "/human": {
-        target: "http://10.7.9.111:8010",
+        target: "http://10.7.3.50:8010",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/human/, "/human"), //请求路径加上'/train'
       },

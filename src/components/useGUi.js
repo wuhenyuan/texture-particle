@@ -35,7 +35,7 @@ export default function useGui(config) {
   //   .onChange((value) => console.log("suppress", value));
 
   gui
-    .add(config, "contrast", 0, 20)
+    .add(config, "contrast", 0, 100)
     .name("contrast")
     .onChange((value) => console.log("contrast", value));
 
@@ -60,7 +60,17 @@ export default function useGui(config) {
     .onChange((value) => console.log("sampleStep", value));
 
   gui
+    .add(config, "diff")
+    .name("背景差异")
+    .onChange((value) => console.log("diff", value));
+
+  gui
     .addColor(config, "particleColor")
     .name("粒子颜色")
     .onChange((value) => console.log("particleColor", value));
+
+  gui
+    .addColor(config, "uHighLightColor")
+    .name("粒子颜色")
+    .onChange((value) => console.log("cons", value));
 }

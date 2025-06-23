@@ -2,7 +2,6 @@
 // @author brunoimbrizi / http://brunoimbrizi.com
 
 #include <noise>
-#include <commoon>
 
 float rand(float n) {
     return fract(sin(n) * 43758.5453123);
@@ -31,6 +30,7 @@ uniform float uSize;
 uniform vec2 uTextureSize;
 uniform sampler2D uProbabilityMap;
 uniform sampler2D uMaskMap;
+uniform sampler2D uHighLightMap;  //高光贴图
 uniform float uProgress;
 // uniform sampler2D uTouch;
 
@@ -95,8 +95,9 @@ void main() {
     // vec3 noiseOffset = vec3((random2D(mixedPosition.xy) - 0.5) * noiseStrength, (random2D(mixedPosition.yx) - 0.5) * noiseStrength, (random2D(mixedPosition.yz) - 0.5) * noiseStrength);
     // mixedPosition += noiseOffset;
 
-    float mask = texture2D(uMaskMap, vPUv).r;
+    float hightProp = dot(texture2D(uHighLightMap, vPUv).rgb, vec3(0.299, 0.587, 0.114));
 
+    float mask = texture2D(uMaskMap, vPUv).r;
     // float scale1 = sin(uTime * 4. + rand(float(gl_InstanceID)) * 351354.0);
 	// particle size
     // float psize = uSize + scale1 * uSize * mix(10., 0.2, uProgress);
@@ -109,6 +110,7 @@ void main() {
     float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
     // psize *= max(grey, 0.5);
     psize *= uSize;
+    // psize *= hightProp > 0.05 ? 1.0 : 2.0;
 
 	// final position
     vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

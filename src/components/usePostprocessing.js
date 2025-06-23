@@ -20,7 +20,7 @@ export default function usePostprocessing(scene, renderer, camera) {
     blendFunction: BlendFunction.ADD,
     luminanceThreshold: 0.1,
     luminanceSmoothing: 0.01,
-    intensity: 0.8,
+    intensity: 5,
     mipmapBlur: false,
   });
 

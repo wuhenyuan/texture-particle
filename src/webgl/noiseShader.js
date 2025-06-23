@@ -1,6 +1,6 @@
 import { ShaderChunk } from "three";
 
-ShaderChunk.noise = /*glsl*/ `
+const noise = /*glsl*/ `
 float random2D(vec2 value) {
     return fract(sin(dot(value.xy, vec2(12.9898, 78.233))) * 43758.5453123);
 }
@@ -137,3 +137,5 @@ float snoise(vec2 v) {
     g.yz = a0.yz * x12.xz + h.yz * x12.yw;
     return 130.0 * dot(m, g);
 }`;
+
+export default noise;

@@ -1,6 +1,8 @@
 <!-- src/components/ThreeScene.vue -->
 <template>
-  <div ref="threeContainer" class="three-container"></div>
+  <div ref="threeContainer" class="three-container">
+    <div ref="imageContainer" class="image-container"></div>
+  </div>
 </template>
 
 <script setup>
@@ -39,6 +41,9 @@ import usePostprocessing from "./usePostprocessing";
 
 import usePileline from "./usePipeline";
 import ProbParticle from "../webgl/probParticle";
+// import useMediaPipe from "./useMediaPipe";
+
+// const { startDetecte } = useMediaPipe();
 
 let preTreatment, updateTexture, getRenderResultTexture;
 
@@ -48,13 +53,14 @@ let camera;
 let renderer;
 let clock;
 const threeContainer = ref(null);
+const imageContainer = ref(null);
 let width;
 let height;
 let ratio;
 let particles;
 let composer;
 
-const initThree = () => {
+const initThree = (isLocal) => {
   // 创建场景
   scene = new Scene();
 
@@ -82,20 +88,20 @@ const initThree = () => {
   orbitControls.maxPolarAngle = Math.PI / 2;
 
   // 创建视频纹理
-  // const video = document.createElement("video");
   const video = document.getElementById("video");
-  video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
-  video.loop = true;
-  video.autoplay = true;
-  video.muted = true; // 在某些浏览器中，视频需要静音才能自动播放
-  video.load();
-  video.play(); // 开始播放视频
 
-  // 将视频元素隐藏
-  // video.style.display = "none";
-  // document.body.appendChild(video); // 将视频元素添加到body中，但设置为不可见
-
-  // const video = document.getElementById("video");
+  if (isLocal) {
+    video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
+    video.loop = true;
+    video.autoplay = true;
+    video.muted = true; // 在某些浏览器中，视频需要静音才能自动播放
+    video.load();
+    video.play(); // 开始播放视频
+    // 将视频元素隐藏;
+    // video.style.displa/y = "none";
+    // document.body.appendChild(video); // 将视频元素添加到body中，但设置为不可见
+    // const video = document.getElementById("video");
+  }
 
   // test particle
   const textureLoader = new TextureLoader();
@@ -104,7 +110,6 @@ const initThree = () => {
 
   let videoTexture;
   video.addEventListener("loadedmetadata", () => {
-    debugger;
     const { videoWidth, videoHeight } = video;
 
     const ratio = videoWidth / videoHeight;
@@ -142,10 +147,22 @@ const initThree = () => {
     isInit = true;
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
-    const { probTexture, maskTexture } = getRenderResultTexture();
+    const { probTexture, maskTexture, highLightTexture } =
+      getRenderResultTexture();
     particles.init(probTexture, video);
     particles.setMaskMap(maskTexture);
+    particles.setHighLightMap(highLightTexture);
   });
+
+  // const image = new Image();
+  // // imageContainer.value.appendChild(image);
+  // // image.src = "/src/assets/haoge.png";
+  // image.onload = () => {
+  //   debugger;
+  //   setTimeout(() => {
+  //     startDetecte(image);
+  //   }, 2000);
+  // };
   // textureLoader.load("/src/assets/haoge.png", (texture) => {
   //   // textureLoader.load("/src/assets/meizi.png", (texture) => {
   //   console.log(texture.image.width, texture.image.height);
@@ -179,26 +196,26 @@ const initThree = () => {
   //   particles.init(probTexture);
   // });
 
-  textureLoader.load("/src/assets/3.png", (texture) => {
-    console.log(texture.image.width);
-    // const ratio = texture.image.width / texture.image.height;
-    let repeatX = 1,
-      repeatY = 1;
-    let offsetX = 0,
-      offsetY = 0;
-    if (ratio < 1) {
-      repeatX = 1 / ratio;
-      offsetX = (1 - repeatX) / 2;
-    } else {
-      repeatY = ratio;
-      offsetY = (1 - repeatY) / 2;
-    }
-    // texture.repeat.set(repeatX, repeatY);
-    // texture.offset.set(offsetX, offsetY);
-    // texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
-    // particles.setParticleMap(texture);
-    texture.needsUpdate = true;
-  });
+  // textureLoader.load("/src/assets/3.png", (texture) => {
+  //   console.log(texture.image.width);
+  //   // const ratio = texture.image.width / texture.image.height;
+  //   let repeatX = 1,
+  //     repeatY = 1;
+  //   let offsetX = 0,
+  //     offsetY = 0;
+  //   if (ratio < 1) {
+  //     repeatX = 1 / ratio;
+  //     offsetX = (1 - repeatX) / 2;
+  //   } else {
+  //     repeatY = ratio;
+  //     offsetY = (1 - repeatY) / 2;
+  //   }
+  //   // texture.repeat.set(repeatX, repeatY);
+  //   // texture.offset.set(offsetX, offsetY);
+  //   // texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
+  //   // particles.setParticleMap(texture);
+  //   texture.needsUpdate = true;
+  // });
 
   window.scene = scene;
 
@@ -231,14 +248,7 @@ const initThree = () => {
   scene = scene;
   camera = camera;
   renderer = renderer;
-};
 
-onMounted(() => {
-  width = threeContainer.value.clientWidth;
-  height = threeContainer.value.clientHeight;
-  ratio = width / height;
-
-  initThree();
   const {
     preTreatment: _preTreatment,
     updatePipelineConfig: _updateTexture,
@@ -254,6 +264,17 @@ onMounted(() => {
 
   const numberTexture = generateDigitTextureAtlas();
   particles.setParticleMap(numberTexture);
+};
+
+defineExpose({
+  initThree,
+});
+
+onMounted(() => {
+  width = threeContainer.value.clientWidth;
+  height = threeContainer.value.clientHeight;
+  ratio = width / height;
+  // initThree();
 });
 </script>
 

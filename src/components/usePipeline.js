@@ -23,12 +23,12 @@ import {
   Vector2,
   NearestFilter,
   TextureUtils,
+  LinearFilter,
+  Color,
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import useGui from "./useGUi";
 import generateDigitTextureAtlas from "./useNumberTexture";
-import { highpModelViewMatrix } from "three/src/nodes/TSL.js";
-import { render } from "vue";
 
 const vertexShader = /*glsl*/ `
           varying vec2 vUv;
@@ -45,14 +45,23 @@ const config = {
   sharpen: 0.4,
   blendRatio: 0.13,
   suppress: 0.5,
-  contrast: 10,
+  contrast: 80,
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1,
-  sampleStep: 10,
-  particleColor: 0x8299b1,
+  pointSize: 1.5,
+  sampleStep: 1,
+  diff: 0.2,
+  // particleColor: 0x8299b1,
+  particleColor: 0x89bcff,
+  uHighLightColor: 0x7cbcff,
 };
+
+let color2 = new Color(0x7cbcff);
+color2.set(0.125, 0.25, 0.5);
+window.color2 = color2;
+// console.log(color2.r, color2.g, color2.b);
+console.log(color2.getHexString());
 
 // 是否使用一半
 const useHalf = true;
@@ -114,11 +123,13 @@ export default function usePileline(scene, renderer, camera) {
     name: "grayMaterial",
     uniforms: {
       tDiffuse: { value: null },
+      uDiff: { value: null },
     },
     vertexShader,
     fragmentShader: /* glsl */ `
           precision mediump float;
           uniform sampler2D tDiffuse;
+          uniform float uDiff;
           varying vec2 vUv;
 
           float euclideanDistance(vec3 col1, vec3 col2) {
@@ -130,7 +141,7 @@ export default function usePileline(scene, renderer, camera) {
             vec4 color = texture2D(tDiffuse, vUv);
             vec4 bgColor = texture2D(tDiffuse, vec2(0.1, 0.1));
             float diff = distance(color.rgb, bgColor.rgb);
-            if ( diff <= 0.4) 
+            if ( diff <= uDiff) 
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
             else {
               float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
@@ -141,8 +152,8 @@ export default function usePileline(scene, renderer, camera) {
   });
   const grayWrapper = new Mesh(getFSGeometry(), grayMaterial);
   const grayRt = new WebGLRenderTarget(1, 1, {
-    minFilter: NearestFilter,
-    magFilter: NearestFilter,
+    minFilter: LinearFilter,
+    magFilter: LinearFilter,
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
   });
@@ -243,6 +254,7 @@ export default function usePileline(scene, renderer, camera) {
   const edgeDetectionMaterial = new ShaderMaterial({
     ...edgeDetection,
   });
+  const channelResulution = new Vector2();
   const edgeDetectionWrapper = new Mesh(getFSGeometry(), edgeDetectionMaterial);
   edgeDetectionMaterial.uniforms.tdiff.value = texture;
   edgeDetectionMaterial.uniforms.iResolution.value = resulution;
@@ -253,10 +265,12 @@ export default function usePileline(scene, renderer, camera) {
       edgeDetectionMaterial.uniforms.tdiff.value = texture;
     }
     edgeDetectionMaterial.uniforms.iResolution.value = resulution;
+    channelResulution.set(width, height);
+    edgeDetectionMaterial.uniforms.iChannelResolution.value = channelResulution;
   };
   const edgeDetectionRt = new WebGLRenderTarget(1, 1, {
-    minFilter: NearestFilter,
-    magFilter: NearestFilter,
+    minFilter: LinearFilter,
+    magFilter: LinearFilter,
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
   });
@@ -272,7 +286,8 @@ export default function usePileline(scene, renderer, camera) {
       resolution: {
         value: resulution,
       },
-      u_size: { value: 1.0 },
+      uContrast: { value: null },
+      u_size: { value: 2.0 },
     },
     vertexShader: /*glsl*/ `
         varying vec2 vUv;
@@ -287,8 +302,13 @@ export default function usePileline(scene, renderer, camera) {
         uniform sampler2D tDiffuse;  // 边缘图（黑白图）
         uniform vec2 resolution;     // = 1.0 / resolution.xy
         uniform float u_size;
+        uniform float uContrast;
 
         varying vec2 vUv;
+        float contrast(float x, float k) {
+        // x: 原始亮度值（0~1），k: 强度（建议 5~15）
+        return 1.0 / (1.0 + exp(-k * (x - 0.5)));
+        }
 
         void main() {
           float maxVal = 0.0;
@@ -303,6 +323,11 @@ export default function usePileline(scene, renderer, camera) {
               maxVal = max(maxVal, sampleVal);
             }
           }
+
+
+          float g = maxVal;
+          g = clamp((g - 0.1) / (0.9 - 0.1), 0.0, 1.0);  // 将 0.1~0.9 映射到 0~1
+          g = contrast(g, uContrast);  // k 越大，对比越强（推荐 8~12）
 
           gl_FragColor = vec4(vec3(maxVal), 1.0);  // 白 = 膨胀区域
         }
@@ -402,7 +427,6 @@ export default function usePileline(scene, renderer, camera) {
           varying vec2 vUv;
           uniform float time;
 
-          
         float contrast(float x, float k) {
         // x: 原始亮度值（0~1），k: 强度（建议 5~15）
         return 1.0 / (1.0 + exp(-k * (x - 0.5)));
@@ -561,7 +585,7 @@ void main() {
 
   //   initresult
   const showHandleResult = (texture, offset) => {
-    const scale = 4;
+    const scale = 2;
     const plane = new Mesh(
       new PlaneGeometry(
         texture.image.width / scale,
@@ -572,7 +596,7 @@ void main() {
     );
     plane.position.z = 0;
     const offset1 = offset ? 1 : -1;
-    plane.position.x = offset1 * (texture.image.width / scale / 2);
+    plane.position.x = offset1 * (texture.image.width / scale / 3);
     // console.log(plane.position);
     // plane.position.y = -texture.image.height / 2;
     scene.add(plane);
@@ -582,8 +606,8 @@ void main() {
     // showHandleResult(grayRt.texture, 0);
     // showHandleResult(digitTexture, 0);
     // showHandleResult(lowProbabilityRt.texture, 0);
-    // showHandleResult(edgeDetectionRt.texture, 0);
-    // showHandleResult(expandRt.texture, 1);
+    showHandleResult(edgeDetectionRt.texture, 0);
+    showHandleResult(expandRt.texture, 1);
     // showHandleResult(blurRt2.texture, 1);
     // showHandleResult(highProbabilityRt.texture, 1);
     // showHandleResult(blendProbRt.texture, 1);
@@ -596,6 +620,12 @@ void main() {
       needUpdateLowProbabilityRt = true;
       renderTime = -2;
     }
+
+    grayMaterial.uniforms.uDiff.value = config.diff;
+
+    edgeDetection.uniforms.uContrast.value = config.contrast;
+
+    expandMaterial.uniforms.uContrast.value = config.contrast;
 
     lowProbabilityMaterial.uniforms.uLowProb.value = config.uLowProb;
     highProbabilityMaterial.uniforms.uHighProb.value = config.uHighProb;
@@ -637,10 +667,12 @@ void main() {
     }
 
     // render edge detection
+    resulution.set(width * 2, height * 2);
     renderer.setRenderTarget(edgeDetectionRt);
     renderer.clear();
     renderer.render(edgeDetectionWrapper, camera);
 
+    resulution.set(width, height);
     // render expand
     renderer.setRenderTarget(expandRt);
     renderer.clear();
@@ -712,9 +744,10 @@ void main() {
       height = _texture.image.height;
     }
 
-    debugger;
-
     if (useHalf) height = height / 2;
+
+    const dwidth = width * 2;
+    const dheight = height * 2;
 
     halfRt.setSize(width, height);
 
@@ -722,14 +755,14 @@ void main() {
     grayRt.setSize(width, height);
     lowProbabilityRt.setSize(width, height);
     highProbabilityRt.setSize(width, height);
-    edgeDetectionRt.setSize(width, height);
+    edgeDetectionRt.setSize(dwidth, dheight);
     expandRt.setSize(width, height);
     blurRt1.setSize(width, height);
     blendProbRt.setSize(width, height);
     blurRt2.setSize(width, height);
     blendRt.setSize(width, height);
     probRt.setSize(width, height);
-    show();
+    // show();
   }
 
   function getRenderResultTexture() {
@@ -738,9 +771,12 @@ void main() {
     // return lowProbabilityRt.texture;
     return {
       // probTexture: blendProbRt.texture,
-      probTexture: halfRt.texture,
+      probTexture: grayRt.texture,
       // maskTexture: grayRt.texture,
       maskTexture: grayRt.texture,
+      particleMap: digitTexture,
+      highLightTexture: edgeDetectionRt.texture,
+      // highLightTexture: expandRt.texture,
     };
   }
 

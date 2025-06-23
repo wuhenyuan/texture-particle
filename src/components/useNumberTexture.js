@@ -1,6 +1,7 @@
 import { CanvasTexture, LinearFilter } from "three";
 export default function generateDigitTextureAtlas() {
-  const cols = 10;
+  // const cols = 10;
+  const cols = 1;
   const rows = 1;
   const cellSize = 128;
   const canvas = document.createElement("canvas");
@@ -16,7 +17,7 @@ export default function generateDigitTextureAtlas() {
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < cols; i++) {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = col * cellSize + cellSize / 2;

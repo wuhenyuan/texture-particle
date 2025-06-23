@@ -35,7 +35,7 @@ function negotiate() {
       // );
       // return;
       // return fetch("http://10.7.9.111:8010/offer", {
-      return fetch("http://10.7.9.111:8010/offer", {
+      return fetch("http://10.7.3.50:8010/offer", {
         body: JSON.stringify({
           sdp: offer.sdp,
           type: offer.type,
@@ -61,7 +61,7 @@ function negotiate() {
 
 export function uploadToHuman(text) {
   if (!sessionid) return;
-  fetch("http://10.7.9.111:8010/human", {
+  fetch("http://10.7.3.50:8010/human", {
     body: JSON.stringify({
       text: text,
       type: "chat",

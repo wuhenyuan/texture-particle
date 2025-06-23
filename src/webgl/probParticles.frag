@@ -4,16 +4,14 @@ precision highp float;
 uniform sampler2D uProbabilityMap; // 概率图（灰度，采样密度）
 uniform sampler2D uMaskMap;       // 可选：遮罩贴图，黑色区域剔除
 uniform sampler2D uParticleMap;  //粒子贴图
+uniform sampler2D uHparticleMap; //高光粒子贴图
 uniform sampler2D uHighLightMap;  //高光贴图
+
 uniform float uFade;              // 可选的淡出因子
 uniform vec3 uParticleColor;
 uniform vec3 uHighLightColor;
 
 uniform float uTime;
-
-vec4 LinearTosRGB(in vec4 value) {
-  return vec4(mix(pow(value.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), value.rgb * 12.92, vec3(lessThanEqual(value.rgb, vec3(0.0031308)))), value.a);
-}
 
 uniform float uSuppress; // 压制强度(>1时低亮度更低，1为线性，越大压制越狠)
 
@@ -60,9 +58,24 @@ void main() {
   vec2 cellSize = vec2(1.0 / cols, 1.0 / rows);
   vec2 atlasUV = vUv * cellSize + vec2(col, row) * cellSize;
 
-  vec4 texColor = texture2D(uParticleMap, vUv);
-  if(texColor.r < 0.1 || texColor.a < 0.1)
+  vec4 texColor1 = texture2D(uParticleMap, vUv);
+
+  vec4 texColor2 = texture2D(uHparticleMap, vUv);
+  float useHighColor = dot(texture2D(uHighLightMap, vPUv).rgb, vec3(0.299, 0.587, 0.114));
+  float hightRatio = useHighColor > 0.05 ? 1.0 : 0.0;
+  if(texColor1.r < 0.1 || texColor1.a < 0.1)
     discard;
+  // if(hightRatio == 0.0) {
+  //   if(texColor1.r < 0.1 || texColor1.a < 0.1)
+  //     discard;
+  // } else {
+
+  //   if(texColor2.r < 0.1 || texColor2.a < 0.1)
+  //     discard;
+  // }
+
+  // vec4 texColor = mix(texColor2, texColor1, hightRatio);
+  vec4 texColor = texColor1;
 
   // --- 颜色映射 ---
   // vec3 color = texture2D(uColorMap, vPUv).rgb;
@@ -72,13 +85,18 @@ void main() {
 
   vec3 mask = texture2D(uMaskMap, vPUv).rgb;
 
-  if(mask.r < 0.1)
-    discard;
+  // if(mask.r < 0.05)
+  //   discard;
 
   // --- 透明度控制 ---
   // float alpha = pow(p, uFade) * uAlphaScale;
 
+  vec4 finalColor = mix(vec4(color * texColor.r * max(0.5, mask.r), texColor.r), vec4(uHighLightColor, useHighColor), hightRatio);
+  // vec4 finalColor = mix(vec4(color * texColor.r * mask.r, texColor.r), vec4(0.25, .5, 1.0, 1.0), useHighColor);
+  finalColor.a = mix(0.3, 0.4, hightRatio);
+
   // gl_FragColor = vec4(color, 1.0);
-  gl_FragColor = vec4(color * texColor.r * mask.r, texColor.r);
-  gl_FragColor = LinearTosRGB(gl_FragColor);
+  gl_FragColor = finalColor;
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
 }
