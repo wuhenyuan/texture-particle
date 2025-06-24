@@ -161,7 +161,9 @@ const initThree = (isLocal) => {
     // imageContainer.value.appendChild(image);
     // image.src = "/src/assets/nvde2.png";
     // image.src = "/src/assets/haoge.png";
-    image.src = "/src/assets/jialuo.jpg";
+    image.src = "/src/assets/jialuo2.jpg";
+    // image.src = "/src/assets/jialuo1.jpg";
+    // image.src = "/src/assets/jialuo.jpg";
 
     image.onload = () => {
       // detectPicture(image);
@@ -287,10 +289,10 @@ onMounted(() => {
   width = threeContainer.value.clientWidth;
   height = threeContainer.value.clientHeight;
   ratio = width / height;
-  // initThree();
   const { startDetecte: _start, detectPicture: _dp } = useMediaPipe();
   startDetecte = _start;
   detectPicture = _dp;
+  initThree(true);
 });
 </script>
 

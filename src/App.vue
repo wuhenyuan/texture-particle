@@ -57,8 +57,8 @@ export default {
   },
   methods: {
     startFace() {
-      this.$refs.threescene.startFaceDetect();
-      // this.$refs.threescene.detectP();
+      // this.$refs.threescene.startFaceDetect();
+      this.$refs.threescene.detectP();
     },
     start() {
       const isLocal = true;

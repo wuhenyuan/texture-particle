@@ -64,7 +64,7 @@ window.color2 = color2;
 console.log(color2.getHexString());
 
 // 是否使用一半
-const useHalf = true;
+const useHalf = false;
 
 export default function usePileline(scene, renderer, camera) {
   useGui(config);
@@ -139,11 +139,12 @@ export default function usePileline(scene, renderer, camera) {
 
           void main() {
             vec4 color = texture2D(tDiffuse, vUv);
-            vec4 bgColor = texture2D(tDiffuse, vec2(0.1, 0.1));
+            vec4 bgColor = texture2D(tDiffuse, vec2(0.0, 0.0));
             float diff = distance(color.rgb, bgColor.rgb);
             float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
-            if ( diff <= uDiff) 
-              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            if ( diff < 0.1) 
+              // gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            gl_FragColor = bgColor;
             else {
               gl_FragColor = vec4(gray, gray, gray, 1.0);
             }
@@ -762,7 +763,7 @@ void main() {
     blurRt2.setSize(width, height);
     blendRt.setSize(width, height);
     probRt.setSize(width, height);
-    show();
+    // show();
   }
 
   function getRenderResultTexture() {

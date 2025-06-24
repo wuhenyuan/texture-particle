@@ -60,7 +60,7 @@ export default class ProbParticle extends Object3D {
     if (video) {
       const { videoWidth, videoHeight } = video;
       this.width = videoWidth;
-      this.height = videoHeight / 2;
+      this.height = videoHeight;
     } else {
       const texture = videoTexture;
       this.width = texture.image.width;

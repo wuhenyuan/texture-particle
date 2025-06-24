@@ -4,7 +4,7 @@ const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
 export default function useMediaPipe() {
   const video: HTMLVideoElement = document.getElementById("video")!;
   console.log(video);
-  const canvasElement = document.getElementById("output");
+  const canvasElement = document.getElementById("output") as HTMLCanvasElement;
   const ctx = canvasElement.getContext("2d");
 
   const videoWidth = 480;
@@ -116,6 +116,10 @@ export default function useMediaPipe() {
     const radio = video.videoHeight / video.videoWidth;
     video.style.width = videoWidth + "px";
     video.style.height = videoWidth * radio + "px";
+    canvasElement.style.width = videoWidth + "px";
+    canvasElement.style.height = videoWidth * radio + "px";
+    canvasElement.width = video.videoWidth;
+    canvasElement.height = video.videoHeight;
     // Now let's start detecting the stream.
     let startTimeMs = performance.now();
     if (lastVideoTime !== video.currentTime) {
@@ -124,6 +128,8 @@ export default function useMediaPipe() {
       console.log(results);
     }
     if (results.faceLandmarks) {
+      // ctx.fillStyle = "#000"; // 背景色
+      // ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
       for (const landmarks of results.faceLandmarks) {
         drawingUtils.drawConnectors(
           landmarks,
