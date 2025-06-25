@@ -1,5 +1,6 @@
 var pc = null;
 let sessionid = null;
+const url = "http://10.7.11.111:8010";
 function negotiate() {
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
@@ -35,7 +36,9 @@ function negotiate() {
       // );
       // return;
       // return fetch("http://10.7.9.111:8010/offer", {
-      return fetch("http://10.7.3.50:8010/offer", {
+      // old used
+      // return fetch("http://10.7.3.50:8010/offer", {
+      return fetch(url + "/offer", {
         body: JSON.stringify({
           sdp: offer.sdp,
           type: offer.type,
@@ -61,7 +64,7 @@ function negotiate() {
 
 export function uploadToHuman(text) {
   if (!sessionid) return;
-  fetch("http://10.7.3.50:8010/human", {
+  fetch(url + "/human", {
     body: JSON.stringify({
       text: text,
       type: "chat",

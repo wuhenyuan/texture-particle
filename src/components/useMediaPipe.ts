@@ -212,14 +212,14 @@ export default function useMediaPipe() {
       const faceLandmarks = results.faceLandmarks[0];
       needResult = false;
 
-      const scale = 100;
+      const scale = 1;
       for (let i = 0; i < 478; i++) {
         const lanmmark = faceLandmarks[i];
         // positions.push(landmark.x, landmark.y, landmark.z);
         positions[i * 3] = (lanmmark.x - 0.5) * scale;
         positions[i * 3 + 1] = (1.0 - lanmmark.y - 0.5) * scale;
         // positions[i * 3 + 2] = (lanmmark.z - 0.5) * scale;
-        positions[i * 3 + 2] = 0;
+        positions[i * 3 + 2] = (1 - lanmmark.z - 0.5) * scale;
       }
       position.needsUpdate = true;
     }

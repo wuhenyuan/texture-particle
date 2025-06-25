@@ -73,4 +73,9 @@ export default function useGui(config) {
     .addColor(config, "uHighLightColor")
     .name("粒子颜色")
     .onChange((value) => console.log("cons", value));
+
+  gui
+    .add(config, "scale", 0, 10, 0.01)
+    .name("粒子颜色")
+    .onChange((value) => console.log("cons", value));
 }

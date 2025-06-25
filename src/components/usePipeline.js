@@ -50,11 +50,12 @@ const config = {
   uLowProb: 0.08,
   uHighProb: 0.8,
   pointSize: 1.2,
-  sampleStep: 1,
+  sampleStep: 5,
   diff: 0.2,
   // particleColor: 0x8299b1,
   particleColor: 0x89bcff,
   uHighLightColor: 0x7cbcff,
+  scale: 1,
 };
 
 let color2 = new Color(0x7cbcff);
@@ -616,10 +617,18 @@ void main() {
     // showHandleResult(probRt.texture, 1);
   };
 
+  let ratio = 1;
   function updateRenderConfig() {
     if (lowProbabilityMaterial.uniforms.uLowProb.value !== config.uLowProb) {
       needUpdateLowProbabilityRt = true;
       renderTime = -2;
+    }
+
+    if (points) {
+      const scale = config.scale;
+      const scale1 = width;
+      const scale2 = height;
+      points.scale.set(scale1, scale2, 1000);
     }
 
     grayMaterial.uniforms.uDiff.value = config.diff;
@@ -750,6 +759,7 @@ void main() {
     const dwidth = width * 2;
     const dheight = height * 2;
 
+    ratio = width / height;
     halfRt.setSize(width, height);
 
     resulution.set(width, height);

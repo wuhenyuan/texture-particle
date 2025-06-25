@@ -237,7 +237,8 @@ const initThree = (isLocal) => {
 
   scene.add(points);
   const scale = 1;
-  points.scale.set(scale, scale, scale);
+  points.scale.set(1, ratio, 1);
+  console.log(ratio);
   // points.rotateY = -Math.PI / 2;
   // const z = 9.479999999999842;
   // points.rotation.set(0, 0, z);
@@ -302,6 +303,7 @@ function startFaceDetect() {
 function detectP() {
   detectPicture(image);
 }
+
 defineExpose({
   initThree,
   startFaceDetect,
@@ -329,6 +331,10 @@ onMounted(() => {
 .three-container {
   width: 100%;
   height: 100vh;
+  width: 1040px;
+  height: 1040px;
+  max-width: 1040px;
+  max-height: 1040px;
   /* background: #000; */
 }
 </style>

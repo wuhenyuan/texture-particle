@@ -27,6 +27,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/human/, "/human"), //请求路径加上'/train'
       },
+      "/create_human": {
+        target: "http://10.7.3.50:8010",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/create_human/, "/create_human"), //请求路径加上'/train'
+      },
     },
   },
 });

@@ -5,6 +5,14 @@
       <button id="startFace" @click="startFace">开始人脸</button>
       <button id="start" @click="start">开始</button>
       <button id="stop" @click="stop">结束</button>
+      <h2>上传文件</h2>
+      <form @submit.prevent="handleUpload">
+        <input type="file" ref="fileInput" required />
+        <button type="submit" :disabled="loading">
+          {{ loading ? "上传中..." : "上传" }}
+        </button>
+      </form>
+      <p v-if="message">{{ message }}</p>
       <div>
         <h3>对话</h3>
         <input v-model="inputValue" />
@@ -53,6 +61,9 @@ export default {
   data() {
     return {
       inputValue: "",
+      loading: false,
+      message: "",
+      isVideo: false,
     };
   },
   methods: {
@@ -66,7 +77,7 @@ export default {
       // debugger;
       if (isLocal) return;
       try {
-        startConnect();
+        // startConnect();
       } catch (e) {
         console.log(e);
       }
@@ -74,6 +85,7 @@ export default {
 
       // 开启视频链接;
       start();
+      this.isVideo = true;
     },
     stop() {
       try {
@@ -87,6 +99,47 @@ export default {
     },
     send() {
       uploadToHuman(this.inputValue);
+    },
+    async handleUpload() {
+      const file = this.$refs.fileInput.files[0];
+      if (!file) {
+        message.value = "请先选择文件";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      this.loading = true;
+      this.message = "上传中，请稍候...";
+
+      debugger;
+      // return;
+      try {
+        const response = await fetch("http://10.7.11.111:8010/create_human", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP错误: ${response.status}`);
+        }
+
+        if (this.isVideo) {
+          this.stop();
+          setTimeout(() => {
+            this.start();
+          }, 1000);
+        } else {
+          this.start();
+        }
+
+        const result = await response.json();
+        this.message = "上传成功: " + JSON.stringify(result);
+      } catch (err) {
+        this.message = "上传失败: " + err.message;
+      } finally {
+        this.loading = false;
+      }
     },
   },
 };

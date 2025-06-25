@@ -29,6 +29,9 @@ ShaderChunk.noise = noise;
 // console.log(ShaderChunk);
 // import TouchTexture from "./TouchTexture";
 
+const startRatio = 0;
+const endRatio = 0.7;
+
 /**概率粒子 */
 export default class ProbParticle extends Object3D {
   constructor(scene, ratio) {
@@ -69,12 +72,12 @@ export default class ProbParticle extends Object3D {
     // this.height = this.height / 2;init
     const textureLoader = new TextureLoader();
     this.pMap = textureLoader.load(lightSpot);
-    const maxWidth = 180;
-    if (this.width > maxWidth && this.width < this.height) {
-      const ratio = this.width / this.height;
-      this.width = maxWidth;
-      this.height = maxWidth / ratio;
-    }
+    // const maxWidth = 180;
+    // if (this.width > maxWidth && this.width < this.height) {
+    //   const ratio = this.width / this.height;
+    //   this.width = maxWidth;
+    //   this.height = maxWidth / ratio;
+    // }
     this.initPoints(true);
     // this.initHitArea();
     // this.initTouch();
@@ -190,12 +193,19 @@ export default class ProbParticle extends Object3D {
     //   }
     // }
 
+    const startHeight = Math.floor(height * startRatio);
+    const endHeight = Math.floor(height * endRatio);
+
     for (let i = 0, j = 0; i < this.numPoints; i++) {
       // if (discard && originalColors[i * 4 + 0] <= threshold) continue;
 
       offsets[j * 3 + 0] = (i % width) * this.sampleStepX;
-      offsets[j * 3 + 1] = Math.floor(i / width) * this.sampleStepY;
-
+      let height2 = Math.floor(i / width) * this.sampleStepY + startHeight;
+      offsets[j * 3 + 1] = height2;
+      if (height2 > endHeight) {
+        debugger;
+        break;
+      }
       indices[j] = i;
 
       angles[j] = Math.random() * Math.PI;
