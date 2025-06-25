@@ -31,6 +31,8 @@ import {
   Float32BufferAttribute,
   ClampToEdgeWrapping,
   Vector2,
+  PointsMaterial,
+  BufferAttribute,
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -42,6 +44,7 @@ import usePostprocessing from "./usePostprocessing";
 import usePileline from "./usePipeline";
 import ProbParticle from "../webgl/probParticle";
 import useMediaPipe from "./useMediaPipe";
+import { Points } from "three";
 
 let preTreatment, updateTexture, getRenderResultTexture;
 
@@ -57,7 +60,8 @@ let height;
 let ratio;
 let particles;
 let composer;
-let startDetecte, detectPicture;
+let startDetecte, detectPicture, updateLandMark;
+let landMarksPosition;
 
 let image;
 const initThree = (isLocal) => {
@@ -223,6 +227,21 @@ const initThree = (isLocal) => {
   //   texture.needsUpdate = true;
   // });
 
+  const points = new Points(new BufferGeometry(), new PointsMaterial());
+  points.geometry.setAttribute(
+    "position",
+    new BufferAttribute(new Float32Array(478 * 3), 3)
+  );
+
+  landMarksPosition = points.geometry.attributes.position;
+
+  scene.add(points);
+  const scale = 1;
+  points.scale.set(scale, scale, scale);
+  // points.rotateY = -Math.PI / 2;
+  // const z = 9.479999999999842;
+  // points.rotation.set(0, 0, z);
+  window.points = points;
   window.scene = scene;
 
   composer = usePostprocessing(scene, renderer, camera);
@@ -243,6 +262,10 @@ const initThree = (isLocal) => {
 
     if (preTreatment) {
       preTreatment(delta);
+    }
+
+    if (updateLandMark) {
+      updateLandMark(landMarksPosition);
     }
 
     // renderer.render(scene, camera);
@@ -289,9 +312,15 @@ onMounted(() => {
   width = threeContainer.value.clientWidth;
   height = threeContainer.value.clientHeight;
   ratio = width / height;
-  const { startDetecte: _start, detectPicture: _dp } = useMediaPipe();
+
+  const {
+    startDetecte: _start,
+    detectPicture: _dp,
+    updateLandMark: _up,
+  } = useMediaPipe();
   startDetecte = _start;
   detectPicture = _dp;
+  updateLandMark = _up;
   initThree(true);
 });
 </script>
