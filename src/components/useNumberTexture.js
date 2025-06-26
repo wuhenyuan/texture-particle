@@ -12,7 +12,8 @@ export default function generateDigitTextureAtlas() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.font = "bold 96px monospace";
+  ctx.font = "bold 150px Comic Sans MS";
+  // ctx.font = "bold 180px Brush Script MT";
   ctx.fillStyle = "white";
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
@@ -21,10 +22,10 @@ export default function generateDigitTextureAtlas() {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = col * cellSize + cellSize / 2;
-    const y = row * cellSize + cellSize / 2;
+    const y = row * cellSize + cellSize / 2 + 20;
+
     ctx.fillText(i.toString(), x, y);
   }
-
   const texture = new CanvasTexture(canvas);
   texture.minFilter = LinearFilter;
   texture.magFilter = LinearFilter;

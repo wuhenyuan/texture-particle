@@ -1,7 +1,13 @@
 <!-- src/components/ThreeScene.vue -->
 <template>
   <div ref="threeContainer" class="three-container">
+    <div class="video-bg">
+      <video autoplay loop muted playsinline>
+        <source src="../assets/background1.mp4" type="video/mp4" />
+      </video>
+    </div>
     <div ref="imageContainer" class="image-container"></div>
+    <canvas ref="canvasRef" class=".three-canvas"></canvas>
   </div>
 </template>
 
@@ -33,6 +39,10 @@ import {
   Vector2,
   PointsMaterial,
   BufferAttribute,
+  LinearFilter,
+  RGBFormat,
+  AdditiveBlending,
+  Color,
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -45,6 +55,12 @@ import usePileline from "./usePipeline";
 import ProbParticle from "../webgl/probParticle";
 import useMediaPipe from "./useMediaPipe";
 import { Points } from "three";
+import { AmbientLight } from "three";
+import { PointLight } from "three";
+import { LineBasicMaterial } from "three";
+import { LineSegments } from "three";
+import { getIndex } from "./partData";
+import pointsPng from "../assets/point.png";
 
 let preTreatment, updateTexture, getRenderResultTexture;
 
@@ -55,6 +71,7 @@ let renderer;
 let clock;
 const threeContainer = ref(null);
 const imageContainer = ref(null);
+const canvasRef = ref(null);
 let width;
 let height;
 let ratio;
@@ -64,27 +81,38 @@ let startDetecte, detectPicture, updateLandMark;
 let landMarksPosition;
 
 let image;
+const NUM_KEYPOINTS = 478;
+const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
+const faceVertices = vertices;
+const faceGeometryAttribute = new BufferAttribute(vertices, 3);
 const initThree = (isLocal) => {
   // 创建场景
   scene = new Scene();
 
   // 创建相机
   camera = new PerspectiveCamera(50, ratio, 1, 10000);
-  camera.position.z = 300;
+  camera.position.z = 85;
 
+  window.camera = camera;
   clock = new Clock(true);
 
   // 创建渲染器
-  renderer = new WebGLRenderer();
+  renderer = new WebGLRenderer({
+    canvas: canvasRef.value,
+    alpha: true, // ✅ 允许透明背景
+    antialias: true,
+  });
 
   renderer.setClearColor(0x000000);
+  renderer.setClearAlpha(0);
 
   renderer.setSize(width, height);
   // renderer.outputColorSpace = SRGBColorSpace;
 
   // 将渲染器的 DOM 元素添加到容器中
-  threeContainer.value.appendChild(renderer.domElement);
-
+  // threeContainer.value.appendChild(renderer.domElement);
+  // renderer.domElement
+  renderer.domElement.classList.add("three-canvas");
   const orbitControls = new OrbitControls(camera, renderer.domElement);
   orbitControls.enableDamping = true;
   orbitControls.dampingFactor = 0.25;
@@ -226,12 +254,30 @@ const initThree = (isLocal) => {
   //   // particles.setParticleMap(texture);
   //   texture.needsUpdate = true;
   // });
+  const pointsTexutre = textureLoader.load(pointsPng, (texture) => {
+    debugger;
+    console.log(texture.image.width);
+    pointsMaterial.map = texture;
+  });
 
-  const points = new Points(new BufferGeometry(), new PointsMaterial());
-  points.geometry.setAttribute(
-    "position",
-    new BufferAttribute(new Float32Array(478 * 3), 3)
-  );
+  const pointsMaterial = new PointsMaterial({
+    size: 1,
+    color: new Color(0xa9bbca),
+    name: "pointMateral",
+    blending: AdditiveBlending,
+    // opacity: 0.5,
+    map: pointsTexutre,
+    transparent: true,
+    depthTest: false,
+
+    // renderOrder: 10,
+  });
+
+  const points = new Points(new BufferGeometry(), pointsMaterial);
+  points.position.z = 1;
+  console.log("----points");
+
+  points.geometry.setAttribute("position", faceGeometryAttribute);
 
   landMarksPosition = points.geometry.attributes.position;
 
@@ -294,6 +340,67 @@ const initThree = (isLocal) => {
 
   const numberTexture = generateDigitTextureAtlas();
   particles.setParticleMap(numberTexture);
+  // if (createBackground) createBackground();
+  if (createOutlookLine) createOutlookLine();
+};
+
+const createBackground = () => {
+  //   // 创建视频元素
+  const backgroundVideo = document.createElement("video");
+  backgroundVideo.src = "/src/assets/background2.mp4"; // 本地或网络路径
+  backgroundVideo.crossOrigin = "anonymous"; // 如果需要跨域
+  backgroundVideo.loop = true;
+  backgroundVideo.muted = true;
+  backgroundVideo.play(); // 触发播放
+  // 创建 VideoTexture
+  const videoTexture = new VideoTexture(backgroundVideo);
+  videoTexture.minFilter = LinearFilter;
+  videoTexture.magFilter = LinearFilter;
+  videoTexture.format = RGBFormat;
+  // 设置为场景背景
+  scene.background = videoTexture;
+};
+
+const createOutlookLine = () => {
+  const ambientLight = new AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+  const pointLight = new PointLight(0xffffff, 0.5);
+  pointLight.position.set(2, 5, 5);
+  scene.add(pointLight);
+
+  const NUM_KEYPOINTS = 478;
+  const faceGeometry = new BufferGeometry();
+  faceGeometry.setAttribute("position", faceGeometryAttribute);
+
+  faceGeometry.setIndex(getIndex());
+  const material = new LineBasicMaterial({
+    color: 0x0099ff,
+    // linewidth: 10,
+    transparent: true,
+    opacity: 0.8,
+  });
+  window.lineGeometry = faceGeometry;
+  const faceLine = new LineSegments(faceGeometry, material);
+  window.faceLine = faceLine;
+  scene.add(faceLine);
+
+  const NUM_RANDOM_LINES = 500;
+  const randomGeometry = new BufferGeometry();
+  // NUM_RANDOM_LINES * 2 个点，因为一条线需要2个点
+  const randomVertices = new Float32Array(NUM_RANDOM_LINES * 2 * 3);
+  randomGeometry.setAttribute(
+    "position",
+    new BufferAttribute(randomVertices, 3)
+  );
+  const randomMaterial = new LineBasicMaterial({
+    color: 0x845ef7,
+    transparent: true,
+    opacity: 0.5,
+  });
+  const randomLines = new LineSegments(randomGeometry, randomMaterial);
+  randomLines.scale.x = -1;
+  window.randomLines = randomLines;
+  scene.add(randomLines);
 };
 
 function startFaceDetect() {
@@ -324,10 +431,11 @@ onMounted(() => {
   detectPicture = _dp;
   updateLandMark = _up;
   initThree(true);
+  // createBackground();
 });
 </script>
 
-<style scoped>
+<style>
 .three-container {
   width: 100%;
   height: 100vh;
@@ -335,6 +443,35 @@ onMounted(() => {
   height: 1040px;
   max-width: 1040px;
   max-height: 1040px;
+  position: relative;
   /* background: #000; */
+}
+
+.video-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  filter: blur(10px);
+  overflow: hidden;
+}
+
+.video-bg video {
+  /* width: 100%;
+  height: 100%; */
+  object-fit: cover;
+}
+
+.three-container .three-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  /* 如果你不需要交互 */
+  /* pointer-events: none; */
 }
 </style>

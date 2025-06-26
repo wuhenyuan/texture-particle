@@ -1,5 +1,6 @@
 import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
-const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
+const { FaceLandmarker, DrawingUtils, ImageSegmenter, FilesetResolver } =
+  vision;
 import {
   FACE_LANDMARKS_NOSE,
   NOSE_LANDMARKS,
@@ -18,13 +19,16 @@ import {
 
 export default function useMediaPipe() {
   const video: HTMLVideoElement = document.getElementById("video")!;
+  const NUM_RANDOM_LINES = 500; // 生成随机线条的数量
+  const BODY_LINE_DEPTH = 1.5; // 随机线条在Z轴上的分布厚度
   console.log(video);
   const canvasElement = document.getElementById("output") as HTMLCanvasElement;
   const ctx = canvasElement.getContext("2d") as CanvasRenderingContext2D;
 
   const videoWidth = 480;
   let runningMode: "IMAGE" | "VIDEO" = "VIDEO";
-  let vision, faceLandmarker;
+  let vision, faceLandmarker, imageSegmenter;
+  let labels;
   async function createFaceLandmarker() {
     vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
@@ -34,13 +38,25 @@ export default function useMediaPipe() {
         modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
         delegate: "GPU",
       },
-      minDetectionConfidence: 0.001,
-      minFacePresenceConfidence: 0.001,
-      minTrackingConfidence: 0.0001,
+      // minDetectionConfidence: 0.001,
+      // minFacePresenceConfidence: 0.001,
+      // minTrackingConfidence: 0.0001,
       outputFaceBlendshapes: false,
       runningMode,
       numFaces: 1,
     });
+
+    imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/image_segmenter/deeplab_v3/float32/1/deeplab_v3.tflite",
+        delegate: "GPU",
+      },
+      runningMode: runningMode,
+      outputCategoryMask: true,
+      outputConfidenceMasks: false,
+    });
+    labels = imageSegmenter.getLabels();
     console.log("faceLandmarker created.", faceLandmarker);
     // await faceLandmarker.setOptions({ runningMode: "VIDEO" });
   }
@@ -131,6 +147,73 @@ export default function useMediaPipe() {
     }
   }
 
+  // function updateFaceMesh(landmarks, faceMesh) {
+  //   const positions = faceMesh.geometry.attributes.position.array;
+  //   for (let i = 0; i < landmarks.length; i++) {
+  //     const p = landmarks[i];
+  //     positions[i * 3] = (p.x - 0.5) * 2;
+  //     positions[i * 3 + 1] = -(p.y - 0.5) * 2;
+  //     positions[i * 3 + 2] = -p.z * 2;
+  //   }
+  //   faceMesh.geometry.attributes.position.needsUpdate = true;
+  // }
+
+  function updateRandomLines(segmentationMask, faceLandmarks) {
+    if (!segmentationMask) return;
+    if (!randomLines) return;
+    const positions = randomLines.geometry.attributes.position.array;
+    const maskData = segmentationMask.data;
+    const maskWidth = segmentationMask.width;
+    const maskHeight = segmentationMask.height;
+
+    // 如果有面部数据，用它来确定身体的平均深度
+    let baseZ = 0;
+    if (faceLandmarks) {
+      let totalZ = 0;
+      faceLandmarks.forEach((p) => (totalZ += p.z));
+      baseZ = -(totalZ / faceLandmarks.length) * 2; // Z轴反转和缩放
+    }
+
+    let pointsFound = 0;
+    const maxAttempts = NUM_RANDOM_LINES * 50; // 设置一个尝试上限，防止死循环
+    let attempts = 0;
+
+    const validPoints = [];
+
+    // 循环直到找到足够多的点
+    while (pointsFound < NUM_RANDOM_LINES * 2 && attempts < maxAttempts) {
+      const x = Math.floor(Math.random() * maskWidth);
+      const y = Math.floor(Math.random() * maskHeight);
+
+      // 检查这个随机点是否在人的蒙版内
+      // maskData[y * maskWidth + x] > 0 表示属于人体
+      if (maskData[y * maskWidth + x] > 0) {
+        // 将2D蒙版坐标转换为3D世界坐标
+        const worldX = (x / maskWidth - 0.5) * 2.5; // 乘以系数调整宽度
+        const worldY = -(y / maskHeight - 0.5) * 2.5; // 乘以系数调整高度
+        const worldZ = baseZ + (Math.random() - 0.5) * BODY_LINE_DEPTH;
+        validPoints.push({ x: worldX, y: worldY, z: worldZ });
+        pointsFound++;
+      }
+      attempts++;
+    }
+
+    // 将找到的点填充到几何体中
+    for (let i = 0; i < NUM_RANDOM_LINES * 2; i++) {
+      if (i < validPoints.length) {
+        const p = validPoints[i];
+        positions[i * 3] = p.x;
+        positions[i * 3 + 1] = p.y;
+        positions[i * 3 + 2] = p.z;
+      } else {
+        // 如果点不够，就将多余的顶点藏起来
+        positions[i * 3] = positions[i * 3 + 1] = positions[i * 3 + 2] = 0;
+      }
+    }
+
+    randomLines.geometry.attributes.position.needsUpdate = true;
+  }
+
   async function predictWebcam() {
     const radio = video.videoHeight / video.videoWidth;
     video.style.width = videoWidth + "px";
@@ -144,6 +227,26 @@ export default function useMediaPipe() {
     if (lastVideoTime !== video.currentTime) {
       lastVideoTime = video.currentTime;
       results = faceLandmarker.detectForVideo(video, startTimeMs);
+
+      imageSegmenter.segmentForVideo(video, startTimeMs, (result) => {
+        let imageData = ctx.getImageData(
+          0,
+          0,
+          video.videoWidth,
+          video.videoHeight
+        ).data;
+        console.log(result);
+        return;
+        // 在segmenter的回调中处理所有更新
+        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+          // updateFaceMesh(faceResults.faceLandmarks[0]);
+          updateRandomLines(mask, results.faceLandmarks[0]);
+        }
+        // 即使没有脸，只要有人，也更新随机线条
+        else if (mask) {
+          updateRandomLines(mask, null);
+        }
+      });
       console.log(results);
     }
     if (results.faceLandmarks.length && results.faceLandmarks[0].length > 0) {
@@ -218,8 +321,8 @@ export default function useMediaPipe() {
         // positions.push(landmark.x, landmark.y, landmark.z);
         positions[i * 3] = (lanmmark.x - 0.5) * scale;
         positions[i * 3 + 1] = (1.0 - lanmmark.y - 0.5) * scale;
-        // positions[i * 3 + 2] = (lanmmark.z - 0.5) * scale;
-        positions[i * 3 + 2] = (1 - lanmmark.z - 0.5) * scale;
+        positions[i * 3 + 2] = (lanmmark.z - 0.5) * scale;
+        // positions[i * 3 + 2] = (1 - lanmmark.z - 0.5) * scale;
       }
       position.needsUpdate = true;
     }

@@ -46,7 +46,7 @@ void main() {
 
   // uv 计算
 
-  float cols = 10.0;
+  float cols = 1.0;
   float rows = 1.0;
 
   float index = randomDigitIndex(vPUv);
@@ -93,10 +93,12 @@ void main() {
 
   vec4 finalColor = mix(vec4(color * texColor.r * max(0.5, mask.r), texColor.r), vec4(uHighLightColor, useHighColor), hightRatio);
   // vec4 finalColor = mix(vec4(color * texColor.r * mask.r, texColor.r), vec4(0.25, .5, 1.0, 1.0), useHighColor);
-  finalColor.a = mix(0.3, 0.4, hightRatio);
+  // finalColor.a = mix(0.6, 1.0, );
 
+  finalColor.a = 0.8;
   // gl_FragColor = vec4(color, 1.0);
   gl_FragColor = finalColor;
+  // gl_FragColor = vec4(0.25, .5, 1.0, 0.25);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
 }

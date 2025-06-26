@@ -30,7 +30,7 @@ ShaderChunk.noise = noise;
 // import TouchTexture from "./TouchTexture";
 
 const startRatio = 0;
-const endRatio = 0.7;
+const endRatio = 1;
 
 /**概率粒子 */
 export default class ProbParticle extends Object3D {
@@ -60,6 +60,7 @@ export default class ProbParticle extends Object3D {
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
+    const maxWidth = 50;
     if (video) {
       const { videoWidth, videoHeight } = video;
       this.width = videoWidth;
@@ -69,6 +70,9 @@ export default class ProbParticle extends Object3D {
       this.width = texture.image.width;
       this.height = texture.image.height;
     }
+    const ratio = this.width / this.height;
+    this.width = Math.min(this.width, maxWidth);
+    this.height = Math.floor(this.width / ratio);
     // this.height = this.height / 2;init
     const textureLoader = new TextureLoader();
     this.pMap = textureLoader.load(lightSpot);

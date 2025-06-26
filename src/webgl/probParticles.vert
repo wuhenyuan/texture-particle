@@ -60,18 +60,20 @@ void main() {
 	// displacement
     // displaced = offset;
 	// randomise
-    displaced.xy += vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * uRandom;
-    float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1)));
-    displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
+    // displaced.xy += vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * uRandom;
+    // float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1)));
+    // displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
 	// center
     displaced.xy -= uTextureSize * 0.5;
+    displaced.z = 0.0;
 
 	// touch
     // float t = texture2D(uTouch, puv).r;
+    float rndz = 0.0;
     float t = 0.0;
     displaced.z += t * 20.0 * rndz;
-    displaced.x += cos(angle) * t * 20.0 * rndz;
-    displaced.y += sin(angle) * t * 20.0 * rndz;
+    displaced.x += cos(angle) * t * 1.0 * rndz;
+    displaced.y += sin(angle) * t * 1.0 * rndz;
 
   // progress noise
     float multiplier = uTextureSize.x * 2.0; // distance factor
@@ -107,7 +109,8 @@ void main() {
     vec4 colA = texture2D(uProbabilityMap, puv);
     float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-    float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
+    // float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
+    float psize = 1.0;
     // psize *= max(grey, 0.5);
     psize *= uSize;
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;

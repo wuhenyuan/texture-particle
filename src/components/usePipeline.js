@@ -49,12 +49,12 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1.2,
-  sampleStep: 5,
+  pointSize: 0.56,
+  sampleStep: 4,
   diff: 0.2,
   // particleColor: 0x8299b1,
-  particleColor: 0x89bcff,
-  uHighLightColor: 0x7cbcff,
+  particleColor: 0x868686,
+  uHighLightColor: 0xa9bbca,
   scale: 1,
 };
 
@@ -140,12 +140,15 @@ export default function usePileline(scene, renderer, camera) {
 
           void main() {
             vec4 color = texture2D(tDiffuse, vUv);
-            vec4 bgColor = texture2D(tDiffuse, vec2(0.0, 0.0));
+            // vec4 bgColor = texture2D(tDiffuse, vec2(0.01, 0.01));
+            vec4 bgColor = vec4(79.0 / 255.0, 153.0 / 255.0, 39.0 / 255.0, 1.0);
             float diff = distance(color.rgb, bgColor.rgb);
             float gray = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
-            if ( diff < 0.1) 
-              // gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            gl_FragColor = bgColor;
+            if ( diff < 0.1) {
+              
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            }
+            // gl_FragColor = bgColor;
             else {
               gl_FragColor = vec4(gray, gray, gray, 1.0);
             }
@@ -606,9 +609,9 @@ void main() {
 
   const show = () => {
     // showHandleResult(grayRt.texture, 0);
-    // showHandleResult(digitTexture, 0);
+    showHandleResult(digitTexture, 0);
     // showHandleResult(lowProbabilityRt.texture, 0);
-    showHandleResult(edgeDetectionRt.texture, 0);
+    // showHandleResult(edgeDetectionRt.texture, 0);
     // showHandleResult(expandRt.texture, 1);
     // showHandleResult(blurRt2.texture, 1);
     // showHandleResult(highProbabilityRt.texture, 1);
@@ -628,7 +631,8 @@ void main() {
       const scale = config.scale;
       const scale1 = width;
       const scale2 = height;
-      points.scale.set(scale1, scale2, 1000);
+      points.scale.set(scale1, scale2, 1);
+      faceLine.scale.set(scale1, scale2, 1);
     }
 
     grayMaterial.uniforms.uDiff.value = config.diff;
@@ -754,12 +758,16 @@ void main() {
       height = _texture.image.height;
     }
 
+    ratio = width / height;
+    const maxWidth = 50;
+    width = Math.min(maxWidth, width);
+    height = Math.floor(width / ratio);
+
     if (useHalf) height = height / 2;
 
     const dwidth = width * 2;
     const dheight = height * 2;
 
-    ratio = width / height;
     halfRt.setSize(width, height);
 
     resulution.set(width, height);

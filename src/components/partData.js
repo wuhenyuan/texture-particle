@@ -2740,7 +2740,7 @@ export const FACE_LANDMARKS_CONTOURS = [
   ...FACE_LANDMARKS_RIGHT_EYE,
   ...FACE_LANDMARKS_RIGHT_EYEBROW,
   ...FACE_LANDMARKS_FACE_OVAL,
-  ...FACE_LANDMARKS_NOSE,
+  // ...FACE_LANDMARKS_NOSE,
 ];
 
 export const NOSE_LANDMARKS = [
@@ -2811,4 +2811,16 @@ const generator = (arr) => {
     result.push(item);
   }
   return result;
+};
+
+export const getIndex = () => {
+  const indices = [];
+  for (const connection of FACE_LANDMARKS_TESSELATION) {
+    indices.push(connection.start, connection.end);
+  }
+
+  for (const connection of FACE_LANDMARKS_CONTOURS) {
+    indices.push(connection.start, connection.end);
+  }
+  return indices;
 };
