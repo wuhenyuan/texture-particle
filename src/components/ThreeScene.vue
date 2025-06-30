@@ -188,12 +188,13 @@ const initThree = (isLocal) => {
     isInit = true;
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
-    const { probTexture, maskTexture, highLightTexture, normalTexture } =
+    const { probTexture, maskTexture, highLightTexture, normalTexture, depthTexture } =
       getRenderResultTexture();
     particles.init(probTexture, video);
     particles.setMaskMap(maskTexture);
     particles.setHighLightMap(highLightTexture);
     particles.setNormalMap(normalTexture);
+    particles.setDepthMap(depthTexture)
   });
 
   if (isLocal) {
@@ -284,7 +285,7 @@ const initThree = (isLocal) => {
   // points.position.z = 1;
   console.log("----points");
 
-  points.visible = false;
+  points.visible = true;
   points.geometry.setAttribute("position", faceGeometryAttribute);
 
   landMarksPosition = points.geometry.attributes.position;
@@ -351,7 +352,7 @@ const initThree = (isLocal) => {
   // if (createBackground) createBackground();
   if (createOutlookLine) createOutlookLine();
 
-  const visible = false;
+  const visible = true;
   points.visible = visible;
   faceLine.visible = visible;
   faceMesh.visible = visible;
@@ -427,7 +428,6 @@ const createOutlookLine = () => {
       side: DoubleSide,
       transparent: true,
       opacity: 0.5,
-      wireframe: true,
     })
   );
   window.faceMesh = faceMesh;

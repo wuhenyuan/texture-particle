@@ -62,8 +62,8 @@ export default class ProbParticle extends Object3D {
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
-    // const maxWidth = this.globalConfig.maxWidth;
-    const maxWidth = 200;
+    const maxWidth = this.globalConfig.maxWidth;
+    // const maxWidth = 200;
     if (video) {
       const { videoWidth, videoHeight } = video;
       this.width = videoWidth;
@@ -125,6 +125,13 @@ export default class ProbParticle extends Object3D {
     }
   }
 
+  setDepthMap(texture){
+        this.uDepthTexture = texture;
+    if (this.material) {
+      this.material.uniforms.uDepthTexture.value = texture;
+    }
+  }
+
   initPoints(discard) {
     if (this.instancePoints) {
       this.remove(this.instancePoints);
@@ -155,6 +162,7 @@ export default class ProbParticle extends Object3D {
       uHighLightMap: { value: this.uHighLightMap },
       uHighLightColor: { value: new Color(0x4a9fd4) },
       uNormalTexture: { value: this.uNormalTexture },
+      uDepthTexture: {value: this.uDepthTexture},
       offsetScale: { value: 0.5 },
     };
 

@@ -6,6 +6,9 @@ uniform sampler2D uMaskMap;       // 可选：遮罩贴图，黑色区域剔除
 uniform sampler2D uParticleMap;  //粒子贴图
 uniform sampler2D uHparticleMap; //高光粒子贴图
 uniform sampler2D uHighLightMap;  //高光贴图
+uniform sampler2D uDepthTexture;
+
+
 
 uniform float uFade;              // 可选的淡出因子
 uniform vec3 uParticleColor;

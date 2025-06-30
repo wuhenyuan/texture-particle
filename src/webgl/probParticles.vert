@@ -43,6 +43,21 @@ float remap(float value, float inMin, float inMax, float outMin, float outMax) {
     return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin);
 }
 
+
+
+mat3 rotationMatrix(vec3 axis, float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    float t = 1.0 - c;
+    float x = axis.x, y = axis.y, z = axis.z;
+
+    return mat3(
+        t*x*x + c,     t*x*y - s*z,   t*x*z + s*y,
+        t*x*y + s*z,   t*y*y + c,     t*y*z - s*x,
+        t*x*z - s*y,   t*y*z + s*x,   t*z*z + c
+    );
+}
+
 // noise
 
 void main() {
@@ -100,9 +115,9 @@ void main() {
 
     vec4 normal = texture2D(uNormalTexture, vPUv);
 
-    normal.xy = normal.xy * 2.0 - 1.0;
+    normal.xyz = normal.xyz * 2.0 - 1.0;
 
-    vec2 normalOffset = normal.xy * offsetScale * normal.z * uSize;
+    vec2 normalOffset = normal.xy * offsetScale * normal.w * uSize;
 
     mixedPosition.xy -= normalOffset;
     // float noiseStrength = 1.0; // Adjust this value to control the intensity of the noise
@@ -125,13 +140,27 @@ void main() {
     // float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
     float psize = 1.0;
     // psize *= max(grey, 0.5);
-    psize *= mix(0.2, 0.5, normal.z) * uSize;
+    psize *= mix(0.2, 0.5, normal.w) * uSize;
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;
 
-	// final position
-    vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
-    mvPosition.xyz += position * psize;
-    vec4 finalPosition = projectionMatrix * mvPosition;
 
-    gl_Position = finalPosition;
+
+vec3 normalDir = normalize(normal.xyz);
+// 避免与 normal 共线，选择一个正交向量
+vec3 helper = abs(normalDir.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+
+// 构造局部坐标系（TBN）
+vec3 tangent = normalize(cross(helper, normalDir));
+vec3 bitangent = cross(normalDir, tangent);
+
+
+// 构造偏移量（position 是默认 XY 平面上的点，如 -0.5,0.5）
+vec2 quadOffset = position.xy * psize;
+vec3 rotatedOffset = tangent * quadOffset.x + bitangent * quadOffset.y;
+
+	// final position
+   // vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
+// 最终位置
+    vec4 mvPosition = modelViewMatrix * vec4(mixedPosition + rotatedOffset, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
 }

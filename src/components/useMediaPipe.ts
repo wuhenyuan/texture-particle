@@ -325,10 +325,10 @@ export default function useMediaPipe() {
         // positions.push(landmark.x, landmark.y, landmark.z);
         positions[i * 3] = (lanmmark.x - 0.5) * scale;
         positions[i * 3 + 1] = (1.0 - lanmmark.y - 0.5) * scale;
-        const z = -lanmmark.z * scale;
+        const z = -lanmmark.z * scale ;
+        positions[i * 3 + 2] = z;
         if (max < z) max = z;
         if (min > z) min = z;
-        // positions[i * 3 + 2] = (1 - lanmmark.z - 0.5) * scale;
       }
       position.needsUpdate = true;
     }

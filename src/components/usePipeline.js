@@ -57,7 +57,7 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1,
+  pointSize: 3,
   offsetScale: 0.99,
   sampleStep: 4,
   diff: 0.2,
@@ -400,23 +400,22 @@ export default function usePileline(scene, renderer, camera) {
       uniform sampler2D tDiffuse;
       float scale = 1.0;
       // 传入当前片元的UV坐标、灰度高度、以及高度缩放参数，输出法线
-      vec3 computeNormalFromHeightMap(sampler2D heightMap, vec2 uv, float heightScale) {
-          // 采样当前高度
-          float h = texture(heightMap, uv).r * heightScale;
-          // 计算相邻像素的高度差（利用屏幕空间微分）
-          float hx = dFdx(h);
-          float hy = dFdy(h);
-          // 屏幕空间x/y轴为切线，(hx, hy, 1)为未归一化法线
-          vec3 normal = normalize(vec3(-hx, -hy, h));
-          // vec3 normal = normalize(vec3(hx, hy, 1.0));
-          normal = normal * 0.5 + 0.5;
-          normal.z = h;
-          return normal;
+      vec4 computeNormalFromHeightMap(sampler2D heightMap, vec2 uv, float heightScale) {
+          vec2 texelSize = 1.0 / vec2(textureSize(heightMap, 0));
+
+    float hL = texture(heightMap, uv - vec2(texelSize.x, 0.0)).r * heightScale;
+    float hR = texture(heightMap, uv + vec2(texelSize.x, 0.0)).r * heightScale;
+    float hT = texture(heightMap, uv + vec2(0.0, texelSize.y)).r * heightScale;
+    float hB = texture(heightMap, uv - vec2(0.0, texelSize.y)).r * heightScale;
+
+    // X 向右是 +1，Y 向下是 +1
+    vec3 normal = normalize(vec3(hL - hR, hB - hT, 2.0));
+    return vec4(normal * 0.5 + 0.5, 1.0);
       }
 
       void main() {
-        vec3 color = computeNormalFromHeightMap(tDiffuse, vUv, scale);
-        gl_FragColor = vec4(color, 1.0);
+        vec4 color = computeNormalFromHeightMap(tDiffuse, vUv, scale);
+        gl_FragColor = color;
       }`,
     vertexShader: /*glsl*/ `
           varying vec2 vUv;
@@ -624,6 +623,7 @@ void main() {
   });
 
   const depthRenderMaterial = new ShaderMaterial({
+    name: 'depthRenderMaterial',
     vertexShader: depthVert,
     fragmentShader: depthFrag,
     depthTest: false,
@@ -704,7 +704,7 @@ void main() {
       const scale = config.scale;
       const scale1 = width;
       const scale2 = height;
-      const scale3 = 1000;
+      const scale3 = 100;
       points.scale.set(scale1, scale2, scale3);
       faceLine.scale.set(scale1, scale2, scale3);
       faceMesh.scale.set(scale1, scale2, scale3);
@@ -884,6 +884,7 @@ void main() {
       particleMap: digitTexture,
       highLightTexture: edgeDetectionRt.texture,
       normalTexture: normalRt.texture,
+      depthTexture: depthRenderRt.texture
       // highLightTexture: expandRt.texture,
     };
   }
