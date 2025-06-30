@@ -43,6 +43,7 @@ import {
   RGBFormat,
   AdditiveBlending,
   Color,
+  DoubleSide,
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -59,8 +60,12 @@ import { AmbientLight } from "three";
 import { PointLight } from "three";
 import { LineBasicMaterial } from "three";
 import { LineSegments } from "three";
-import { getIndex } from "./partData";
+import { getLineIndex, getFaceIndex } from "./partData";
 import pointsPng from "../assets/point.png";
+
+import { useGlobalConfig } from "@/stores/index";
+
+const config = useGlobalConfig();
 
 let preTreatment, updateTexture, getRenderResultTexture;
 
@@ -85,6 +90,7 @@ const NUM_KEYPOINTS = 478;
 const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
 const faceVertices = vertices;
 const faceGeometryAttribute = new BufferAttribute(vertices, 3);
+window.faceGeometryAttribute = faceGeometryAttribute;
 const initThree = (isLocal) => {
   // 创建场景
   scene = new Scene();
@@ -92,6 +98,7 @@ const initThree = (isLocal) => {
   // 创建相机
   camera = new PerspectiveCamera(50, ratio, 1, 10000);
   camera.position.z = 85;
+  // camera.position.z = 1368;
 
   window.camera = camera;
   clock = new Clock(true);
@@ -181,11 +188,12 @@ const initThree = (isLocal) => {
     isInit = true;
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
-    const { probTexture, maskTexture, highLightTexture } =
+    const { probTexture, maskTexture, highLightTexture, normalTexture } =
       getRenderResultTexture();
     particles.init(probTexture, video);
     particles.setMaskMap(maskTexture);
     particles.setHighLightMap(highLightTexture);
+    particles.setNormalMap(normalTexture);
   });
 
   if (isLocal) {
@@ -255,7 +263,6 @@ const initThree = (isLocal) => {
   //   texture.needsUpdate = true;
   // });
   const pointsTexutre = textureLoader.load(pointsPng, (texture) => {
-    debugger;
     console.log(texture.image.width);
     pointsMaterial.map = texture;
   });
@@ -274,9 +281,10 @@ const initThree = (isLocal) => {
   });
 
   const points = new Points(new BufferGeometry(), pointsMaterial);
-  points.position.z = 1;
+  // points.position.z = 1;
   console.log("----points");
 
+  points.visible = false;
   points.geometry.setAttribute("position", faceGeometryAttribute);
 
   landMarksPosition = points.geometry.attributes.position;
@@ -342,6 +350,11 @@ const initThree = (isLocal) => {
   particles.setParticleMap(numberTexture);
   // if (createBackground) createBackground();
   if (createOutlookLine) createOutlookLine();
+
+  const visible = false;
+  points.visible = visible;
+  faceLine.visible = visible;
+  faceMesh.visible = visible;
 };
 
 const createBackground = () => {
@@ -372,7 +385,7 @@ const createOutlookLine = () => {
   const faceGeometry = new BufferGeometry();
   faceGeometry.setAttribute("position", faceGeometryAttribute);
 
-  faceGeometry.setIndex(getIndex());
+  faceGeometry.setIndex(getLineIndex());
   const material = new LineBasicMaterial({
     color: 0x0099ff,
     // linewidth: 10,
@@ -401,6 +414,24 @@ const createOutlookLine = () => {
   randomLines.scale.x = -1;
   window.randomLines = randomLines;
   scene.add(randomLines);
+
+  const faceGeometry2 = new BufferGeometry();
+  faceGeometry2.setAttribute("position", faceGeometryAttribute);
+
+  faceGeometry2.setIndex(getFaceIndex());
+
+  const faceMesh = new Mesh(
+    faceGeometry2,
+    new MeshBasicMaterial({
+      color: 0xffffff,
+      side: DoubleSide,
+      transparent: true,
+      opacity: 0.5,
+      wireframe: true,
+    })
+  );
+  window.faceMesh = faceMesh;
+  scene.add(faceMesh);
 };
 
 function startFaceDetect() {
@@ -430,7 +461,9 @@ onMounted(() => {
   startDetecte = _start;
   detectPicture = _dp;
   updateLandMark = _up;
-  initThree(true);
+  if (config.isLocal) {
+    initThree(config.isLocal);
+  }
   // createBackground();
 });
 </script>

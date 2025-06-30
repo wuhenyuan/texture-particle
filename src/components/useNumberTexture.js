@@ -18,13 +18,15 @@ export default function generateDigitTextureAtlas() {
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
 
+  let str = "0";
   for (let i = 0; i < cols; i++) {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = col * cellSize + cellSize / 2;
     const y = row * cellSize + cellSize / 2 + 20;
 
-    ctx.fillText(i.toString(), x, y);
+    // ctx.fillText(i.toString(), x, y);
+    ctx.fillText(str.toString(), x, y);
   }
   const texture = new CanvasTexture(canvas);
   texture.minFilter = LinearFilter;

@@ -53,6 +53,7 @@ import ThreeScene from "./components/ThreeScene.vue";
 import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
 import { DebugEnvironment } from "three/examples/jsm/Addons.js";
+import { useGlobalConfig } from "@/stores";
 export default {
   name: "App",
   components: {
@@ -72,7 +73,8 @@ export default {
       // this.$refs.threescene.detectP();
     },
     start() {
-      const isLocal = true;
+      const config = useGlobalConfig();
+      const isLocal = config.isLocal;
       this.$refs.threescene.initThree(isLocal);
       // debugger;
       if (isLocal) return;

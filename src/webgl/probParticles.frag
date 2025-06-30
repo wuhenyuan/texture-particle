@@ -12,7 +12,6 @@ uniform vec3 uParticleColor;
 uniform vec3 uHighLightColor;
 
 uniform float uTime;
-
 uniform float uSuppress; // 压制强度(>1时低亮度更低，1为线性，越大压制越狠)
 
 varying vec2 vPUv;                // 粒子在贴图中的 UV
@@ -31,7 +30,6 @@ void main() {
   // float distanceToCenter = distance(vUv, vec2(0.5));
   // if(distanceToCenter > 0.5)
     // discard;
-
   vec3 g = texture2D(uProbabilityMap, vPUv).rgb;
   // float prob = pow(g, uSuppress); // g^uSuppress 低亮度更低概率
   float prob = g.r;
@@ -91,10 +89,10 @@ void main() {
   // --- 透明度控制 ---
   // float alpha = pow(p, uFade) * uAlphaScale;
 
-  vec4 finalColor = mix(vec4(color * texColor.r * max(0.5, mask.r), texColor.r), vec4(uHighLightColor, useHighColor), hightRatio);
+  vec4 finalColor = mix(vec4(color, 1.0), vec4(uHighLightColor, 1.0), step(0.5, hightRatio));
   // vec4 finalColor = mix(vec4(color * texColor.r * mask.r, texColor.r), vec4(0.25, .5, 1.0, 1.0), useHighColor);
   // finalColor.a = mix(0.6, 1.0, );
-
+  finalColor.rgb * texColor.r;
   finalColor.a = 0.8;
   // gl_FragColor = vec4(color, 1.0);
   gl_FragColor = finalColor;

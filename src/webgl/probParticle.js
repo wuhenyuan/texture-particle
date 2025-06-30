@@ -28,6 +28,7 @@ import noise from "./noiseShader";
 ShaderChunk.noise = noise;
 // console.log(ShaderChunk);
 // import TouchTexture from "./TouchTexture";
+import { useGlobalConfig } from "@/stores/index";
 
 const startRatio = 0;
 const endRatio = 1;
@@ -38,7 +39,7 @@ export default class ProbParticle extends Object3D {
     super();
     this.scene = scene;
     this.scene.add(this);
-    window.points = this;
+    window.particlePoints = this;
     this.time = 0;
     this.progress = 0;
     // 可调节参数，2表示每2像素采样一次
@@ -47,6 +48,7 @@ export default class ProbParticle extends Object3D {
     this.sampleStep = 1;
     this.pointSize = 1;
     this.sampleStepX = this.sampleStep;
+    this.globalConfig = useGlobalConfig();
     // this.sampleStepY = this.sampleStepX / ratio;
     this.sampleStepY = this.sampleStep;
     this.resolution = new Vector2();
@@ -60,7 +62,8 @@ export default class ProbParticle extends Object3D {
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
-    const maxWidth = 50;
+    // const maxWidth = this.globalConfig.maxWidth;
+    const maxWidth = 200;
     if (video) {
       const { videoWidth, videoHeight } = video;
       this.width = videoWidth;
@@ -115,6 +118,13 @@ export default class ProbParticle extends Object3D {
     }
   }
 
+  setNormalMap(texture) {
+    this.uNormalTexture = texture;
+    if (this.material) {
+      this.material.uniforms.uNormalTexture.value = texture;
+    }
+  }
+
   initPoints(discard) {
     if (this.instancePoints) {
       this.remove(this.instancePoints);
@@ -144,9 +154,12 @@ export default class ProbParticle extends Object3D {
       uResolution: { value: this.resolution },
       uHighLightMap: { value: this.uHighLightMap },
       uHighLightColor: { value: new Color(0x4a9fd4) },
+      uNormalTexture: { value: this.uNormalTexture },
+      offsetScale: { value: 0.5 },
     };
 
     const material = new ShaderMaterial({
+      name: "probParticle",
       uniforms,
       // vertexShader: glslify(require("../../../shaders/particle.vert")),
       // fragmentShader: glslify(require("../../../shaders/particle.frag")),
@@ -157,6 +170,7 @@ export default class ProbParticle extends Object3D {
       toneMapped: true,
       // blending: AdditiveBlending,
     });
+
     material.onBeforeRender = () => {};
 
     const geometry = new InstancedBufferGeometry();
@@ -279,6 +293,7 @@ export default class ProbParticle extends Object3D {
 
     this.material.uniforms.uParticleColor.value.set(config.particleColor);
     this.material.uniforms.uHighLightColor.value.set(config.uHighLightColor);
+    this.material.uniforms.offsetScale.value = config.offsetScale;
     // console.log(this.material.uniforms.uHighLightColor.value);
 
     if (this._sampleStep !== config.sampleStep) {

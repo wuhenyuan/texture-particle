@@ -16,6 +16,7 @@ import {
   FACE_LANDMARKS_FACE_OVAL,
   FACE_LANDMARKS_CONTOURS,
 } from "./partData";
+import { mix } from "three/tsl";
 
 export default function useMediaPipe() {
   const video: HTMLVideoElement = document.getElementById("video")!;
@@ -228,26 +229,27 @@ export default function useMediaPipe() {
       lastVideoTime = video.currentTime;
       results = faceLandmarker.detectForVideo(video, startTimeMs);
 
-      imageSegmenter.segmentForVideo(video, startTimeMs, (result) => {
-        let imageData = ctx.getImageData(
-          0,
-          0,
-          video.videoWidth,
-          video.videoHeight
-        ).data;
-        console.log(result);
-        return;
-        // 在segmenter的回调中处理所有更新
-        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-          // updateFaceMesh(faceResults.faceLandmarks[0]);
-          updateRandomLines(mask, results.faceLandmarks[0]);
-        }
-        // 即使没有脸，只要有人，也更新随机线条
-        else if (mask) {
-          updateRandomLines(mask, null);
-        }
-      });
       console.log(results);
+      // imageSegmenter.segmentForVideo(video, startTimeMs, (result) => {
+      //   let imageData = ctx.getImageData(
+      //     0,
+      //     0,
+      //     video.videoWidth,
+      //     video.videoHeight
+      //   ).data;
+      //   console.log(result);
+      //   return;
+      //   // 在segmenter的回调中处理所有更新
+      //   if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+      //     // updateFaceMesh(faceResults.faceLandmarks[0]);
+      //     updateRandomLines(mask, results.faceLandmarks[0]);
+      //   }
+      //   // 即使没有脸，只要有人，也更新随机线条
+      //   else if (mask) {
+      //     updateRandomLines(mask, null);
+      //   }
+      // });
+      // console.log(results);
     }
     if (results.faceLandmarks.length && results.faceLandmarks[0].length > 0) {
       needResult = true;
@@ -311,6 +313,8 @@ export default function useMediaPipe() {
   }
   function updateLandMark(position) {
     const positions = position.array;
+    let max = 0;
+    let min = 0;
     if (results && results.faceLandmarks && needResult) {
       const faceLandmarks = results.faceLandmarks[0];
       needResult = false;
@@ -321,11 +325,14 @@ export default function useMediaPipe() {
         // positions.push(landmark.x, landmark.y, landmark.z);
         positions[i * 3] = (lanmmark.x - 0.5) * scale;
         positions[i * 3 + 1] = (1.0 - lanmmark.y - 0.5) * scale;
-        positions[i * 3 + 2] = (lanmmark.z - 0.5) * scale;
+        const z = -lanmmark.z * scale;
+        if (max < z) max = z;
+        if (min > z) min = z;
         // positions[i * 3 + 2] = (1 - lanmmark.z - 0.5) * scale;
       }
       position.needsUpdate = true;
     }
+    console.log(max, min);
   }
   return {
     startDetecte,

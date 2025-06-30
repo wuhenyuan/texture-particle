@@ -28,14 +28,20 @@ uniform float uRandom;
 uniform float uDepth;
 uniform float uSize;
 uniform vec2 uTextureSize;
+uniform sampler2D uNormalTexture;
 uniform sampler2D uProbabilityMap;
 uniform sampler2D uMaskMap;
 uniform sampler2D uHighLightMap;  //高光贴图
 uniform float uProgress;
+uniform float offsetScale;
 // uniform sampler2D uTouch;
 
 varying vec2 vPUv;
 varying vec2 vUv;
+
+float remap(float value, float inMin, float inMax, float outMin, float outMax) {
+    return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin);
+}
 
 // noise
 
@@ -92,6 +98,13 @@ void main() {
 
     vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
+    vec4 normal = texture2D(uNormalTexture, vPUv);
+
+    normal.xy = normal.xy * 2.0 - 1.0;
+
+    vec2 normalOffset = normal.xy * offsetScale * normal.z * uSize;
+
+    mixedPosition.xy -= normalOffset;
     // float noiseStrength = 1.0; // Adjust this value to control the intensity of the noise
     // // vec3 noiseOffset = vec3((random2D(mixedPosition.xy + uTime * 0.1) - 0.5) * noiseStrength, (random2D(mixedPosition.yx - uTime * 0.1) - 0.5) * noiseStrength, (random2D(mixedPosition.yz + uTime * 0.05) - 0.5) * noiseStrength);
     // vec3 noiseOffset = vec3((random2D(mixedPosition.xy) - 0.5) * noiseStrength, (random2D(mixedPosition.yx) - 0.5) * noiseStrength, (random2D(mixedPosition.yz) - 0.5) * noiseStrength);
@@ -112,7 +125,7 @@ void main() {
     // float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
     float psize = 1.0;
     // psize *= max(grey, 0.5);
-    psize *= uSize;
+    psize *= mix(0.2, 0.5, normal.z) * uSize;
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;
 
 	// final position
