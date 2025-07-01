@@ -1,7 +1,13 @@
 <!-- src/components/ThreeScene.vue -->
 <template>
   <div ref="threeContainer" class="three-container">
+    <div class="video-bg">
+      <video autoplay loop muted playsinline>
+        <source src="../assets/background1.mp4" type="video/mp4" />
+      </video>
+    </div>
     <div ref="imageContainer" class="image-container"></div>
+    <canvas ref="canvasRef" id="three-canvas" class="three-canvas"></canvas>
   </div>
 </template>
 
@@ -66,14 +72,20 @@ const initThree = (isLocal) => {
 
   // 创建相机
   camera = new PerspectiveCamera(50, ratio, 1, 10000);
-  camera.position.z = 300;
+  camera.position.x = 25.689325252039627;
+  camera.position.y = 6;
+  camera.position.z = 335;
 
   clock = new Clock(true);
 
   // 创建渲染器
-  renderer = new WebGLRenderer();
+  renderer = new WebGLRenderer({
+    canvas: document.getElementById("three-canvas"),
+    alpha: true,
+  });
 
   renderer.setClearColor(0x000000);
+  renderer.setClearAlpha(0);
 
   renderer.setSize(width, height);
   // renderer.outputColorSpace = SRGBColorSpace;
@@ -86,7 +98,11 @@ const initThree = (isLocal) => {
   orbitControls.dampingFactor = 0.25;
   orbitControls.screenSpacePanning = false;
   orbitControls.maxPolarAngle = Math.PI / 2;
-
+  window.orbit = orbitControls;
+  orbitControls.target.x = 8;
+  orbitControls.target.y = 0;
+  orbitControls.target.z = -94;
+  orbitControls.update();
   // 创建视频纹理
   const video = document.getElementById("video");
 
@@ -107,6 +123,7 @@ const initThree = (isLocal) => {
   const textureLoader = new TextureLoader();
   // const particles = new Particles(scene, ratio);
   particles = new ProbParticle(scene, ratio);
+  particles.position.y = -50;
 
   let videoTexture;
   video.addEventListener("loadedmetadata", () => {
@@ -218,6 +235,7 @@ const initThree = (isLocal) => {
   // });
 
   window.scene = scene;
+  window.camera = camera;
 
   composer = usePostprocessing(scene, renderer, camera);
 
@@ -282,6 +300,38 @@ onMounted(() => {
 .three-container {
   width: 100%;
   height: 100vh;
+  width: 1040px;
+  height: 1040px;
+  max-width: 1040px;
+  max-height: 1040px;
+  position: relative;
   /* background: #000; */
+}
+
+.video-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  filter: blur(10px);
+  overflow: hidden;
+}
+
+.video-bg video {
+  /* width: 100%;
+  height: 100%; */
+  object-fit: cover;
+}
+.three-container .three-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  /* 如果你不需要交互 */
+  /* pointer-events: none; */
 }
 </style>

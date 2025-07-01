@@ -49,12 +49,12 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1.5,
-  sampleStep: 1,
+  pointSize: 1,
+  sampleStep: 4,
   diff: 0.2,
   // particleColor: 0x8299b1,
-  particleColor: 0x89bcff,
-  uHighLightColor: 0x7cbcff,
+  particleColor: 0x7e9bc2,
+  uHighLightColor: 0xa6cbff,
 };
 
 let color2 = new Color(0x7cbcff);

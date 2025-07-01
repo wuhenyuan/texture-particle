@@ -53,11 +53,11 @@ export default {
   },
   methods: {
     start() {
-      const isLocal = true;
+      const isLocal = false;
       // debugger;
       this.$refs.threescene.initThree(isLocal);
       if (isLocal) return;
-      // startConnect();
+      startConnect();
       // return;
 
       // 开启视频链接;
