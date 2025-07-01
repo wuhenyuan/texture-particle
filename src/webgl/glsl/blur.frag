@@ -6,7 +6,7 @@ uniform vec2 iResolution;
 
 const float EPSILON = 0.01;
 const vec3 INVALID_NORMAL = vec3(0.0, 0.0, 0.0); // 用这个值标记“空白像素”
-const int RADIUS = 8;
+const int RADIUS = 4;
 
 // 可调：控制不同方向权重（横向更强）
 // 横向权重因子：越大代表左右方向影响越大
@@ -29,27 +29,26 @@ void main() {
     }
 
     // 否则，尝试从邻域中找有效法线平均
-    vec3 accum = vec3(0.0);
-    float weight = 0.0;
+
+    vec3 accumNormal = vec3(0.0);
+    float accumWeight = 0.0;
 
     for(int dx = -RADIUS; dx <= RADIUS; ++dx) {
         for(int dy = -RADIUS; dy <= RADIUS; ++dy) {
             vec2 offset = vec2(float(dx), float(dy)) * texelSize;
-            vec2 uv = vUv + offset;
+            vec2 sampleUv = vUv + offset;
 
-            vec3 sampleNormal = texture2D(tDiffuse, uv).rgb;
-            if(isValidNormal(sampleNormal)) {
+            vec3 sampleNormal = texture2D(tDiffuse, sampleUv).rgb;
+            float valid = isValidNormal(sampleNormal) ? 1.0 : 0.0;
 
-                // 基于方向计算加权（横向、纵向、对角不同权重）
-
-                accum += sampleNormal;
-                weight += 1.0;
-            }
+            float weight = exp(-float(dx * dx + dy * dy) / 16.0); // 高斯衰减
+            accumNormal += sampleNormal * weight * valid;
+            accumWeight += weight * valid;
         }
     }
 
-    if(weight > 0.0) {
-        vec3 result = normalize(accum / weight);
+    if(accumWeight > 0.0) {
+        vec3 result = normalize(accumNormal / accumWeight);
         gl_FragColor = vec4(result, 1.0);
     } else {
         // 邻域也没找到，保持空白（或输出默认法线）

@@ -43,19 +43,13 @@ float remap(float value, float inMin, float inMax, float outMin, float outMax) {
     return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin);
 }
 
-
-
 mat3 rotationMatrix(vec3 axis, float angle) {
     float c = cos(angle);
     float s = sin(angle);
     float t = 1.0 - c;
     float x = axis.x, y = axis.y, z = axis.z;
 
-    return mat3(
-        t*x*x + c,     t*x*y - s*z,   t*x*z + s*y,
-        t*x*y + s*z,   t*y*y + c,     t*y*z - s*x,
-        t*x*z - s*y,   t*y*z + s*x,   t*z*z + c
-    );
+    return mat3(t * x * x + c, t * x * y - s * z, t * x * z + s * y, t * x * y + s * z, t * y * y + c, t * y * z - s * x, t * x * z - s * y, t * y * z + s * x, t * z * z + c);
 }
 
 // noise
@@ -143,20 +137,17 @@ void main() {
     psize *= mix(0.2, 0.5, normal.w) * uSize;
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;
 
-
-
-vec3 normalDir = normalize(normal.xyz);
+    vec3 normalDir = normalize(normal.xyz);
 // 避免与 normal 共线，选择一个正交向量
-vec3 helper = abs(normalDir.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+    vec3 helper = abs(normalDir.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
 
 // 构造局部坐标系（TBN）
-vec3 tangent = normalize(cross(helper, normalDir));
-vec3 bitangent = cross(normalDir, tangent);
-
+    vec3 tangent = normalize(cross(helper, normalDir));
+    vec3 bitangent = cross(normalDir, tangent);
 
 // 构造偏移量（position 是默认 XY 平面上的点，如 -0.5,0.5）
-vec2 quadOffset = position.xy * psize;
-vec3 rotatedOffset = tangent * quadOffset.x + bitangent * quadOffset.y;
+    vec2 quadOffset = position.xy * psize;
+    vec3 rotatedOffset = tangent * quadOffset.x + bitangent * quadOffset.y;
 
 	// final position
    // vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

@@ -132,7 +132,7 @@ const initThree = (isLocal) => {
   if (isLocal) {
     // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
     // video.src = "/src/assets/lijialuoTest2.mp4"; // 设置视频路径
-    video.src = "/src/assets/jialuo2.mp4"; // 设置视频路径
+    video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     // video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     video.loop = true;
     video.autoplay = true;

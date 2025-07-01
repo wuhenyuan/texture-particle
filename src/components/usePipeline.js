@@ -733,11 +733,11 @@ void main() {
     // showHandleResult(digitTexture, 0);
     // showHandleResult(lowProbabilityRt.texture, 0);
     // showHandleResult(edgeDetectionRt.texture, 0);
-    showHandleResult(expandRt.texture, 1);
+    // showHandleResult(expandRt.texture, 1);
     // showHandleResult(normalRt.texture, 1);
     // showHandleResult(depthRenderRt.texture, 0);
-    // showHandleResult(baseNormaRt.texture, 0);
-    // showHandleResult(blurRt2.texture, 1);
+    showHandleResult(baseNormaRt.texture, 0);
+    showHandleResult(blurRt2.texture, 1);
 
     // showHandleResult(highProbabilityRt.texture, 1);
     // showHandleResult(blendProbRt.texture, 1);
