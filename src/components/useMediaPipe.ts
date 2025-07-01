@@ -16,7 +16,7 @@ import {
   FACE_LANDMARKS_FACE_OVAL,
   FACE_LANDMARKS_CONTOURS,
 } from "./partData";
-import { mix } from "three/tsl";
+import { useGlobalConfig } from "../stores";
 
 export default function useMediaPipe() {
   const video: HTMLVideoElement = document.getElementById("video")!;
@@ -26,6 +26,7 @@ export default function useMediaPipe() {
   const canvasElement = document.getElementById("output") as HTMLCanvasElement;
   const ctx = canvasElement.getContext("2d") as CanvasRenderingContext2D;
 
+  const globalConfig = useGlobalConfig();
   const videoWidth = 480;
   let runningMode: "IMAGE" | "VIDEO" = "VIDEO";
   let vision, faceLandmarker, imageSegmenter;
@@ -59,6 +60,11 @@ export default function useMediaPipe() {
     });
     labels = imageSegmenter.getLabels();
     console.log("faceLandmarker created.", faceLandmarker);
+    if (globalConfig.isLocal) {
+      setTimeout(() => {
+        startDetecte();
+      });
+    }
     // await faceLandmarker.setOptions({ runningMode: "VIDEO" });
   }
   createFaceLandmarker();
@@ -229,7 +235,6 @@ export default function useMediaPipe() {
       lastVideoTime = video.currentTime;
       results = faceLandmarker.detectForVideo(video, startTimeMs);
 
-      console.log(results);
       // imageSegmenter.segmentForVideo(video, startTimeMs, (result) => {
       //   let imageData = ctx.getImageData(
       //     0,
@@ -325,14 +330,18 @@ export default function useMediaPipe() {
         // positions.push(landmark.x, landmark.y, landmark.z);
         positions[i * 3] = (lanmmark.x - 0.5) * scale;
         positions[i * 3 + 1] = (1.0 - lanmmark.y - 0.5) * scale;
-        const z = -lanmmark.z * scale ;
+        const z = -lanmmark.z * scale;
         positions[i * 3 + 2] = z;
         if (max < z) max = z;
         if (min > z) min = z;
       }
       position.needsUpdate = true;
+      if (!faceGeometry2) return;
+      globalConfig.faceDepthMax = max;
+      globalConfig.faceDepthMin = min;
+      faceGeometry2.computeVertexNormals();
+      faceGeometry2.attributes.normal.needsUpdate = true;
     }
-    console.log(max, min);
   }
   return {
     startDetecte,

@@ -131,7 +131,9 @@ const initThree = (isLocal) => {
 
   if (isLocal) {
     // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
-    video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
+    // video.src = "/src/assets/lijialuoTest2.mp4"; // 设置视频路径
+    video.src = "/src/assets/jialuo2.mp4"; // 设置视频路径
+    // video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     video.loop = true;
     video.autoplay = true;
     video.muted = true; // 在某些浏览器中，视频需要静音才能自动播放
@@ -188,13 +190,18 @@ const initThree = (isLocal) => {
     isInit = true;
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
-    const { probTexture, maskTexture, highLightTexture, normalTexture, depthTexture } =
-      getRenderResultTexture();
+    const {
+      probTexture,
+      maskTexture,
+      highLightTexture,
+      normalTexture,
+      depthTexture,
+    } = getRenderResultTexture();
     particles.init(probTexture, video);
     particles.setMaskMap(maskTexture);
     particles.setHighLightMap(highLightTexture);
     particles.setNormalMap(normalTexture);
-    particles.setDepthMap(depthTexture)
+    particles.setDepthMap(depthTexture);
   });
 
   if (isLocal) {
@@ -285,7 +292,6 @@ const initThree = (isLocal) => {
   // points.position.z = 1;
   console.log("----points");
 
-  points.visible = true;
   points.geometry.setAttribute("position", faceGeometryAttribute);
 
   landMarksPosition = points.geometry.attributes.position;
@@ -352,7 +358,7 @@ const initThree = (isLocal) => {
   // if (createBackground) createBackground();
   if (createOutlookLine) createOutlookLine();
 
-  const visible = true;
+  const visible = false;
   points.visible = visible;
   faceLine.visible = visible;
   faceMesh.visible = visible;

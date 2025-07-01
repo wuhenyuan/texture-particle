@@ -15,6 +15,7 @@ import {
   NearestFilter,
   Color,
   ShaderChunk,
+  DoubleSide,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
 // import lightSpot from "./lightSpot.png";
@@ -125,8 +126,8 @@ export default class ProbParticle extends Object3D {
     }
   }
 
-  setDepthMap(texture){
-        this.uDepthTexture = texture;
+  setDepthMap(texture) {
+    this.uDepthTexture = texture;
     if (this.material) {
       this.material.uniforms.uDepthTexture.value = texture;
     }
@@ -162,7 +163,7 @@ export default class ProbParticle extends Object3D {
       uHighLightMap: { value: this.uHighLightMap },
       uHighLightColor: { value: new Color(0x4a9fd4) },
       uNormalTexture: { value: this.uNormalTexture },
-      uDepthTexture: {value: this.uDepthTexture},
+      uDepthTexture: { value: this.uDepthTexture },
       offsetScale: { value: 0.5 },
     };
 
@@ -176,6 +177,7 @@ export default class ProbParticle extends Object3D {
       depthTest: false,
       transparent: true,
       toneMapped: true,
+      side: DoubleSide,
       // blending: AdditiveBlending,
     });
 
@@ -228,10 +230,6 @@ export default class ProbParticle extends Object3D {
       offsets[j * 3 + 0] = (i % width) * this.sampleStepX;
       let height2 = Math.floor(i / width) * this.sampleStepY + startHeight;
       offsets[j * 3 + 1] = height2;
-      if (height2 > endHeight) {
-        debugger;
-        break;
-      }
       indices[j] = i;
 
       angles[j] = Math.random() * Math.PI;

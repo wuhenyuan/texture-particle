@@ -7,8 +7,7 @@ uniform sampler2D uParticleMap;  //粒子贴图
 uniform sampler2D uHparticleMap; //高光粒子贴图
 uniform sampler2D uHighLightMap;  //高光贴图
 uniform sampler2D uDepthTexture;
-
-
+uniform sampler2D uNormalTexture;
 
 uniform float uFade;              // 可选的淡出因子
 uniform vec3 uParticleColor;
@@ -89,6 +88,12 @@ void main() {
   // if(mask.r < 0.05)
   //   discard;
 
+  vec3 normal = texture2D(uNormalTexture, vPUv).rgb * 2.0 - 1.0;
+  vec3 viewDir = vec3(0, 0, 1); // 或直接 vec3(0,0,1) if 固定相机
+  float facing = dot(normal, viewDir); // 1.0 = 正对镜头
+
+  float brightness = 1.0 - clamp(facing, 0.0, 1.0);
+
   // --- 透明度控制 ---
   // float alpha = pow(p, uFade) * uAlphaScale;
 
@@ -97,6 +102,7 @@ void main() {
   // finalColor.a = mix(0.6, 1.0, );
   finalColor.rgb * texColor.r;
   finalColor.a = 0.8;
+  // finalColor.rgb += brightness * uHighLightColor;
   // gl_FragColor = vec4(color, 1.0);
   gl_FragColor = finalColor;
   // gl_FragColor = vec4(0.25, .5, 1.0, 0.25);

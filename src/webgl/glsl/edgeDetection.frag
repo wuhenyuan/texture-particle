@@ -1,6 +1,6 @@
 precision highp float;
 
-float stepf = 2.0;
+float stepf = 1.0;
 
 varying vec2 vUv;
 uniform sampler2D tdiff;
