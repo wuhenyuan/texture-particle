@@ -150,13 +150,14 @@ void main() {
     float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
     // 系数
-    float frenel = 1. - dot(normal, normalize(vec3(0.0, 0., 1.0)));
+    float frenel = 1. - abs(dot(normal, normalize(vec3(0.0, 0., 1.0))));
 
     // float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
     float psize = 1.0;
     // psize *= max(grey, 0.5);
     float d = texture2D(uDepthTexture, vPUv).r;
-    psize *= frenel * uSize;
+    psize *= mix(0., 0.5, frenel) * uSize;
+    // psize *= uSize;
 
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;
 
@@ -165,12 +166,12 @@ void main() {
     vec3 helper = abs(normalDir.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
 
 // 构造局部坐标系（TBN）
-    // vec3 tangent = normalize(cross(helper, normalDir));
-    // vec3 bitangent = cross(normalDir, tangent);
+    vec3 tangent = normalize(cross(helper, normalDir));
+    vec3 bitangent = cross(normalDir, tangent);
 
 // 构造偏移量（position 是默认 XY 平面上的点，如 -0.5,0.5）
-    // vec2 quadOffset = position.xy * psize;
-    // vec3 rotatedOffset = tangent * quadOffset.x + bitangent * quadOffset.y;
+    vec2 quadOffset = position.xy * psize;
+    vec3 rotatedOffset = tangent * quadOffset.x + bitangent * quadOffset.y;
 
     // angle = (angle + 0.01) % 360.0;
 
@@ -178,8 +179,8 @@ void main() {
    // vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
 // 最终位置
 
-    vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
-    mvPosition.xyz += position * psize;
-    vec4 finalPosition = projectionMatrix * mvPosition;
+    vec4 mvPosition = modelViewMatrix * vec4(mixedPosition + rotatedOffset, 1.0);
+    // mvPosition.xyz += position * psize;
+    // vec4 finalPosition = projectionMatrix * mvPosition;
     gl_Position = projectionMatrix * mvPosition;
 }
