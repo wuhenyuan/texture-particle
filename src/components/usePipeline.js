@@ -60,16 +60,16 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1.5,
+  pointSize: 1.21,
 
   offsetScale: 0.14,
-  sampleStep: 6,
+  sampleStep: 2,
   diff: 0.2,
   // particleColor: 0x8299b1,
   // particleColor: 0x868686,
   // uHighLightColor: 0xa9bbca,
-  particleColor: 0x96cddc,
-  uHighLightColor: 0x4cb6ff,
+  particleColor: 0x7e9bc2,
+  uHighLightColor: 0xc7fb,
   depthThroshold: 0.02,
   scale: 1,
 };
@@ -80,7 +80,6 @@ color2.set(0.125, 0.25, 0.5);
 console.log(color2.getHexString());
 
 // 是否使用一半
-const useHalf = false;
 
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
@@ -116,6 +115,7 @@ async function getDepthArray(src) {
 export default function usePileline(scene, renderer, camera) {
   const textureLoader = new TextureLoader();
   const globalConfig = useGlobalConfig();
+  const useHalf = globalConfig.isUseHalf;
   useGui(config);
   const digitTexture = generateDigitTextureAtlas();
   let resulution = new Vector2(1, 1);
@@ -753,10 +753,11 @@ void main() {
     }
 
     if (points) {
-      const scale = config.scale;
-      const scale1 = width;
-      const scale2 = height;
-      const scale3 = 100;
+      // const scale = config.scale;
+      const baseScale = 1.05;
+      const scale1 = width * baseScale;
+      const scale2 = height * baseScale;
+      const scale3 = 100 * baseScale;
       points.scale.set(scale1, scale2, scale3);
       faceLine.scale.set(scale1, scale2, scale3);
       faceMesh.scale.set(scale1, scale2, scale3);
@@ -842,18 +843,18 @@ void main() {
     renderer.clear();
     renderer.render(blendProbWrapper, camera);
 
-    renderer.setRenderTarget(baseNormaRt);
-    if (baseNormalWrapper.geometry.attributes.normal) {
-      renderer.clear();
-      // renderer.render(normalWrapper, camera);
-      renderer.render(baseNormalWrapper, camera);
-    } else {
-      const color = new Color(0xffffff);
-      renderer.getClearColor(color);
-      renderer.setClearColor(new Color(0.5, 0.5, 1.0), 1);
-      renderer.clear();
-      renderer.setClearColor(color);
-    }
+    // renderer.setRenderTarget(baseNormaRt);
+    // if (baseNormalWrapper.geometry.attributes.normal) {
+    //   renderer.clear();
+    //   // renderer.render(normalWrapper, camera);
+    //   renderer.render(baseNormalWrapper, camera);
+    // } else {
+    //   const color = new Color(0xffffff);
+    //   renderer.getClearColor(color);
+    //   renderer.setClearColor(new Color(0.5, 0.5, 1.0), 1);
+    //   renderer.clear();
+    //   renderer.setClearColor(color);
+    // }
 
     // render blur
     renderer.setRenderTarget(blurRt1);
@@ -868,7 +869,7 @@ void main() {
     blurMaterial.uniforms.tDiffuse.value = blurRt1.texture;
     renderer.render(blurWrapper, camera);
 
-    const numPasses = 40;
+    const numPasses = 0;
 
     for (let i = 0; i < numPasses; i++) {
       renderer.setRenderTarget(blurRt1);

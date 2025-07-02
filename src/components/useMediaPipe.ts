@@ -61,9 +61,13 @@ export default function useMediaPipe() {
     labels = imageSegmenter.getLabels();
     console.log("faceLandmarker created.", faceLandmarker);
     if (globalConfig.isLocal) {
-      setTimeout(() => {
+      // setTimeout(() => {
+      try {
         startDetecte();
-      });
+      } catch (error) {
+        console.log(error);
+      }
+      // });
     }
     // await faceLandmarker.setOptions({ runningMode: "VIDEO" });
   }
@@ -314,6 +318,7 @@ export default function useMediaPipe() {
   }
 
   function startDetecte() {
+    globalConfig.isFaceReady = true;
     requestAnimationFrame(predictWebcam);
   }
   function updateLandMark(position) {

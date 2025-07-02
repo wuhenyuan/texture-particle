@@ -65,7 +65,7 @@ import pointsPng from "../assets/point.png";
 
 import { useGlobalConfig } from "@/stores/index";
 
-const config = useGlobalConfig();
+const globalConfig = useGlobalConfig();
 
 let preTreatment, updateTexture, getRenderResultTexture;
 
@@ -97,7 +97,9 @@ const initThree = (isLocal) => {
 
   // 创建相机
   camera = new PerspectiveCamera(50, ratio, 1, 10000);
-  camera.position.z = 85;
+  camera.position.x = -66.84943545428499;
+  camera.position.y = 0;
+  camera.position.z = 828.0763075633806;
   // camera.position.z = 1368;
 
   window.camera = camera;
@@ -132,7 +134,7 @@ const initThree = (isLocal) => {
   if (isLocal) {
     // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
     // video.src = "/src/assets/lijialuoTest2.mp4"; // 设置视频路径
-    video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
+    video.src = "/src/assets/shipinTest.mp4"; // 设置视频路径
     // video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     video.loop = true;
     video.autoplay = true;
@@ -188,6 +190,9 @@ const initThree = (isLocal) => {
   video.addEventListener("canplay", () => {
     if (isInit) return;
     isInit = true;
+    if (globalConfig.useFaceDetection) {
+      startFaceDetect();
+    }
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
     const {
@@ -322,6 +327,10 @@ const initThree = (isLocal) => {
       particles.update(delta);
     }
 
+    if (globalConfig.isFaceReady) {
+      faceLine.visible = true;
+    }
+
     if (preTreatment) {
       preTreatment(delta);
     }
@@ -397,7 +406,8 @@ const createOutlookLine = () => {
     color: 0x0099ff,
     // linewidth: 10,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.1,
+    renderOrder: 1,
   });
   window.lineGeometry = faceGeometry;
   const faceLine = new LineSegments(faceGeometry, material);
@@ -459,16 +469,18 @@ onMounted(() => {
   height = threeContainer.value.clientHeight;
   ratio = width / height;
 
-  const {
-    startDetecte: _start,
-    detectPicture: _dp,
-    updateLandMark: _up,
-  } = useMediaPipe();
-  startDetecte = _start;
-  detectPicture = _dp;
-  updateLandMark = _up;
-  if (config.isLocal) {
-    initThree(config.isLocal);
+  if (globalConfig.useFaceDetection) {
+    const {
+      startDetecte: _start,
+      detectPicture: _dp,
+      updateLandMark: _up,
+    } = useMediaPipe();
+    startDetecte = _start;
+    detectPicture = _dp;
+    updateLandMark = _up;
+  }
+  if (globalConfig.isLocal) {
+    initThree(globalConfig.isLocal);
   }
   // createBackground();
 });

@@ -77,7 +77,7 @@ export default class ProbParticle extends Object3D {
     const ratio = this.width / this.height;
     this.width = Math.min(this.width, maxWidth);
     this.height = Math.floor(this.width / ratio);
-    // this.height = this.height / 2;init
+    if (this.globalConfig.isUseHalf) this.height = this.height / 2;
     const textureLoader = new TextureLoader();
     this.pMap = textureLoader.load(lightSpot);
     // const maxWidth = 180;
@@ -178,6 +178,7 @@ export default class ProbParticle extends Object3D {
       transparent: true,
       toneMapped: true,
       side: DoubleSide,
+      renderOrder: 10,
       // blending: AdditiveBlending,
     });
 

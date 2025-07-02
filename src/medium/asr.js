@@ -301,6 +301,7 @@ export function stopAsr() {
     mode: getAsrMode(),
   };
   console.log(request);
+  console.log("stop asr");
   if (sampleBuf.length > 0) {
     wsconnecter.wsSend(sampleBuf);
     console.log("sampleBuf.length" + sampleBuf.length);

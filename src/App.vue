@@ -86,10 +86,13 @@ export default {
       // return;
 
       // 开启视频链接;
+
       start();
       this.isVideo = true;
     },
     stop() {
+      window.stop = stop;
+      window.stopAsr = stopAsr;
       try {
         stopAsr();
         stop();

@@ -1,6 +1,6 @@
-import fragShader from "./glsl/edgeDetection.frag";
+// import fragShader from "./glsl/edgeDetection.frag";
 // import fragShader3 from "./glsl/edgeDetection3.frag";
-// import fragShaderfilter from "./glsl/edgeDetectionFilter.frag";
+import fragShaderfilter from "./glsl/edgeDetectionFilter.frag";
 
 export const edgeDetection = {
   name: "edgeDetection",
@@ -17,7 +17,7 @@ export const edgeDetection = {
       gl_Position =  vec4(position, 1.0);
     }`,
 
-  fragmentShader: fragShader,
+  // fragmentShader: fragShader,
   //   fragmentShader: fragShader3,
-  //   fragmentShader: fragShaderfilter,
+  fragmentShader: fragShaderfilter,
 };
