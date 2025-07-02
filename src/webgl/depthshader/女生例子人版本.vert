@@ -28,46 +28,14 @@ uniform float uRandom;
 uniform float uDepth;
 uniform float uSize;
 uniform vec2 uTextureSize;
-uniform sampler2D uNormalTexture;
-uniform sampler2D uDepthTexture;
 uniform sampler2D uProbabilityMap;
 uniform sampler2D uMaskMap;
 uniform sampler2D uHighLightMap;  //高光贴图
 uniform float uProgress;
-uniform float offsetScale;
-// varying vec3 
 // uniform sampler2D uTouch;
 
 varying vec2 vPUv;
 varying vec2 vUv;
-
-float remap(float value, float inMin, float inMax, float outMin, float outMax) {
-    return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin);
-}
-
-vec3 computeNormalFromDepth(sampler2D depthMap, vec2 uv, vec2 resolution, float depthScale) {
-    vec2 texelSize = 1.0 / resolution;
-
-    float depthCenter = texture(depthMap, uv).r;
-    float depthRight = texture(depthMap, uv + vec2(texelSize.x, 0.0)).r;
-    float depthUp = texture(depthMap, uv + vec2(0.0, texelSize.y)).r;
-
-    vec3 pCenter = vec3(uv, depthCenter * depthScale);
-    vec3 pRight = vec3(uv + vec2(texelSize.x, 0.0), depthRight * depthScale);
-    vec3 pUp = vec3(uv + vec2(0.0, texelSize.y), depthUp * depthScale);
-
-    vec3 normal = normalize(cross(pRight - pCenter, pUp - pCenter));
-    return normal;
-}
-
-mat3 rotationMatrix(vec3 axis, float angle) {
-    float c = cos(angle);
-    float s = sin(angle);
-    float t = 1.0 - c;
-    float x = axis.x, y = axis.y, z = axis.z;
-
-    return mat3(t * x * x + c, t * x * y - s * z, t * x * z + s * y, t * x * y + s * z, t * y * y + c, t * y * z - s * x, t * x * z - s * y, t * y * z + s * x, t * z * z + c);
-}
 
 // noise
 
@@ -92,20 +60,18 @@ void main() {
 	// displacement
     // displaced = offset;
 	// randomise
-    // displaced.xy += vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * uRandom;
-    // float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1)));
-    // displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
+    displaced.xy += vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * uRandom;
+    float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1)));
+    displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
 	// center
     displaced.xy -= uTextureSize * 0.5;
-    displaced.z = 0.0;
 
 	// touch
     // float t = texture2D(uTouch, puv).r;
-    float rndz = 0.0;
     float t = 0.0;
     displaced.z += t * 20.0 * rndz;
-    displaced.x += cos(angle) * t * 1.0 * rndz;
-    displaced.y += sin(angle) * t * 1.0 * rndz;
+    displaced.x += cos(angle) * t * 20.0 * rndz;
+    displaced.y += sin(angle) * t * 20.0 * rndz;
 
   // progress noise
     float multiplier = uTextureSize.x * 2.0; // distance factor
@@ -124,14 +90,6 @@ void main() {
 
     vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
-    // vec4 normal = texture2D(uNormalTexture, vPUv);
-
-    vec3 normal = computeNormalFromDepth(uDepthTexture, vPUv, uTextureSize, 1.0);
-    // normal.xyz = normal.xyz * 2.0 - 1.0;
-
-    vec3 normalOffset = normal.xyz * offsetScale * uSize;
-
-    mixedPosition.xyz -= normalOffset;
     // float noiseStrength = 1.0; // Adjust this value to control the intensity of the noise
     // // vec3 noiseOffset = vec3((random2D(mixedPosition.xy + uTime * 0.1) - 0.5) * noiseStrength, (random2D(mixedPosition.yx - uTime * 0.1) - 0.5) * noiseStrength, (random2D(mixedPosition.yz + uTime * 0.05) - 0.5) * noiseStrength);
     // vec3 noiseOffset = vec3((random2D(mixedPosition.xy) - 0.5) * noiseStrength, (random2D(mixedPosition.yx) - 0.5) * noiseStrength, (random2D(mixedPosition.yz) - 0.5) * noiseStrength);
@@ -149,37 +107,15 @@ void main() {
     vec4 colA = texture2D(uProbabilityMap, puv);
     float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-    // 系数
-    float frenel = 1. - dot(normal, normalize(vec3(0.0, 0., 1.0)));
-
-    // float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
-    float psize = 1.0;
+    float psize = snoise(vec2(uTime, pindex) * 0.5) + 2.0;
     // psize *= max(grey, 0.5);
-    float d = texture2D(uDepthTexture, vPUv).r;
-    psize *= frenel * uSize;
-
+    psize *= uSize;
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;
 
-    vec3 normalDir = normalize(normal.xyz);
-// 避免与 normal 共线，选择一个正交向量
-    vec3 helper = abs(normalDir.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-
-// 构造局部坐标系（TBN）
-    // vec3 tangent = normalize(cross(helper, normalDir));
-    // vec3 bitangent = cross(normalDir, tangent);
-
-// 构造偏移量（position 是默认 XY 平面上的点，如 -0.5,0.5）
-    // vec2 quadOffset = position.xy * psize;
-    // vec3 rotatedOffset = tangent * quadOffset.x + bitangent * quadOffset.y;
-
-    // angle = (angle + 0.01) % 360.0;
-
 	// final position
-   // vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
-// 最终位置
-
     vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
     mvPosition.xyz += position * psize;
     vec4 finalPosition = projectionMatrix * mvPosition;
-    gl_Position = projectionMatrix * mvPosition;
+
+    gl_Position = finalPosition;
 }

@@ -22,11 +22,13 @@ import {
 import lightSpot from "./point1234.png";
 // import lightSpot from "./point.png";
 
-import particleFrag from "./probParticles.frag";
-import particleVert from "./probParticles.vert";
+import particleFrag from "./depthShader/probParticles.frag";
+import particleVert from "./depthShader/probParticles.vert";
 import noise from "./noiseShader";
+import commonShader from "./common/common.glsl";
 
 ShaderChunk.noise = noise;
+// ShaderChunk.commonShader = commonShader;
 // console.log(ShaderChunk);
 // import TouchTexture from "./TouchTexture";
 import { useGlobalConfig } from "@/stores/index";

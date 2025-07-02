@@ -16,8 +16,8 @@ import {
   NearestFilter,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
-import particleFrag from "./particles.frag";
-import particleVert from "./particles.vert";
+import particleFrag from "./depthShader/particles.frag";
+import particleVert from "./depthShader/particles.vert";
 
 // import TouchTexture from "./TouchTexture";
 

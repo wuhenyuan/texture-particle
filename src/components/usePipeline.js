@@ -454,10 +454,14 @@ export default function usePileline(scene, renderer, camera) {
     fragmentShader: copyFrag,
   });
 
-  textureLoader.load("/src/assets/jialuoDepth.png", (texture) => {
-    depthCopyMaterial.uniforms.tDiffuse.value = texture;
-    normalMaterial.uniforms.depthMap.value = texture;
-  });
+  let globalDepthTexture = textureLoader.load(
+    "/src/assets/jialuoDepth.png",
+    (texture) => {
+      depthCopyMaterial.uniforms.tDiffuse.value = texture;
+
+      normalMaterial.uniforms.depthMap.value = texture;
+    }
+  );
   const depthCopyWrapper = new Mesh(getFSGeometry(), depthCopyMaterial);
   const faceGeometry2 = new BufferGeometry();
   window.faceGeometry2 = faceGeometry2;
@@ -968,7 +972,8 @@ void main() {
       // normalTexture: normalRt.texture,
       // normalTexture: baseNormaRt.texture,
       normalTexture: blurRt2.texture,
-      depthTexture: depthRenderRt.texture,
+      // depthTexture: depthRenderRt.texture,
+      depthTexture: globalDepthTexture,
       // highLightTexture: expandRt.texture,
     };
   }
