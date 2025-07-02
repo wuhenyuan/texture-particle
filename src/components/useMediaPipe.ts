@@ -226,6 +226,7 @@ export default function useMediaPipe() {
   }
 
   async function predictWebcam() {
+    if (!faceLandmarker) return;
     const radio = video.videoHeight / video.videoWidth;
     video.style.width = videoWidth + "px";
     video.style.height = videoWidth * radio + "px";
@@ -318,6 +319,9 @@ export default function useMediaPipe() {
   }
 
   function startDetecte() {
+    console.log("-------------startDetecte---------------");
+    if (globalConfig.isFaceReady) return;
+    if (!faceLandmarker) return;
     globalConfig.isFaceReady = true;
     requestAnimationFrame(predictWebcam);
   }

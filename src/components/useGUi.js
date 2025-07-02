@@ -1,5 +1,9 @@
 import dat from "dat.gui";
+
+let isInit = false;
 export default function useGui(config) {
+  if (isInit) return;
+  isInit = true;
   const gui = new dat.GUI();
   // gui
   //   .add(config, "density", 0.1, 1)
@@ -86,4 +90,12 @@ export default function useGui(config) {
     .add(config, "depthThroshold", 0, 10, 0.01)
     .name("深度阈值")
     .onChange((value) => console.log("depthThroshold", value));
+
+  function addGui(key, name, max, step) {
+    gui
+      .add(config, "key", 0, max ?? 10, step ?? 0.01)
+      .name(name ?? key)
+      .onChange((value) => console.log(key, value));
+  }
+  return { gui, addGui };
 }

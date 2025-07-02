@@ -116,7 +116,12 @@ export default function usePileline(scene, renderer, camera) {
   const textureLoader = new TextureLoader();
   const globalConfig = useGlobalConfig();
   const useHalf = globalConfig.isUseHalf;
-  useGui(config);
+  const { addGui } = useGui(config);
+
+  function addConfig(key, defaultValue, name, max, step) {
+    config[key] = defaultValue;
+    addGui(key, name, max, step);
+  }
   const digitTexture = generateDigitTextureAtlas();
   let resulution = new Vector2(1, 1);
 
@@ -139,6 +144,8 @@ export default function usePileline(scene, renderer, camera) {
 
     return fsGeometry;
   };
+
+  const fullQuadGeomtry = new BufferGeometry();
 
   const halfMaterial = new ShaderMaterial({
     name: "halfMaterial",

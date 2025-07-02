@@ -153,7 +153,8 @@ export default class ProbParticle extends Object3D {
       uTextureSize: { value: new Vector2(this.width, this.height) },
       uProbabilityMap: { value: this.texture },
       //   uProbabilityMap: { value: this.uPTexture },
-      uParticleMap: { value: this.uParticleMap },
+      //uParticleMap: { value: this.uParticleMap },
+      uParticleMap: { value: this.pMap },
       uHparticleMap: { value: this.pMap },
 
       uProgress: { value: this.progress },

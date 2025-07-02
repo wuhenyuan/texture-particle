@@ -328,7 +328,7 @@ const initThree = (isLocal) => {
     }
 
     if (globalConfig.isFaceReady) {
-      faceLine.visible = true;
+      // faceLine.visible = true;
     }
 
     if (preTreatment) {
