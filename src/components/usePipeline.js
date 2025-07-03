@@ -35,8 +35,10 @@ import expandFrag from "../webgl/glsl/expand.frag";
 import depthFrag from "../webgl/glsl/depth.frag";
 import depthVert from "../webgl/glsl/depth.vert";
 import blurFrag from "../webgl/glsl/blur.frag";
+import blendDepthFrag from "../webgl/glsl/blendDepth.frag";
 import blurFrag2 from "../webgl/glsl/blur2.frag";
 import copyFrag from "../webgl/glsl/copy.frag";
+import depthBlur from "../webgl/glsl/depthBlur.frag";
 import generateDigitTextureAtlas from "./useNumberTexture";
 import { useGlobalConfig } from "../stores";
 import calNormal from "../webgl/glsl/calNormal.frag";
@@ -68,8 +70,8 @@ const config = {
   // particleColor: 0x8299b1,
   // particleColor: 0x868686,
   // uHighLightColor: 0xa9bbca,
-  particleColor: 0x7e9bc2,
-  uHighLightColor: 0xc7fb,
+  particleColor: 0x7f7fd7,
+  uHighLightColor: 0x3a9292,
   depthThroshold: 0.02,
   scale: 1,
 };
@@ -123,7 +125,7 @@ export default function usePileline(scene, renderer, camera) {
     config[key] = defaultValue;
     addGui(key, name, max, step);
   }
-  addConfig("lightIntensity", 0.51, "灯光强度", 1, 0.01);
+  addConfig("lightIntensity", 0.6, "灯光强度", 1, 0.01);
   const digitTexture = generateDigitTextureAtlas();
   let resulution = new Vector2(1, 1);
 
@@ -383,11 +385,11 @@ export default function usePileline(scene, renderer, camera) {
   const blurMaterial = new ShaderMaterial({
     name: "blurMaterial",
     uniforms: {
-      tDiffuse: { value: expandRt.texture },
-      iResolution: { value: resulution },
+      tDiffuse: { value: null },
+      uResolution: { value: resulution },
     },
     vertexShader,
-    fragmentShader: blurFrag,
+    fragmentShader: depthBlur,
   });
   // const blurMaterial2 = new ShaderMaterial({
   //   name: "blurMaterial2",
@@ -419,7 +421,9 @@ export default function usePileline(scene, renderer, camera) {
   let globalDepthTextureMax = 0;
   let globalDepthTextureMin = 0;
   const initDepth = async () => {
-    const { min, max } = await getDepthArray("src/assets/jialuoDepth.png");
+    const { min, max } = await getDepthArray(
+      globalConfig.globalDepthTextureUrl
+    );
     globalDepthTextureMax = max;
     globalDepthTextureMin = min;
   };
@@ -456,8 +460,34 @@ export default function usePileline(scene, renderer, camera) {
     fragmentShader: copyFrag,
   });
 
+  const depthBlendMaterial = new ShaderMaterial({
+    uniforms: {
+      tBackground: { value: null },
+      tFaceTexture: { value: null },
+      uResolution: { value: resulution },
+      uBlendRange: { value: 5.0 },
+    },
+    vertexShader,
+    fragmentShader: blendDepthFrag,
+  });
+
+  depthBlendMaterial.onBeforeRender = () => {
+    depthBlendMaterial.uniforms.tFaceTexture.value = depthRenderRt.texture;
+    depthBlendMaterial.uniforms.tBackground.value = globalDepthTexture;
+  };
+
+  const depthBlendWrapper = new Mesh(getFSGeometry(), depthBlendMaterial);
+  const depthBlendRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+    samples: 8,
+  });
+
   let globalDepthTexture = textureLoader.load(
-    "/src/assets/jialuoDepth.png",
+    globalConfig.globalDepthTextureUrl,
     (texture) => {
       depthCopyMaterial.uniforms.tDiffuse.value = texture;
 
@@ -482,6 +512,26 @@ export default function usePileline(scene, renderer, camera) {
     samples: 8,
   });
 
+  const depthBlurMaterial = new ShaderMaterial({
+    name: "depthBlurMaterial",
+    uniforms: {
+      tDiffise: { value: depthRenderRt.texture },
+      uResolution: { value: resulution },
+    },
+    vertexShader,
+    fragmentShader: depthBlur,
+  });
+
+  const depthBlurWrapper = new Mesh(getFSGeometry(), depthBlurMaterial);
+  const depthBlurRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+    samples: 8,
+  });
+
   const normalMaterial = new ShaderMaterial({
     name: "normalMaterial",
     fragmentShader: /*glsl*/ calNormal,
@@ -497,10 +547,6 @@ export default function usePileline(scene, renderer, camera) {
       resolution: { value: resulution },
     },
   });
-
-  normalMaterial.onBeforeRender = () => {
-    debugger;
-  };
 
   const normalWrapper = new Mesh(getFSGeometry(), normalMaterial);
   const normalRt = new WebGLRenderTarget(1, 1, {
@@ -748,9 +794,11 @@ void main() {
     // showHandleResult(edgeDetectionRt.texture, 0);
     // showHandleResult(expandRt.texture, 1);
     // showHandleResult(normalRt.texture, 1);
-    // showHandleResult(depthRenderRt.texture, 0);
-    showHandleResult(baseNormaRt.texture, 0);
+    showHandleResult(depthRenderRt.texture, 0);
     showHandleResult(blurRt2.texture, 1);
+
+    // showHandleResult(baseNormaRt.texture, 1);
+    // showHandleResult(blurRt2.texture, 1);
 
     // showHandleResult(highProbabilityRt.texture, 1);
     // showHandleResult(blendProbRt.texture, 1);
@@ -767,14 +815,16 @@ void main() {
 
     if (points) {
       // const scale = config.scale;
-      const baseScale = 1.05;
+      const baseScale = 1;
       const scale1 = width * baseScale;
       const scale2 = height * baseScale;
-      const scale3 = 100 * baseScale;
+      // const scale3 = 100 * baseScale;
+      const scale3 = 1;
       points.scale.set(scale1, scale2, scale3);
       faceLine.scale.set(scale1, scale2, scale3);
       faceMesh.scale.set(scale1, scale2, scale3);
       baseNormalWrapper.scale.set(scale1, scale2, scale3);
+      // depthRenderWrapper.scale.set(scale1, scale2, scale3);
     }
 
     highProbabilityMaterial.uniforms.depthThroshold.value =
@@ -837,10 +887,19 @@ void main() {
     renderer.render(expandWrapper, camera);
 
     renderer.setRenderTarget(depthRenderRt);
+    // renderer.setClearAlpha(0);
     renderer.clear();
+    // renderer.setClearAlpha(1);
     renderer.render(depthCopyWrapper, camera);
     renderer.render(depthRenderWrapper, camera);
 
+    // renderer.setRenderTarget(depthBlendRt);
+    // renderer.clear();
+    // renderer.render(depthBlendWrapper, camera);
+
+    // renderer.setRenderTarget(depthBlurRt);
+    // renderer.clear();
+    // renderer.render(depthBlurWrapper, camera);
     // normalMaterial.uniforms.tDiffuse.value = blurRt2.texture;
     // normalMaterial.uniforms.tDiffuse.value = depthRenderRt.texture;
     // renderer.setRenderTarget(normalRt);
@@ -856,24 +915,24 @@ void main() {
     renderer.clear();
     renderer.render(blendProbWrapper, camera);
 
-    // renderer.setRenderTarget(baseNormaRt);
-    // if (baseNormalWrapper.geometry.attributes.normal) {
-    //   renderer.clear();
-    //   // renderer.render(normalWrapper, camera);
-    //   renderer.render(baseNormalWrapper, camera);
-    // } else {
-    //   const color = new Color(0xffffff);
-    //   renderer.getClearColor(color);
-    //   renderer.setClearColor(new Color(0.5, 0.5, 1.0), 1);
-    //   renderer.clear();
-    //   renderer.setClearColor(color);
-    // }
+    renderer.setRenderTarget(baseNormaRt);
+    if (baseNormalWrapper.geometry.attributes.normal) {
+      renderer.clear();
+      renderer.render(normalWrapper, camera);
+      renderer.render(baseNormalWrapper, camera);
+    } else {
+      const color = new Color(0xffffff);
+      renderer.getClearColor(color);
+      renderer.setClearColor(new Color(0.5, 0.5, 1.0), 1);
+      renderer.clear();
+      renderer.setClearColor(color);
+    }
 
     // render blur
     renderer.setRenderTarget(blurRt1);
     renderer.clear();
     direction.set(1, 0);
-    blurMaterial.uniforms.tDiffuse.value = baseNormaRt.texture;
+    blurMaterial.uniforms.tDiffuse.value = depthRenderRt.texture;
     renderer.render(blurWrapper, camera);
     renderer.setRenderTarget(blurRt2);
     renderer.clear();
@@ -882,9 +941,9 @@ void main() {
     blurMaterial.uniforms.tDiffuse.value = blurRt1.texture;
     renderer.render(blurWrapper, camera);
 
-    const numPasses = 0;
+    const blurNum = 10;
 
-    for (let i = 0; i < numPasses; i++) {
+    for (let i = 0; i < blurNum; i++) {
       renderer.setRenderTarget(blurRt1);
       renderer.clear();
       direction.set(1, 0);
@@ -954,6 +1013,8 @@ void main() {
     normalRt.setSize(width, height);
     depthRenderRt.setSize(width, height);
     baseNormaRt.setSize(width, height);
+    depthBlendRt.setSize(width, height);
+    depthBlurRt.setSize(width, height);
     if (globalConfig.debugTexture) {
       show();
     }
@@ -974,8 +1035,9 @@ void main() {
       // normalTexture: normalRt.texture,
       // normalTexture: baseNormaRt.texture,
       normalTexture: blurRt2.texture,
+      depthTexture: blurRt2.texture,
       // depthTexture: depthRenderRt.texture,
-      depthTexture: globalDepthTexture,
+      // depthTexture: globalDepthTexture,
       // highLightTexture: expandRt.texture,
     };
   }

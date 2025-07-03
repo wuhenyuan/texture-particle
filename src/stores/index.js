@@ -4,13 +4,16 @@ export const useGlobalConfig = defineStore("app", {
   state: () => ({
     maxWidth: 200,
     debugTexture: false,
-    isLocal: false,
+    particleVisible: true,
+    isLocal: true,
     faceDepthMin: 0,
     faceDepthMax: 0,
     // 是否使用人脸识别
-    useFaceDetection: false,
+    useFaceDetection: true,
     isUseHalf: false,
     isFaceReady: false,
+    helperVisible: false,
+    globalDepthTextureUrl: "/src/assets/jialuoDepth2.png",
     cameraPosition: [
       -12.093478419045327, 9.202700434049177e-15, 149.80415147542809,
     ],

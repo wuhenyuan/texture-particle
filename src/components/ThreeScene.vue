@@ -135,7 +135,7 @@ const initThree = (isLocal) => {
   if (isLocal) {
     // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
     // video.src = "/src/assets/lijialuoTest2.mp4"; // 设置视频路径
-    video.src = "/src/assets/jialuoTest2.mp4"; // 设置视频路径
+    video.src = "/src/assets/jialuoTest.mp4"; // 设置视频路径
     // video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     video.loop = true;
     video.autoplay = true;
@@ -368,10 +368,11 @@ const initThree = (isLocal) => {
   // if (createBackground) createBackground();
   if (createOutlookLine) createOutlookLine();
 
-  const visible = false;
+  const visible = globalConfig.helperVisible;
   points.visible = visible;
   faceLine.visible = true;
   faceMesh.visible = visible;
+  particles.visible = globalConfig.particleVisible;
 };
 
 const createBackground = () => {

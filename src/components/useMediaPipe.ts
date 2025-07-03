@@ -348,6 +348,7 @@ export default function useMediaPipe() {
       if (!faceGeometry2) return;
       globalConfig.faceDepthMax = max;
       globalConfig.faceDepthMin = min;
+      faceGeometry2.attributes.position.needsUpdate = true;
       faceGeometry2.computeVertexNormals();
       faceGeometry2.attributes.normal.needsUpdate = true;
     }

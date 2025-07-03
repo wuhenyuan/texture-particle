@@ -21,5 +21,5 @@ void main() {
     float fineDepthNorm = (depth - dMin01) / (dMax - dMax01); // 归一化到0~1
     float fineDepthMapped = gDMin + fineDepthNorm * (gDMax - gDMin); // 映射到全脸深度范围
 
-    gl_FragColor = vec4(vec3(depth), 1.0); // 显示为灰度
+    gl_FragColor = vec4(vec3(1.0 - fineDepthMapped), 1.0); // 显示为灰度
 }

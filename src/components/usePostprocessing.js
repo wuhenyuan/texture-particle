@@ -45,7 +45,7 @@ export default function usePostprocessing(scene, renderer, camera) {
   // luminanceThreshold: 0.5,
   // luminanceSmoothing: 1.3,
 
-  composer.addPass(new EffectPass(camera, bloomEffect));
+  // composer.addPass(new EffectPass(camera, bloomEffect));
   composer.addPass(new EffectPass(camera, toneMappingEffect));
 
   return composer;
