@@ -60,10 +60,10 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 1.21,
+  pointSize: 2,
 
   offsetScale: 0.14,
-  sampleStep: 2,
+  sampleStep: 10,
   diff: 0.2,
   // particleColor: 0x8299b1,
   // particleColor: 0x868686,
@@ -119,9 +119,11 @@ export default function usePileline(scene, renderer, camera) {
   const { addGui } = useGui(config);
 
   function addConfig(key, defaultValue, name, max, step) {
+    debugger;
     config[key] = defaultValue;
     addGui(key, name, max, step);
   }
+  addConfig("lightIntensity", 0.51, "灯光强度", 1, 0.01);
   const digitTexture = generateDigitTextureAtlas();
   let resulution = new Vector2(1, 1);
 

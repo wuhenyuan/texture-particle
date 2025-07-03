@@ -86,14 +86,14 @@ export default function useGui(config) {
   //   .add(config, "scale", 0, 10, 0.01)
   //   .name("缩放")
   //   .onChange((value) => console.log("cons", value));
-  gui
-    .add(config, "depthThroshold", 0, 10, 0.01)
-    .name("深度阈值")
-    .onChange((value) => console.log("depthThroshold", value));
+  // gui
+  //   .add(config, "depthThroshold", 0, 10, 0.01)
+  //   .name("深度阈值")
+  //   .onChange((value) => console.log("depthThroshold", value));
 
   function addGui(key, name, max, step) {
     gui
-      .add(config, "key", 0, max ?? 10, step ?? 0.01)
+      .add(config, key, 0, max ?? 10, step ?? 0.01)
       .name(name ?? key)
       .onChange((value) => console.log(key, value));
   }

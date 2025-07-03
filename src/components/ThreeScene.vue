@@ -97,9 +97,10 @@ const initThree = (isLocal) => {
 
   // 创建相机
   camera = new PerspectiveCamera(50, ratio, 1, 10000);
-  camera.position.x = -66.84943545428499;
-  camera.position.y = 0;
-  camera.position.z = 828.0763075633806;
+  // camera.position.x = -66.84943545428499;
+  // camera.position.y = 0;
+  // camera.position.z = 828.0763075633806;
+  camera.position.set(...globalConfig.cameraPosition);
   // camera.position.z = 1368;
 
   window.camera = camera;
@@ -134,7 +135,7 @@ const initThree = (isLocal) => {
   if (isLocal) {
     // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
     // video.src = "/src/assets/lijialuoTest2.mp4"; // 设置视频路径
-    video.src = "/src/assets/jialuoTest.mp4"; // 设置视频路径
+    video.src = "/src/assets/jialuoTest2.mp4"; // 设置视频路径
     // video.src = "/src/assets/jialuoVideo.mp4"; // 设置视频路径
     video.loop = true;
     video.autoplay = true;
@@ -369,7 +370,7 @@ const initThree = (isLocal) => {
 
   const visible = false;
   points.visible = visible;
-  faceLine.visible = visible;
+  faceLine.visible = true;
   faceMesh.visible = visible;
 };
 

@@ -168,6 +168,8 @@ export default class ProbParticle extends Object3D {
       uNormalTexture: { value: this.uNormalTexture },
       uDepthTexture: { value: this.uDepthTexture },
       offsetScale: { value: 0.5 },
+
+      lightIntensity: { value: 0.8 },
     };
 
     const material = new ShaderMaterial({
@@ -294,17 +296,12 @@ export default class ProbParticle extends Object3D {
     this.hitArea = null;
   }
 
-  update(t) {
-    if (!this.material) return;
+  updateUniforms() {
     const config = this.config;
-    // if (this.config) {
-    //   this.material.uniforms.uSuppress.value = this.config.suppress;
-    // }
-
     this.material.uniforms.uParticleColor.value.set(config.particleColor);
     this.material.uniforms.uHighLightColor.value.set(config.uHighLightColor);
     this.material.uniforms.offsetScale.value = config.offsetScale;
-    // console.log(this.material.uniforms.uHighLightColor.value);
+    this.material.uniforms.lightIntensity.value = config.lightIntensity;
 
     if (this._sampleStep !== config.sampleStep) {
       this._sampleStep = config.sampleStep;
@@ -323,6 +320,19 @@ export default class ProbParticle extends Object3D {
       this.sampleStepY = this.sampleStep;
       this.initPoints();
     }
+  }
+
+  update(t) {
+    if (!this.material) return;
+    const config = this.config;
+    // if (this.config) {
+    //   this.material.uniforms.uSuppress.value = this.config.suppress;
+    // }
+
+    // console.log(this.material.uniforms.uHighLightColor.value);
+
+    this.updateUniforms();
+
     this.pointSize = config.pointSize;
     this.material.uniforms.uSize.value = this.pointSize;
     this.time += t;

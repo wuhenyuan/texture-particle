@@ -156,7 +156,7 @@ void main() {
     float psize = 1.0;
     // psize *= max(grey, 0.5);
     float d = texture2D(uDepthTexture, vPUv).r;
-    psize *= mix(0., 0.5, frenel) * uSize;
+    psize *= mix(0.05, 0.5, smoothstep(0.1, 1.5, frenel)) * uSize;
     // psize *= uSize;
 
     // psize *= hightProp > 0.05 ? 1.0 : 2.0;
