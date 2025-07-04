@@ -340,6 +340,7 @@ const initThree = (isLocal) => {
       updateLandMark(landMarksPosition);
     }
 
+    renderer.setClearAlpha(0);
     // renderer.render(scene, camera);
     composer.render();
   };
@@ -368,10 +369,9 @@ const initThree = (isLocal) => {
   // if (createBackground) createBackground();
   if (createOutlookLine) createOutlookLine();
 
-  const visible = globalConfig.helperVisible;
-  points.visible = visible;
-  faceLine.visible = true;
-  faceMesh.visible = visible;
+  points.visible = globalConfig.helperPointVisible;
+  faceLine.visible = globalConfig.helperLineVisible;
+  faceMesh.visible = globalConfig.helperMeshVisible;
   particles.visible = globalConfig.particleVisible;
 };
 
@@ -408,7 +408,7 @@ const createOutlookLine = () => {
     color: 0x0099ff,
     // linewidth: 10,
     transparent: true,
-    opacity: 0.1,
+    opacity: 0.8,
     renderOrder: 1,
   });
   window.lineGeometry = faceGeometry;
@@ -509,6 +509,7 @@ onMounted(() => {
   z-index: 0;
   filter: blur(10px);
   overflow: hidden;
+  display: none;
 }
 
 .video-bg video {
@@ -524,6 +525,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   z-index: 999;
+  background: #000000;
   /* 如果你不需要交互 */
   /* pointer-events: none; */
 }

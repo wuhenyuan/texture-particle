@@ -332,13 +332,13 @@ export default function useMediaPipe() {
     if (results && results.faceLandmarks && needResult) {
       const faceLandmarks = results.faceLandmarks[0];
       needResult = false;
-
+      globalConfig.isFaceLamkmardUpdate = true;
       const scale = 1;
       for (let i = 0; i < 478; i++) {
         const lanmmark = faceLandmarks[i];
         // positions.push(landmark.x, landmark.y, landmark.z);
         positions[i * 3] = (lanmmark.x - 0.5) * scale;
-        positions[i * 3 + 1] = (1.0 - lanmmark.y - 0.5) * scale;
+        positions[i * 3 + 1] = (0.5 - lanmmark.y) * scale;
         const z = -lanmmark.z * scale;
         positions[i * 3 + 2] = z;
         if (max < z) max = z;

@@ -1,9 +1,9 @@
 precision highp float;
 
-float stepf = 1.0;
+float stepf = 2.0;
 
 varying vec2 vUv;
-uniform sampler2D tdiff;
+uniform sampler2D tDiffuse;
 uniform vec2 iResolution;
 
 float intensity(in vec4 color) {
@@ -12,14 +12,14 @@ float intensity(in vec4 color) {
 
 vec3 sobel(float stepx, float stepy, vec2 center) {
 	// get samples around pixel
-    float tleft = intensity(texture(tdiff, center + vec2(-stepx, stepy)));
-    float left = intensity(texture(tdiff, center + vec2(-stepx, 0)));
-    float bleft = intensity(texture(tdiff, center + vec2(-stepx, -stepy)));
-    float top = intensity(texture(tdiff, center + vec2(0, stepy)));
-    float bottom = intensity(texture(tdiff, center + vec2(0, -stepy)));
-    float tright = intensity(texture(tdiff, center + vec2(stepx, stepy)));
-    float right = intensity(texture(tdiff, center + vec2(stepx, 0)));
-    float bright = intensity(texture(tdiff, center + vec2(stepx, -stepy)));
+    float tleft = intensity(texture(tDiffuse, center + vec2(-stepx, stepy)));
+    float left = intensity(texture(tDiffuse, center + vec2(-stepx, 0)));
+    float bleft = intensity(texture(tDiffuse, center + vec2(-stepx, -stepy)));
+    float top = intensity(texture(tDiffuse, center + vec2(0, stepy)));
+    float bottom = intensity(texture(tDiffuse, center + vec2(0, -stepy)));
+    float tright = intensity(texture(tDiffuse, center + vec2(stepx, stepy)));
+    float right = intensity(texture(tDiffuse, center + vec2(stepx, 0)));
+    float bright = intensity(texture(tDiffuse, center + vec2(stepx, -stepy)));
 
 	// Sobel masks (see http://en.wikipedia.org/wiki/Sobel_operator)
 	//        1 0 -1     -1 -2 -1
@@ -35,12 +35,13 @@ vec3 sobel(float stepx, float stepy, vec2 center) {
     float y = -tleft - 2.0 * top - tright + bleft + 2.0 * bottom + bright;
     float color = sqrt((x * x) + (y * y));
     color = smoothstep(0.2, 1.0, color);
+    color = step(0.2, color);
     return vec3(color, color, color);
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 	// vec2 uv = fragCoord.xy / iResolution.xy;
-    vec4 color = texture(tdiff, vUv);
+    vec4 color = texture(tDiffuse, vUv);
     fragColor.xyz = sobel(stepf / iResolution[0], stepf / iResolution[1], vUv);
     // fragColor.x = 1.0;
 }

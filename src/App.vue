@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import ThreeScene from "./components/ThreeScene.vue";
+// import ThreeScene from "./components/ParticleScene.vue";
 import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
 import { DebugEnvironment } from "three/examples/jsm/Addons.js";
@@ -79,7 +79,9 @@ export default {
       // debugger;
       if (isLocal) return;
       try {
-        // startConnect();
+        if (config.isUseAsr) {
+          startConnect();
+        }
       } catch (e) {
         console.log(e);
       }

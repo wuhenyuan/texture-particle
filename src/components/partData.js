@@ -2667,7 +2667,8 @@ export const FACE_LANDMARKS_RIGHT_IRIS = [
   { start: 471, end: 472 },
   { start: 472, end: 469 },
 ];
-export const FACE_LANDMARKS_FACE_OVAL = [
+// 脸部轮廓备份
+export const FACE_LANDMARKS_FACE_OVAL_BACKUP = [
   { start: 10, end: 338 },
   { start: 338, end: 297 },
   { start: 297, end: 332 },
@@ -2706,6 +2707,63 @@ export const FACE_LANDMARKS_FACE_OVAL = [
   { start: 109, end: 10 },
 ];
 
+export const FACE_LANDMARKS_FACE_OVAL = [
+  // { start: 162, end: 21 },
+  // { start: 21, end: 54 },
+  // { start: 54, end: 103 },
+  // { start: 103, end: 67 },
+  // { start: 67, end: 109 },
+  { start: 109, end: 10 },
+  { start: 10, end: 338 },
+  // { start: 338, end: 297 },
+  { start: 297, end: 332 },
+  { start: 332, end: 284 },
+  { start: 284, end: 251 },
+  { start: 251, end: 389 },
+  // { start: 389, end: 356 },
+  // { start: 356, end: 454 },
+  // { start: 454, end: 323 },
+  // { start: 323, end: 361 },
+  // { start: 361, end: 288 },
+  // { start: 288, end: 397 },
+  // { start: 397, end: 365 },
+  // { start: 365, end: 379 },
+
+  // { start: 379, end: 378 },
+  // { start: 378, end: 400 },
+  // { start: 400, end: 377 },
+  // { start: 377, end: 152 },
+  // { start: 152, end: 148 },
+  // { start: 148, end: 176 },
+  // { start: 176, end: 149 },
+  // { start: 149, end: 150 },
+  // { start: 150, end: 136 },
+
+  // { start: 136, end: 172 },
+  // { start: 172, end: 58 },
+  // { start: 58, end: 132 },
+  // { start: 132, end: 93 },
+  // { start: 93, end: 234 },
+  // { start: 234, end: 127 },
+  // { start: 127, end: 162 },
+];
+
+const set = new Set();
+FACE_LANDMARKS_FACE_OVAL.forEach((item) => {
+  set.add(item.start);
+  set.add(item.end);
+});
+
+const forehead_line_index = [
+  162, 21, 54, 103, 67, 109, 10, 338, 297, 332, 284, 251, 389,
+];
+
+export const face_oval_index = [
+  10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378,
+  400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21,
+  54, 103, 67, 109,
+];
+
 export const FACE_LANDMARKS_NOSE = [
   { start: 168, end: 6 },
   { start: 6, end: 197 },
@@ -2734,12 +2792,12 @@ export const FACE_LANDMARKS_NOSE = [
   { start: 64, end: 98 },
 ];
 export const FACE_LANDMARKS_CONTOURS = [
-  ...FACE_LANDMARKS_LIPS,
+  // ...FACE_LANDMARKS_LIPS,
   // ...FACE_LANDMARKS_LEFT_EYE,
   // ...FACE_LANDMARKS_LEFT_EYEBROW,
   // ...FACE_LANDMARKS_RIGHT_EYE,
   // ...FACE_LANDMARKS_RIGHT_EYEBROW,
-  // ...FACE_LANDMARKS_FACE_OVAL,
+  ...FACE_LANDMARKS_FACE_OVAL,
   // ...FACE_LANDMARKS_NOSE,
 ];
 
@@ -3000,4 +3058,12 @@ export const getFaceIndex = () => {
     310, 311, 318, 80, 88, 81, 318, 324, 310, 88, 80, 95, 415, 310, 324, 191,
     95, 80,
   ];
+};
+
+export const getFaceOvalIndex = () => {
+  return face_oval_index;
+};
+
+export const getForeHeadLineIndex = () => {
+  return forehead_line_index;
 };

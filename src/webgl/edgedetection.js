@@ -1,11 +1,11 @@
-// import fragShader from "./glsl/edgeDetection.frag";
-// import fragShader3 from "./glsl/edgeDetection3.frag";
-import fragShaderfilter from "./glsl/edgeDetectionFilter.frag";
+import fragShader from "./glsl/edgeDetection.frag";
+// import fragShader from "./glsl/edgeDetection3.frag";
+// import fragShader from "./glsl/edgeDetectionFilter.frag";
 
 export const edgeDetection = {
   name: "edgeDetection",
   uniforms: {
-    tdiff: { type: "t", value: null },
+    tDiffuse: { type: "t", value: null },
     iResolution: { type: "v2", value: null },
     iChannelResolution: { value: null },
     uContrast: { value: null },
@@ -16,8 +16,5 @@ export const edgeDetection = {
       vUv = uv;
       gl_Position =  vec4(position, 1.0);
     }`,
-
-  // fragmentShader: fragShader,
-  //   fragmentShader: fragShader3,
-  fragmentShader: fragShaderfilter,
+  fragmentShader: fragShader,
 };

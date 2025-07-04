@@ -93,7 +93,7 @@ export default function useGui(config) {
 
   function addGui(key, name, max, step) {
     gui
-      .add(config, key, 0, max ?? 10, step ?? 0.01)
+      .add(config, key, -1, max ?? 10, step ?? 0.01)
       .name(name ?? key)
       .onChange((value) => console.log(key, value));
   }

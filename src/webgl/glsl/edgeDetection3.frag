@@ -4,13 +4,13 @@
 #define tickness 4.
 
 varying vec2 vUv;
-uniform sampler2D tdiff;
+uniform sampler2D tDiffuse;
 uniform vec2 iResolution;
 uniform vec2 iChannelResolution;
 uniform float uContrast;
 
 float getAve(vec2 uv) {
-    vec3 rgb = texture(tdiff, uv).rgb;
+    vec3 rgb = texture(tDiffuse, uv).rgb;
     vec3 lum = vec3(0.299, 0.587, 0.114);
     return dot(lum, rgb);
 }

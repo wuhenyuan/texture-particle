@@ -3,19 +3,21 @@ import { defineStore } from "pinia";
 export const useGlobalConfig = defineStore("app", {
   state: () => ({
     maxWidth: 200,
-    debugTexture: false,
+    debugTexture: true,
     particleVisible: true,
     isLocal: true,
+    isUseAsr: true,
     faceDepthMin: 0,
     faceDepthMax: 0,
     // 是否使用人脸识别
     useFaceDetection: true,
     isUseHalf: false,
     isFaceReady: false,
-    helperVisible: false,
+    isFaceLamkmardUpdate: false,
+    helperLineVisible: false,
+    helperMeshVisible: false,
+    helperPointVisible: false,
     globalDepthTextureUrl: "/src/assets/jialuoDepth2.png",
-    cameraPosition: [
-      -12.093478419045327, 9.202700434049177e-15, 149.80415147542809,
-    ],
+    cameraPosition: [1.8, 2.4, 398],
   }),
 });

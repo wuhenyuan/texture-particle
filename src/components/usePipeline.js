@@ -28,7 +28,11 @@ import {
   TextureLoader,
   DoubleSide,
 } from "three";
-import { getFaceIndex } from "./partData";
+import {
+  getFaceIndex,
+  getFaceOvalIndex,
+  getForeHeadLineIndex,
+} from "./partData";
 import { edgeDetection } from "../webgl/edgedetection";
 import useGui from "./useGUi";
 import expandFrag from "../webgl/glsl/expand.frag";
@@ -62,18 +66,21 @@ const config = {
   // uLowProb: 0.5,
   uLowProb: 0.08,
   uHighProb: 0.8,
-  pointSize: 2,
+  pointSize: 8,
 
-  offsetScale: 0.14,
-  sampleStep: 10,
+  offsetScale: 0.05,
+  sampleStep: 5,
   diff: 0.2,
   // particleColor: 0x8299b1,
   // particleColor: 0x868686,
   // uHighLightColor: 0xa9bbca,
-  particleColor: 0x7f7fd7,
-  uHighLightColor: 0x3a9292,
+  // particleColor: 0x7f7fd7,
+  particleColor: 0x786bb3,
+  uHighLightColor: 0x7373d9,
   depthThroshold: 0.02,
   scale: 1,
+  lightIntensity: 0.62,
+  depthOffset: 0.18,
 };
 
 let color2 = new Color(0x7cbcff);
@@ -107,11 +114,14 @@ async function getDepthArray(src) {
   let min = 0;
   let max = 0;
   for (let i = 0; i < imgData.length; i += 4) {
-    arr.push(imgData[i]); // 0~255
-    if (imgData[i] < min) min = imgData[i];
-    if (imgData[i] > max) max = imgData[i];
+    const depth = imgData[i] / 255;
+    arr.push(depth); // 0~255
+    if (depth < min) min = depth;
+    if (depth > max) max = depth;
   }
-  return { arr, width, height, min, max };
+  console.log(arr);
+  console.log("src", width, height);
+  return { arr, width, height };
 }
 
 export default function usePileline(scene, renderer, camera) {
@@ -120,12 +130,12 @@ export default function usePileline(scene, renderer, camera) {
   const useHalf = globalConfig.isUseHalf;
   const { addGui } = useGui(config);
 
-  function addConfig(key, defaultValue, name, max, step) {
-    debugger;
-    config[key] = defaultValue;
+  function addConfig(key, value, name, max, step) {
+    // config[key] = defaultValue;
     addGui(key, name, max, step);
   }
-  addConfig("lightIntensity", 0.6, "灯光强度", 1, 0.01);
+  addConfig("lightIntensity", 0.67, "灯光强度", 1, 0.01);
+  addConfig("depthOffset", 0.18, "深度偏移", 1, 0.01);
   const digitTexture = generateDigitTextureAtlas();
   let resulution = new Vector2(1, 1);
 
@@ -327,14 +337,14 @@ export default function usePileline(scene, renderer, camera) {
   });
   const channelResulution = new Vector2();
   const edgeDetectionWrapper = new Mesh(getFSGeometry(), edgeDetectionMaterial);
-  edgeDetectionMaterial.uniforms.tdiff.value = texture;
+  edgeDetectionMaterial.uniforms.tDiffuse.value = texture;
   edgeDetectionMaterial.uniforms.iResolution.value = resulution;
   edgeDetectionMaterial.onBeforeRender = () => {
-    if (useHalf) {
-      edgeDetectionMaterial.uniforms.tdiff.value = halfRt.texture;
-    } else {
-      edgeDetectionMaterial.uniforms.tdiff.value = texture;
-    }
+    // if (useHalf) {
+    //   edgeDetectionMaterial.uniforms.tDiffuse.value = halfRt.texture;
+    // } else {
+    //   edgeDetectionMaterial.uniforms.tDiffuse.value = texture;
+    // }
     edgeDetectionMaterial.uniforms.iResolution.value = resulution;
     channelResulution.set(width, height);
     edgeDetectionMaterial.uniforms.iChannelResolution.value = channelResulution;
@@ -420,13 +430,25 @@ export default function usePileline(scene, renderer, camera) {
 
   let globalDepthTextureMax = 0;
   let globalDepthTextureMin = 0;
+  let globalDepths = [];
   const initDepth = async () => {
-    const { min, max } = await getDepthArray(
+    const { min, max, arr } = await getDepthArray(
       globalConfig.globalDepthTextureUrl
     );
     globalDepthTextureMax = max;
     globalDepthTextureMin = min;
+    globalDepths = arr;
   };
+
+  function getGlobalDepth(x, y) {
+    // 对应mediaPipe转换
+    x = x + 0.5;
+    y = 0.5 - y;
+    if (!globalDepths.length) return;
+    const ix = Math.floor(x * width);
+    const iy = Math.floor(y * height);
+    return globalDepths[iy * width + ix];
+  }
 
   initDepth();
 
@@ -437,10 +459,13 @@ export default function usePileline(scene, renderer, camera) {
       gDmin: { value: globalDepthTextureMin },
       dMax: { value: 0 },
       dMin: { value: 0 },
+      offset: { value: 0.2 },
     },
     vertexShader: depthVert,
     fragmentShader: depthFrag,
-    depthTest: false,
+    // depthTest: false,
+    transparent: true,
+    premultipliedAlpha: true,
     side: DoubleSide,
   });
 
@@ -449,6 +474,7 @@ export default function usePileline(scene, renderer, camera) {
     depthRenderMaterial.uniforms.gDmin.value = globalDepthTextureMin;
     depthRenderMaterial.uniforms.dMax.value = globalConfig.faceDepthMax;
     depthRenderMaterial.uniforms.dMin.value = globalConfig.faceDepthMin;
+    depthRenderMaterial.uniforms.offset.value = config.depthOffset;
   };
 
   const depthCopyMaterial = new ShaderMaterial({
@@ -461,11 +487,14 @@ export default function usePileline(scene, renderer, camera) {
   });
 
   const depthBlendMaterial = new ShaderMaterial({
+    name: "depthBlendMaterial",
     uniforms: {
       tBackground: { value: null },
       tFaceTexture: { value: null },
+      tEdge: { value: null },
+      tMask: { value: null },
       uResolution: { value: resulution },
-      uBlendRange: { value: 5.0 },
+      uBlendRange: { value: 2.0 },
     },
     vertexShader,
     fragmentShader: blendDepthFrag,
@@ -483,7 +512,7 @@ export default function usePileline(scene, renderer, camera) {
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
-    samples: 8,
+    samples: 0,
   });
 
   let globalDepthTexture = textureLoader.load(
@@ -498,7 +527,20 @@ export default function usePileline(scene, renderer, camera) {
   const faceGeometry2 = new BufferGeometry();
   window.faceGeometry2 = faceGeometry2;
   faceGeometry2.setAttribute("position", faceGeometryAttribute);
-  // faceGeometry2.setAttribute("normal", faceGeometryAttribute);
+
+  const alphas = new Array(478).fill(1);
+  // const faceOvalIndex = getFaceOvalIndex();
+  const faceOvalIndex = getForeHeadLineIndex();
+  for (let i = 0; i < faceOvalIndex.length; i++) {
+    // alphas[faceOvalIndex[i]] = 0;
+  }
+
+  const alphaAttribute = new Float32BufferAttribute(
+    new Float32Array(alphas),
+    1
+  );
+
+  faceGeometry2.setAttribute("alpha", alphaAttribute);
 
   faceGeometry2.setIndex(getFaceIndex());
 
@@ -520,6 +562,33 @@ export default function usePileline(scene, renderer, camera) {
     },
     vertexShader,
     fragmentShader: depthBlur,
+  });
+
+  const binaryMaterial = new ShaderMaterial({
+    name: "binaryMaterial",
+    uniforms: {
+      tDiffuse: { value: null },
+    },
+    vertexShader,
+    fragmentShader: /*glsl */ `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+      gl_FragColor = vec4(vec3(step(0.05, color.r)), 1.0);
+    }
+
+    `,
+  });
+
+  const binaryWrapper = new Mesh(getFSGeometry(), binaryMaterial);
+  const faceMaskRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+    samples: 8,
   });
 
   const depthBlurWrapper = new Mesh(getFSGeometry(), depthBlurMaterial);
@@ -772,16 +841,13 @@ void main() {
   const showHandleResult = (texture, offset) => {
     const scale = 2;
     const plane = new Mesh(
-      new PlaneGeometry(
-        texture.image.width / scale,
-        texture.image.height / scale
-      ),
+      new PlaneGeometry(width / scale, height / scale),
       new MeshBasicMaterial({ map: texture })
       // new MeshBasicMaterial({ color: 0xffffff })
     );
     plane.position.z = 0;
     const offset1 = offset ? 1 : -1;
-    plane.position.x = offset1 * (texture.image.width / scale / 4);
+    plane.position.x = offset1 * (width / scale / 2);
     // console.log(plane.position);
     // plane.position.y = -texture.image.height / 2;
     scene.add(plane);
@@ -795,7 +861,8 @@ void main() {
     // showHandleResult(expandRt.texture, 1);
     // showHandleResult(normalRt.texture, 1);
     showHandleResult(depthRenderRt.texture, 0);
-    showHandleResult(blurRt2.texture, 1);
+    // showHandleResult(blurRt2.texture, 1);
+    showHandleResult(depthBlendRt.texture, 1);
 
     // showHandleResult(baseNormaRt.texture, 1);
     // showHandleResult(blurRt2.texture, 1);
@@ -845,11 +912,56 @@ void main() {
     // probMaterial
   }
 
+  const foreheadLineIndex = getForeHeadLineIndex();
+
   let renderTime = -2;
   function preTreatment(time) {
     if (!texture) return;
     updateRenderConfig();
 
+    // 需要同步人脸边沿深度
+    if (globalConfig.isFaceLamkmardUpdate) {
+      globalConfig.isFaceLamkmardUpdate = false;
+      const rzs = [];
+      let tz = 0;
+      let trz = 0;
+      const positionAttr = faceGeometry2.attributes.position;
+      const len = foreheadLineIndex.length;
+      // for (let i = 0; i < foreheadLineIndex.length; i++) {
+      //   const index = foreheadLineIndex[i];
+      //   const x = positionAttr.getX(index);
+      //   const y = positionAttr.getY(index);
+      //   const z = positionAttr.getZ(index);
+      //   const rz = getGlobalDepth(x, y);
+      //   rzs.push(rz);
+      //   positionAttr.setZ(index, rz);
+      //   tz += z;
+      //   trz += rz;
+      //   console.log("compare z value", z - rz);
+      // }
+      const x = positionAttr.getX(10);
+      const y = positionAttr.getY(10);
+      const z = positionAttr.getZ(10);
+      const rz = getGlobalDepth(x, y);
+      const dz = rz - z;
+      console.log(dz);
+      for (let i = 0; i < 478; i++) {
+        const z = positionAttr.getZ(i);
+        positionAttr.setZ(i, z + dz);
+      }
+
+      for (let i = 0; i < foreheadLineIndex.length; i++) {
+        const index = foreheadLineIndex[i];
+        const x = positionAttr.getX(index);
+        const y = positionAttr.getY(index);
+        const z = positionAttr.getZ(index);
+        const rz = getGlobalDepth(x, y);
+        positionAttr.setZ(index, rz);
+      }
+
+      positionAttr.needsUpdate = true;
+      // faceGeometry2.attributes.position.get
+    }
     if (useHalf) {
       halfMaterial.uniforms.tDiffuse.value = texture;
       grayMaterial.uniforms.tDiffuse.value = halfRt.texture;
@@ -875,27 +987,38 @@ void main() {
     }
 
     // render edge detection
-    resulution.set(width * 2, height * 2);
-    renderer.setRenderTarget(edgeDetectionRt);
-    renderer.clear();
-    renderer.render(edgeDetectionWrapper, camera);
+    // resulution.set(width * 2, height * 2);
 
-    resulution.set(width, height);
+    // resulution.set(width, height);
     // render expand
-    renderer.setRenderTarget(expandRt);
-    renderer.clear();
-    renderer.render(expandWrapper, camera);
+    // renderer.setRenderTarget(expandRt);
+    // renderer.clear();
+    // renderer.render(expandWrapper, camera);
 
     renderer.setRenderTarget(depthRenderRt);
     // renderer.setClearAlpha(0);
     renderer.clear();
     // renderer.setClearAlpha(1);
-    renderer.render(depthCopyWrapper, camera);
+    // renderer.render(depthCopyWrapper, camera);
     renderer.render(depthRenderWrapper, camera);
 
-    // renderer.setRenderTarget(depthBlendRt);
-    // renderer.clear();
-    // renderer.render(depthBlendWrapper, camera);
+    // 渲染面部深度后进行二值化
+    binaryMaterial.uniforms.tDiffuse.value = depthRenderRt.texture;
+    renderer.setRenderTarget(faceMaskRt);
+    renderer.clear();
+    renderer.render(binaryWrapper, camera);
+
+    // 面部遮罩获取外轮廓
+    edgeDetectionMaterial.uniforms.tDiffuse.value = faceMaskRt.texture;
+    renderer.setRenderTarget(edgeDetectionRt);
+    renderer.clear();
+    renderer.render(edgeDetectionWrapper, camera);
+
+    depthBlendMaterial.uniforms.tEdge.value = edgeDetectionRt.texture;
+    depthBlendMaterial.uniforms.tMask.value = grayRt.texture;
+    renderer.setRenderTarget(depthBlendRt);
+    renderer.clear();
+    renderer.render(depthBlendWrapper, camera);
 
     // renderer.setRenderTarget(depthBlurRt);
     // renderer.clear();
@@ -1015,6 +1138,7 @@ void main() {
     baseNormaRt.setSize(width, height);
     depthBlendRt.setSize(width, height);
     depthBlurRt.setSize(width, height);
+    faceMaskRt.setSize(width, height);
     if (globalConfig.debugTexture) {
       show();
     }
@@ -1035,7 +1159,7 @@ void main() {
       // normalTexture: normalRt.texture,
       // normalTexture: baseNormaRt.texture,
       normalTexture: blurRt2.texture,
-      depthTexture: blurRt2.texture,
+      depthTexture: depthBlendRt.texture,
       // depthTexture: depthRenderRt.texture,
       // depthTexture: globalDepthTexture,
       // highLightTexture: expandRt.texture,

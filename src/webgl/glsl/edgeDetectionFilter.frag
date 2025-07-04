@@ -14,7 +14,7 @@
 //  1  0 -1
 
 varying vec2 vUv;
-uniform sampler2D tdiff;
+uniform sampler2D tDiffuse;
 uniform vec2 iResolution;
 uniform vec2 iChannelResolution;
 
@@ -30,7 +30,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     for(int i = 0; i < conv_length; i++) {
         vec2 d = vec2(i % conv_width, i / conv_width) - vec2(conv_width / 2);
-        acc += conv[i] * texture(tdiff, uv + d * ps);
+        acc += conv[i] * texture(tDiffuse, uv + d * ps);
     }
 
     acc = smoothstep(-.01, 0.5, acc);

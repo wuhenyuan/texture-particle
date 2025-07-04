@@ -130,7 +130,7 @@ void main() {
     angle = dot(n, normalize(DefaultLight));
     frenel = (1. - angle) * mask2;
     light = dot(n, normalize(LightDriction)) * mask2;
-    frenel = smoothstep(0.1, 2.5, frenel);
+    frenel = smoothstep(0.2, 2.5, frenel) + 0.15;
   }
 
   vec2 uv = vPUv;
@@ -145,7 +145,7 @@ void main() {
   vec3 lightColor = (frenelColor * maskY) * lenMask;
 
   vec3 finalColor = lightColor;
-  finalColor = mix(lightColor, uParticleColor, step(angle, 0.7)) + vec3(lightIntensity) * smoothstep(0.3, 1.0, light);
+  finalColor = mix(lightColor, uParticleColor, smoothstep(0.2, 0.7, angle)) + vec3(lightIntensity) * smoothstep(0.3, 1.0, light);
   // --- 透明度控制 ---
   // float alpha = pow(p, uFade) * uAlphaScale;
 
