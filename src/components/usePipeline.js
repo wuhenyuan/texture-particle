@@ -84,11 +84,6 @@ const config = {
 };
 
 let color2 = new Color(0x7cbcff);
-color2.set(0.125, 0.25, 0.5);
-// console.log(color2.r, color2.g, color2.b);
-console.log(color2.getHexString());
-
-// 是否使用一半
 
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
@@ -137,7 +132,7 @@ export default function usePileline(scene, renderer, camera) {
   addConfig("lightIntensity", 0.67, "灯光强度", 1, 0.01);
   addConfig("depthOffset", 0.18, "深度偏移", 1, 0.01);
   const digitTexture = generateDigitTextureAtlas();
-  let resulution = new Vector2(1, 1);
+  let resolution = new Vector2(1, 1);
 
   let width;
   let height;
@@ -233,10 +228,6 @@ export default function usePileline(scene, renderer, camera) {
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
   });
-
-  grayMaterial.onBeforeRender = () => {
-    // grayMaterial.uniforms.tDiffuse.value = texture;
-  };
 
   // 低概率图
   const lowProbabilityMaterial = new ShaderMaterial({
@@ -338,14 +329,14 @@ export default function usePileline(scene, renderer, camera) {
   const channelResulution = new Vector2();
   const edgeDetectionWrapper = new Mesh(getFSGeometry(), edgeDetectionMaterial);
   edgeDetectionMaterial.uniforms.tDiffuse.value = texture;
-  edgeDetectionMaterial.uniforms.iResolution.value = resulution;
+  edgeDetectionMaterial.uniforms.iResolution.value = resolution;
   edgeDetectionMaterial.onBeforeRender = () => {
     // if (useHalf) {
     //   edgeDetectionMaterial.uniforms.tDiffuse.value = halfRt.texture;
     // } else {
     //   edgeDetectionMaterial.uniforms.tDiffuse.value = texture;
     // }
-    edgeDetectionMaterial.uniforms.iResolution.value = resulution;
+    edgeDetectionMaterial.uniforms.iResolution.value = resolution;
     channelResulution.set(width, height);
     edgeDetectionMaterial.uniforms.iChannelResolution.value = channelResulution;
   };
@@ -366,7 +357,7 @@ export default function usePileline(scene, renderer, camera) {
     uniforms: {
       tDiffuse: { value: edgeDetectionRt.texture },
       resolution: {
-        value: resulution,
+        value: resolution,
       },
       uContrast: { value: null },
       u_size: { value: 2.0 },
@@ -396,7 +387,7 @@ export default function usePileline(scene, renderer, camera) {
     name: "blurMaterial",
     uniforms: {
       tDiffuse: { value: null },
-      uResolution: { value: resulution },
+      uResolution: { value: resolution },
     },
     vertexShader,
     fragmentShader: depthBlur,
@@ -493,7 +484,7 @@ export default function usePileline(scene, renderer, camera) {
       tFaceTexture: { value: null },
       tEdge: { value: null },
       tMask: { value: null },
-      uResolution: { value: resulution },
+      uResolution: { value: resolution },
       uBlendRange: { value: 2.0 },
     },
     vertexShader,
@@ -558,7 +549,7 @@ export default function usePileline(scene, renderer, camera) {
     name: "depthBlurMaterial",
     uniforms: {
       tDiffise: { value: depthRenderRt.texture },
-      uResolution: { value: resulution },
+      uResolution: { value: resolution },
     },
     vertexShader,
     fragmentShader: depthBlur,
@@ -613,7 +604,7 @@ export default function usePileline(scene, renderer, camera) {
 
     uniforms: {
       depthMap: { value: null },
-      resolution: { value: resulution },
+      resolution: { value: resolution },
     },
   });
 
@@ -862,7 +853,7 @@ void main() {
     // showHandleResult(normalRt.texture, 1);
     showHandleResult(depthRenderRt.texture, 0);
     // showHandleResult(blurRt2.texture, 1);
-    showHandleResult(depthBlendRt.texture, 1);
+    // showHandleResult(depthBlendRt.texture, 1);
 
     // showHandleResult(baseNormaRt.texture, 1);
     // showHandleResult(blurRt2.texture, 1);
@@ -999,8 +990,8 @@ void main() {
     // renderer.setClearAlpha(0);
     renderer.clear();
     // renderer.setClearAlpha(1);
-    // renderer.render(depthCopyWrapper, camera);
-    renderer.render(depthRenderWrapper, camera);
+    renderer.render(depthCopyWrapper, camera);
+    // renderer.render(depthRenderWrapper, camera);
 
     // 渲染面部深度后进行二值化
     binaryMaterial.uniforms.tDiffuse.value = depthRenderRt.texture;
@@ -1122,7 +1113,7 @@ void main() {
 
     halfRt.setSize(width, height);
 
-    resulution.set(width, height);
+    resolution.set(width, height);
     grayRt.setSize(width, height);
     lowProbabilityRt.setSize(width, height);
     highProbabilityRt.setSize(width, height);

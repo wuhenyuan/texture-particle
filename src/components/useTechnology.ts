@@ -1,0 +1,376 @@
+import {
+  Scene,
+  PerspectiveCamera,
+  // BoxGeometry,
+  // MeshBasicMaterial,
+  // Mesh,
+  WebGLRenderer,
+  Clock,
+  SRGBColorSpace,
+  Plane,
+  Vector3,
+  PlaneGeometry,
+  MeshBasicMaterial,
+  Mesh,
+  VideoTexture,
+  ShaderMaterial,
+  WebGLRenderTarget,
+  MeshStandardMaterial,
+  BufferGeometry,
+  Float32BufferAttribute,
+  ClampToEdgeWrapping,
+  Vector2,
+  NearestFilter,
+  TextureUtils,
+  LinearFilter,
+  Color,
+  FloatType,
+  TextureLoader,
+  DoubleSide,
+} from "three";
+import {
+  getFaceIndex,
+  getFaceOvalIndex,
+  getForeHeadLineIndex,
+} from "./partData";
+import { useGlobalConfig } from "../stores";
+import useGui from "./useCustomGui";
+import mainFrag from "../webgl/technologyGlsl/main.frag";
+import maskFrag from "../webgl/technologyGlsl/mask.frag";
+import depthVert from "../webgl/glsl/depth.vert";
+import depthFrag from "../webgl/glsl/depth.frag";
+import usePileline from "./usePipeline";
+function loadImageToCanvas(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      resolve({ canvas, ctx, width: img.width, height: img.height });
+    };
+    img.src = src;
+  });
+}
+
+async function getDepthArray(src) {
+  const { canvas, ctx, width, height } = await loadImageToCanvas(src);
+  const imgData = ctx.getImageData(0, 0, width, height).data;
+  // 灰度图，直接取R通道
+  const arr = [];
+  let min = 0;
+  let max = 0;
+  for (let i = 0; i < imgData.length; i += 4) {
+    const depth = imgData[i] / 255;
+    arr.push(depth); // 0~255
+    if (depth < min) min = depth;
+    if (depth > max) max = depth;
+  }
+  console.log(arr);
+  console.log("src", width, height);
+  return { arr, width, height };
+}
+
+const vertexShader = /*glsl*/ `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 1.0);
+          }`;
+
+const config = {
+  // tolerance: 0.4,
+  // feathering: 0.2,
+  tolerance: 0.5,
+  feathering: 0.15,
+  depthScale: 1.0,
+  lod: 2.0,
+  edgeColor: 0x009aff,
+  keyColor: 0x00ff00,
+};
+
+export const useTechnology = (scene, renderer, camera) => {
+  const textureLoader = new TextureLoader();
+  const { addGui } = useGui(config);
+
+  function addConfig(key, name, min, max, step) {
+    // config[key] = defaultValue;
+    addGui(key, name, min, max, step);
+  }
+
+  addConfig("tolerance", "tolerance", 0, 1, 0.01);
+  addConfig("feathering", "feathering", 0, 1, 0.01);
+  addConfig("depthScale", "depthScale", 0.5, 2.0, 0.1);
+  addConfig("lod", "lod", 0, 8.0, 0.1);
+
+  let width,
+    height,
+    ratio = 1;
+  let texture;
+
+  let resolution = new Vector2(1, 1);
+  const globalConfig = useGlobalConfig();
+  const getFSGeometry = () => {
+    let fsGeometry;
+    if (fsGeometry && !fsGeometry._isDisposed) return fsGeometry;
+    fsGeometry = new BufferGeometry();
+    fsGeometry.__name = "fsGeometry";
+    fsGeometry.setAttribute(
+      "position",
+      new Float32BufferAttribute([-1, 3, 0, -1, -1, 0, 3, -1, 0], 3)
+    );
+    fsGeometry.setAttribute(
+      "uv",
+      new Float32BufferAttribute([0, 2, 0, 0, 2, 0], 2)
+    );
+
+    return fsGeometry;
+  };
+
+  let globalDepthTexture = textureLoader.load(
+    globalConfig.globalDepthTextureUrl
+  );
+
+  let colorTexture = textureLoader.load("src/assets/jialuo2.png");
+  let bgTexture = textureLoader.load("src/assets/bg.png");
+  let globalDepthTextureMax = 0;
+  let globalDepthTextureMin = 0;
+  let globalDepths = [];
+  const initDepth = async () => {
+    const { width, height, arr } = await getDepthArray(
+      globalConfig.globalDepthTextureUrl
+    );
+    globalDepthTextureMax = width;
+    globalDepthTextureMin = height;
+    globalDepths = arr;
+  };
+
+  function getGlobalDepth(x, y) {
+    // 对应mediaPipe转换
+    x = x + 0.5;
+    y = 0.5 - y;
+    if (!globalDepths.length) return;
+    const ix = Math.floor(x * width);
+    const iy = Math.floor(y * height);
+    return globalDepths[iy * width + ix];
+  }
+
+  initDepth();
+
+  const maskMaterial = new ShaderMaterial({
+    name: "grayMaterial",
+    uniforms: {
+      tDiffuse: { value: colorTexture },
+      keyColor: { value: new Color(0xffffff) },
+      tolerance: { value: 0.5 },
+      feathering: { value: 0.2 },
+    },
+    vertexShader,
+    fragmentShader: maskFrag,
+  });
+  const maskWrapper = new Mesh(getFSGeometry(), maskMaterial);
+  const maskRt = new WebGLRenderTarget(1, 1, {
+    minFilter: LinearFilter,
+    magFilter: LinearFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+  });
+
+  // const depthRenderMaterial = new ShaderMaterial({
+  //   name: "depthRenderMaterial",
+  //   uniforms: {
+  //     gDMax: { value: globalDepthTextureMax },
+  //     gDmin: { value: globalDepthTextureMin },
+  //     dMax: { value: 0 },
+  //     dMin: { value: 0 },
+  //     offset: { value: 0.2 },
+  //   },
+  //   vertexShader: depthVert,
+  //   fragmentShader: depthFrag,
+  //   // depthTest: false,
+  //   transparent: true,
+  //   premultipliedAlpha: true,
+  //   side: DoubleSide,
+  // });
+
+  // depthRenderMaterial.onBeforeRender = () => {
+  //   depthRenderMaterial.uniforms.gDMax.value = globalDepthTextureMax;
+  //   depthRenderMaterial.uniforms.gDmin.value = globalDepthTextureMin;
+  //   depthRenderMaterial.uniforms.dMax.value = globalConfig.faceDepthMax;
+  //   depthRenderMaterial.uniforms.dMin.value = globalConfig.faceDepthMin;
+  //   depthRenderMaterial.uniforms.offset.value = config.depthOffset;
+  // };
+
+  // const depthRenderWrapper = new Mesh(faceGeometry2, depthRenderMaterial);
+  // const depthRenderRt = new WebGLRenderTarget(1, 1, {
+  //   minFilter: NearestFilter,
+  //   magFilter: NearestFilter,
+  //   wrapS: ClampToEdgeWrapping,
+  //   wrapT: ClampToEdgeWrapping,
+  //   type: FloatType,
+  //   samples: 8,
+  // });
+
+  const mainMaterial = new ShaderMaterial({
+    name: "mainMaterial",
+    uniforms: {
+      blurMap: { value: null },
+      maskMap: { value: null },
+      depthMap: { value: null },
+      colorMap: { value: null },
+      bgMap: { value: null },
+      iResolution: { value: resolution },
+      edgeColor: { value: new Color(0.0, 0.0, 0.0) },
+      lod: { value: 1 },
+      depthScale: { value: 1 },
+    },
+    vertexShader,
+    fragmentShader: mainFrag,
+  });
+  const mainWrapper = new Mesh(getFSGeometry(), mainMaterial);
+  const mainRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+    samples: 1,
+  });
+
+  function updateRenderConfig() {
+    maskMaterial.uniforms.keyColor.value.set(config.keyColor);
+    maskMaterial.uniforms.tolerance.value = config.tolerance;
+    maskMaterial.uniforms.feathering.value = config.feathering;
+
+    // mainMaterial.uniforms.resolution.value.set(mainRt.width, mainRt.height);
+    mainMaterial.uniforms.blurMap.value = globalDepthTexture;
+    mainMaterial.uniforms.maskMap.value = maskRt.texture;
+    mainMaterial.uniforms.depthMap.value = globalDepthTexture;
+    mainMaterial.uniforms.colorMap.value = colorTexture;
+    mainMaterial.uniforms.bgMap.value = bgTexture;
+    mainMaterial.uniforms.edgeColor.value.set(config.edgeColor);
+    // console.log(mainMaterial.uniforms.edgeColor.value);
+    mainMaterial.uniforms.lod.value = config.lod;
+    mainMaterial.uniforms.depthScale.value = config.depthScale;
+
+    // probMaterial
+  }
+
+  function preTreatment() {
+    if (!texture) return;
+    updateRenderConfig();
+
+    // 提取灰度
+    renderer.setRenderTarget(maskRt);
+    renderer.clear();
+    renderer.render(maskWrapper, camera);
+
+    if (globalConfig.useFaceDetection) {
+      renderer.setRenderTarget(depthRenderRt);
+      // renderer.setClearAlpha(0);
+      renderer.clear();
+      // renderer.setClearAlpha(1);
+      // renderer.render(depthCopyWrapper, camera);
+      renderer.render(depthRenderWrapper, camera);
+    }
+
+    renderer.setRenderTarget(mainRt);
+    renderer.clear();
+    renderer.render(mainWrapper, camera);
+  }
+  const showHandleResult = (texture, offset) => {
+    const scale = 2;
+    const plane = new Mesh(
+      new PlaneGeometry(width / scale, height / scale),
+      new MeshBasicMaterial({ map: texture })
+      // new MeshBasicMaterial({ color: 0xffffff })
+    );
+    plane.position.z = 0;
+    const offset1 = offset;
+    plane.position.x = offset1 * (width / scale);
+    // console.log(plane.position);
+    // plane.position.y = -texture.image.height / 2;
+    scene.add(plane);
+  };
+
+  const show = () => {
+    showHandleResult(maskRt.texture, -1);
+    // showHandleResult(digitTexture, 0);
+    // showHandleResult(lowProbabilityRt.texture, 0);
+    // showHandleResult(edgeDetectionRt.texture, 0);
+    // showHandleResult(expandRt.texture, 1);
+    // showHandleResult(normalRt.texture, 1);
+    showHandleResult(mainRt.texture, 1);
+    // showHandleResult(globalDepthTexture, 0);
+    // showHandleResult(colorTexture, 1);
+    // showHandleResult(depthRenderRt.texture, 0);
+    // showHandleResult(blurRt2.texture, 1);
+    // showHandleResult(depthBlendRt.texture, 1);
+
+    // showHandleResult(baseNormaRt.texture, 1);
+    // showHandleResult(blurRt2.texture, 1);
+
+    // showHandleResult(highProbabilityRt.texture, 1);
+    // showHandleResult(blendProbRt.texture, 1);
+    // showHandleResult(blendRt.texture, 1);
+    // showHandleResult(probRt.texture, 1);
+  };
+
+  function updatePipelineConfig(_texture, video) {
+    texture = _texture;
+    if (video) {
+      const { videoWidth, videoHeight } = video;
+      width = videoWidth;
+      height = videoHeight;
+    } else {
+      width = _texture.image.width;
+      height = _texture.image.height;
+    }
+
+    ratio = width / height;
+    const maxWidth = globalConfig.maxWidth;
+    width = Math.min(maxWidth, width);
+    height = Math.floor(width / ratio);
+
+    resolution.set(width, height);
+    maskRt.setSize(width, height);
+    // depthRenderRt.setSize(width, height);
+    mainRt.setSize(width, height);
+    console.log("-----------mainMateri");
+    console.log(mainRt.width, mainRt.height);
+    if (globalConfig.debugTexture) {
+      show();
+    }
+  }
+  function getRenderResultTexture() {
+    // return probRt.texture;
+    // return blendRt.texture;
+    // return lowProbabilityRt.texture;
+    return {
+      // probTexture: blendProbRt.texture,
+      probTexture: maskRt.texture,
+      // maskTexture: grayRt.texture,
+      maskTexture: maskRt.texture,
+      // particleMap: digitTexture,
+      // highLightTexture: edgeDetectionRt.texture,
+      // highLightTexture: edgeDetectionRt.texture,
+      // normalTexture: normalRt.texture,
+      // normalTexture: baseNormaRt.texture,
+      // normalTexture: blurRt2.texture,
+      // depthTexture: depthBlendRt.texture,
+      // depthTexture: depthRenderRt.texture,
+      // depthTexture: globalDepthTexture,
+      // highLightTexture: expandRt.texture,
+    };
+  }
+  return {
+    preTreatment,
+    updatePipelineConfig,
+    getRenderResultTexture,
+    config,
+  };
+};

@@ -2,15 +2,15 @@ import { defineStore } from "pinia";
 
 export const useGlobalConfig = defineStore("app", {
   state: () => ({
-    maxWidth: 200,
+    maxWidth: 2000,
     debugTexture: true,
-    particleVisible: true,
+    particleVisible: false,
     isLocal: true,
     isUseAsr: true,
     faceDepthMin: 0,
     faceDepthMax: 0,
     // 是否使用人脸识别
-    useFaceDetection: true,
+    useFaceDetection: false,
     isUseHalf: false,
     isFaceReady: false,
     isFaceLamkmardUpdate: false,

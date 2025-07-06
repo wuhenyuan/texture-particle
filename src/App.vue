@@ -50,6 +50,7 @@
 
 <script>
 // import ThreeScene from "./components/ParticleScene.vue";
+import ThreeScene from "./components/TechnologistScene.vue";
 import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
 import { DebugEnvironment } from "three/examples/jsm/Addons.js";
