@@ -88,7 +88,7 @@ const NUM_KEYPOINTS = 478;
 const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
 const faceVertices = vertices;
 const faceGeometryAttribute = new BufferAttribute(vertices, 3);
-window.faceGeometryAttribute = faceGeometryAttribute;
+// window.faceGeometryAttribute = faceGeometryAttribute;
 const initThree = (isLocal) => {
   // 创建场景
   scene = new Scene();
@@ -217,7 +217,7 @@ const initThree = (isLocal) => {
     }
 
     if (updateLandMark) {
-      updateLandMark(landMarksPosition);
+      updateLandMark();
     }
 
     renderer.setClearAlpha(0);
@@ -230,6 +230,8 @@ const initThree = (isLocal) => {
   scene = scene;
   camera = camera;
   renderer = renderer;
+
+  if (createFaceGeometry) createFaceGeometry();
 
   const {
     preTreatment: _preTreatment,
@@ -262,6 +264,12 @@ const createBackground = () => {
   scene.background = videoTexture;
 };
 
+const createFaceGeometry = () => {
+  const faceGeometry = new BufferGeometry();
+  faceGeometry.setAttribute("position", faceGeometryAttribute);
+  faceGeometry.setIndex(getFaceIndex());
+  globalConfig.faceGeometry = faceGeometry;
+};
 function startFaceDetect() {
   startDetecte();
 }
@@ -280,7 +288,9 @@ onMounted(() => {
   width = threeContainer.value.clientWidth;
   height = threeContainer.value.clientHeight;
   ratio = width / height;
-
+  if (globalConfig.isLocal) {
+    initThree(globalConfig.isLocal);
+  }
   if (globalConfig.useFaceDetection) {
     const {
       startDetecte: _start,
@@ -291,9 +301,7 @@ onMounted(() => {
     detectPicture = _dp;
     updateLandMark = _up;
   }
-  if (globalConfig.isLocal) {
-    initThree(globalConfig.isLocal);
-  }
+
   // createBackground();
 });
 </script>

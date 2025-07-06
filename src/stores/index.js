@@ -10,7 +10,7 @@ export const useGlobalConfig = defineStore("app", {
     faceDepthMin: 0,
     faceDepthMax: 0,
     // 是否使用人脸识别
-    useFaceDetection: false,
+    useFaceDetection: true,
     isUseHalf: false,
     isFaceReady: false,
     isFaceLamkmardUpdate: false,
@@ -19,5 +19,7 @@ export const useGlobalConfig = defineStore("app", {
     helperPointVisible: false,
     globalDepthTextureUrl: "/src/assets/jialuoDepth2.png",
     cameraPosition: [1.8, 2.4, 398],
+
+    faceGeometry: null,
   }),
 });

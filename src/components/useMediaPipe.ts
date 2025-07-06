@@ -17,6 +17,7 @@ import {
   FACE_LANDMARKS_CONTOURS,
 } from "./partData";
 import { useGlobalConfig } from "../stores";
+import { BufferGeometry } from "three";
 
 export default function useMediaPipe() {
   const video: HTMLVideoElement = document.getElementById("video")!;
@@ -325,7 +326,11 @@ export default function useMediaPipe() {
     globalConfig.isFaceReady = true;
     requestAnimationFrame(predictWebcam);
   }
-  function updateLandMark(position) {
+  function updateLandMark() {
+    const faceGeometry2 = globalConfig.faceGeometry as BufferGeometry;
+    if (!faceGeometry2) return;
+    // const positions = position.array;
+    const position = faceGeometry2.attributes.position;
     const positions = position.array;
     let max = 0;
     let min = 0;
@@ -345,13 +350,12 @@ export default function useMediaPipe() {
         if (min > z) min = z;
       }
       position.needsUpdate = true;
-      if (!faceGeometry2) return;
-      globalConfig.faceDepthMax = max;
-      globalConfig.faceDepthMin = min;
-      faceGeometry2.attributes.position.needsUpdate = true;
-      faceGeometry2.computeVertexNormals();
-      faceGeometry2.attributes.normal.needsUpdate = true;
     }
+    globalConfig.faceDepthMax = max;
+    globalConfig.faceDepthMin = min;
+    faceGeometry2.attributes.position.needsUpdate = true;
+    faceGeometry2.computeVertexNormals();
+    faceGeometry2.attributes.normal.needsUpdate = true;
   }
   return {
     startDetecte,

@@ -39,7 +39,9 @@ import mainFrag from "../webgl/technologyGlsl/main.frag";
 import maskFrag from "../webgl/technologyGlsl/mask.frag";
 import depthVert from "../webgl/glsl/depth.vert";
 import depthFrag from "../webgl/glsl/depth.frag";
+import copyFrag from "../webgl/glsl/copy.frag";
 import usePileline from "./usePipeline";
+import TouchTexture from "./../webgl/touchTexture";
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -180,40 +182,68 @@ export const useTechnology = (scene, renderer, camera) => {
     type: FloatType,
   });
 
-  // const depthRenderMaterial = new ShaderMaterial({
-  //   name: "depthRenderMaterial",
-  //   uniforms: {
-  //     gDMax: { value: globalDepthTextureMax },
-  //     gDmin: { value: globalDepthTextureMin },
-  //     dMax: { value: 0 },
-  //     dMin: { value: 0 },
-  //     offset: { value: 0.2 },
-  //   },
-  //   vertexShader: depthVert,
-  //   fragmentShader: depthFrag,
-  //   // depthTest: false,
-  //   transparent: true,
-  //   premultipliedAlpha: true,
-  //   side: DoubleSide,
-  // });
+  const depthRenderMaterial = new ShaderMaterial({
+    name: "depthRenderMaterial",
+    uniforms: {
+      gDMax: { value: globalDepthTextureMax },
+      gDmin: { value: globalDepthTextureMin },
+      dMax: { value: 0 },
+      dMin: { value: 0 },
+      offset: { value: 0.2 },
+    },
+    vertexShader: depthVert,
+    fragmentShader: depthFrag,
+    // depthTest: false,
+    transparent: true,
+    premultipliedAlpha: true,
+    side: DoubleSide,
+  });
 
-  // depthRenderMaterial.onBeforeRender = () => {
-  //   depthRenderMaterial.uniforms.gDMax.value = globalDepthTextureMax;
-  //   depthRenderMaterial.uniforms.gDmin.value = globalDepthTextureMin;
-  //   depthRenderMaterial.uniforms.dMax.value = globalConfig.faceDepthMax;
-  //   depthRenderMaterial.uniforms.dMin.value = globalConfig.faceDepthMin;
-  //   depthRenderMaterial.uniforms.offset.value = config.depthOffset;
-  // };
+  depthRenderMaterial.onBeforeRender = () => {
+    depthRenderMaterial.uniforms.gDMax.value = globalDepthTextureMax;
+    depthRenderMaterial.uniforms.gDmin.value = globalDepthTextureMin;
+    depthRenderMaterial.uniforms.dMax.value = globalConfig.faceDepthMax;
+    depthRenderMaterial.uniforms.dMin.value = globalConfig.faceDepthMin;
+    // depthRenderMaterial.uniforms.offset.value = config.depthOffset;
+  };
 
-  // const depthRenderWrapper = new Mesh(faceGeometry2, depthRenderMaterial);
-  // const depthRenderRt = new WebGLRenderTarget(1, 1, {
-  //   minFilter: NearestFilter,
-  //   magFilter: NearestFilter,
-  //   wrapS: ClampToEdgeWrapping,
-  //   wrapT: ClampToEdgeWrapping,
-  //   type: FloatType,
-  //   samples: 8,
-  // });
+  const faceGeometry2 = globalConfig.faceGeometry as BufferGeometry;
+
+  const alphas = new Array(478).fill(1);
+  // const faceOvalIndex = getFaceOvalIndex();
+  const faceOvalIndex = getForeHeadLineIndex();
+  for (let i = 0; i < faceOvalIndex.length; i++) {
+    // alphas[faceOvalIndex[i]] = 0;
+  }
+
+  const alphaAttribute = new Float32BufferAttribute(
+    new Float32Array(alphas),
+    1
+  );
+
+  faceGeometry2.setAttribute("alpha", alphaAttribute);
+
+  faceGeometry2.setIndex(getFaceIndex());
+  const depthRenderWrapper = new Mesh(faceGeometry2, depthRenderMaterial);
+  const depthRenderRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+    samples: 8,
+  });
+
+  const depthCopyMaterial = new ShaderMaterial({
+    uniforms: {
+      tDiffuse: { value: null },
+    },
+    vertexShader,
+    depthWrite: false,
+    fragmentShader: copyFrag,
+  });
+
+  const depthCopyWrapper = new Mesh(getFSGeometry(), depthCopyMaterial);
 
   const mainMaterial = new ShaderMaterial({
     name: "mainMaterial",
@@ -246,10 +276,14 @@ export const useTechnology = (scene, renderer, camera) => {
     maskMaterial.uniforms.tolerance.value = config.tolerance;
     maskMaterial.uniforms.feathering.value = config.feathering;
 
+    depthCopyMaterial.uniforms.tDiffuse.value = globalDepthTexture;
+
     // mainMaterial.uniforms.resolution.value.set(mainRt.width, mainRt.height);
-    mainMaterial.uniforms.blurMap.value = globalDepthTexture;
+    // const depthMap = globalDepthTexture;
+    const depthMap = depthRenderRt.texture;
+    mainMaterial.uniforms.blurMap.value = depthMap;
     mainMaterial.uniforms.maskMap.value = maskRt.texture;
-    mainMaterial.uniforms.depthMap.value = globalDepthTexture;
+    mainMaterial.uniforms.depthMap.value = depthMap;
     mainMaterial.uniforms.colorMap.value = colorTexture;
     mainMaterial.uniforms.bgMap.value = bgTexture;
     mainMaterial.uniforms.edgeColor.value.set(config.edgeColor);
@@ -271,10 +305,8 @@ export const useTechnology = (scene, renderer, camera) => {
 
     if (globalConfig.useFaceDetection) {
       renderer.setRenderTarget(depthRenderRt);
-      // renderer.setClearAlpha(0);
       renderer.clear();
-      // renderer.setClearAlpha(1);
-      // renderer.render(depthCopyWrapper, camera);
+      renderer.render(depthCopyWrapper, camera);
       renderer.render(depthRenderWrapper, camera);
     }
 
@@ -307,7 +339,7 @@ export const useTechnology = (scene, renderer, camera) => {
     showHandleResult(mainRt.texture, 1);
     // showHandleResult(globalDepthTexture, 0);
     // showHandleResult(colorTexture, 1);
-    // showHandleResult(depthRenderRt.texture, 0);
+    showHandleResult(depthRenderRt.texture, 0);
     // showHandleResult(blurRt2.texture, 1);
     // showHandleResult(depthBlendRt.texture, 1);
 
@@ -338,7 +370,7 @@ export const useTechnology = (scene, renderer, camera) => {
 
     resolution.set(width, height);
     maskRt.setSize(width, height);
-    // depthRenderRt.setSize(width, height);
+    depthRenderRt.setSize(width, height);
     mainRt.setSize(width, height);
     console.log("-----------mainMateri");
     console.log(mainRt.width, mainRt.height);
