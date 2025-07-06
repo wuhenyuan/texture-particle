@@ -31,6 +31,7 @@ import {
 import {
   getFaceIndex,
   getFaceOvalIndex,
+  getLipsIndex,getAllLipsIndex,
   getForeHeadLineIndex,
 } from "./partData";
 import { useGlobalConfig } from "../stores";
@@ -221,9 +222,10 @@ export const useTechnology = (scene, renderer, camera) => {
     1
   );
 
-  faceGeometry2.setAttribute("alpha", alphaAttribute);
+  // faceGeometry2.setAttribute("alpha", alphaAttribute);
 
   faceGeometry2.setIndex(getFaceIndex());
+  // faceGeometry2.setIndex(getAllLipsIndex());
   const depthRenderWrapper = new Mesh(faceGeometry2, depthRenderMaterial);
   const depthRenderRt = new WebGLRenderTarget(1, 1, {
     minFilter: NearestFilter,
