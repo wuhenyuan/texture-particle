@@ -59,7 +59,7 @@ import { AmbientLight } from "three";
 import { PointLight } from "three";
 import { LineBasicMaterial } from "three";
 import { LineSegments } from "three";
-import { getLineIndex, getFaceIndex } from "./partData";
+import { getLineIndex, getFaceIndex, getMouseIndex } from "./partData";
 import pointsPng from "../assets/point.png";
 
 import { useGlobalConfig } from "@/stores/index";
@@ -268,6 +268,47 @@ const createFaceGeometry = () => {
   const faceGeometry = new BufferGeometry();
   faceGeometry.setAttribute("position", faceGeometryAttribute);
   faceGeometry.setIndex(getFaceIndex());
+  const pointGeometry = new BufferGeometry();
+  pointGeometry.setAttribute("position", faceGeometryAttribute);
+  pointGeometry.setIndex(getMouseIndex());
+  const points = new Points(
+    pointGeometry,
+    new PointsMaterial({
+      size: 8,
+      color: new Color(0xa9bbca),
+      name: "pointMateral",
+      blending: AdditiveBlending,
+      // opacity: 0.5,
+      // map: pointsTexutre,
+      transparent: true,
+      depthTest: false,
+
+      // renderOrder: 10,
+    })
+  );
+
+  const pointGeometr2y = new BufferGeometry();
+  pointGeometr2y.setAttribute("position", faceGeometryAttribute);
+  pointGeometr2y.setIndex(getFaceIndex());
+  const points2 = new Points(
+    pointGeometr2y,
+    new PointsMaterial({
+      size: 4,
+      color: new Color(0xa9bbca),
+      name: "pointMateral",
+      blending: AdditiveBlending,
+      // opacity: 0.5,
+      // map: pointsTexutre,
+      transparent: true,
+      depthTest: false,
+
+      // renderOrder: 10,
+    })
+  );
+  // scene.add(points);
+  // scene.add(points2);
+  points.scale.set(570 * 2, 792 * 2, 1000);
+  points2.scale.set(570, 792, 1000);
   globalConfig.faceGeometry = faceGeometry;
 };
 function startFaceDetect() {

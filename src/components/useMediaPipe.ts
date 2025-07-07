@@ -336,6 +336,7 @@ export default function useMediaPipe() {
     let min = 0;
     if (results && results.faceLandmarks && needResult) {
       const faceLandmarks = results.faceLandmarks[0];
+      console.log(faceLandmarks);
       needResult = false;
       globalConfig.isFaceLamkmardUpdate = true;
       const scale = 1;

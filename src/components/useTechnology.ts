@@ -31,8 +31,10 @@ import {
 import {
   getFaceIndex,
   getFaceOvalIndex,
-  getLipsIndex,getAllLipsIndex,
+  getLipsIndex,
+  getAllLipsIndex,
   getForeHeadLineIndex,
+  getMouseIndex,
 } from "./partData";
 import { useGlobalConfig } from "../stores";
 import useGui from "./useCustomGui";
@@ -43,6 +45,7 @@ import depthFrag from "../webgl/glsl/depth.frag";
 import copyFrag from "../webgl/glsl/copy.frag";
 import usePileline from "./usePipeline";
 import TouchTexture from "./../webgl/touchTexture";
+import { generate } from "@vue/compiler-core";
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -93,6 +96,7 @@ const config = {
   lod: 2.0,
   edgeColor: 0x009aff,
   keyColor: 0x00ff00,
+  offset: 0.18,
 };
 
 export const useTechnology = (scene, renderer, camera) => {
@@ -106,8 +110,9 @@ export const useTechnology = (scene, renderer, camera) => {
 
   addConfig("tolerance", "tolerance", 0, 1, 0.01);
   addConfig("feathering", "feathering", 0, 1, 0.01);
-  addConfig("depthScale", "depthScale", 0.5, 2.0, 0.1);
+  addConfig("depthScale", "depthScale", 0.0, 4.0, 0.1);
   addConfig("lod", "lod", 0, 8.0, 0.1);
+  addConfig("offset", "offset", -1, 1, 0.1);
 
   let width,
     height,
@@ -226,6 +231,8 @@ export const useTechnology = (scene, renderer, camera) => {
 
   faceGeometry2.setIndex(getFaceIndex());
   // faceGeometry2.setIndex(getAllLipsIndex());
+  // faceGeometry2.setIndex(getLipsIndex());
+  // faceGeometry2.setIndex(getMouseIndex());
   const depthRenderWrapper = new Mesh(faceGeometry2, depthRenderMaterial);
   const depthRenderRt = new WebGLRenderTarget(1, 1, {
     minFilter: NearestFilter,
@@ -233,6 +240,7 @@ export const useTechnology = (scene, renderer, camera) => {
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
+    generateMipmaps: true,
     samples: 8,
   });
 
@@ -279,7 +287,7 @@ export const useTechnology = (scene, renderer, camera) => {
     maskMaterial.uniforms.feathering.value = config.feathering;
 
     depthCopyMaterial.uniforms.tDiffuse.value = globalDepthTexture;
-
+    depthRenderMaterial.uniforms.offset.value = config.offset;
     // mainMaterial.uniforms.resolution.value.set(mainRt.width, mainRt.height);
     // const depthMap = globalDepthTexture;
     const depthMap = depthRenderRt.texture;
@@ -308,8 +316,12 @@ export const useTechnology = (scene, renderer, camera) => {
     if (globalConfig.useFaceDetection) {
       renderer.setRenderTarget(depthRenderRt);
       renderer.clear();
-      renderer.render(depthCopyWrapper, camera);
-      renderer.render(depthRenderWrapper, camera);
+      if (globalConfig.isUseGlobalDepth) {
+        renderer.render(depthCopyWrapper, camera);
+      }
+      if (globalConfig.isRenderDepth) {
+        renderer.render(depthRenderWrapper, camera);
+      }
     }
 
     renderer.setRenderTarget(mainRt);

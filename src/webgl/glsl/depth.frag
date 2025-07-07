@@ -18,7 +18,7 @@ float remapDepth(float v, float oldMin, float oldMax, float newMin, float newMax
 void main() {
     float gDMax = 1.0;
     float gDMin = 0.0;
-    float depth = gl_FragCoord.z; // 0 ~ 1, 非线性深度
+    float depth = gl_FragCoord.z + offset; // 0 ~ 1, 非线性深度
 
     float dMin01 = (dMin * 0.5) + 0.5;
     float dMax01 = (dMax * 0.5) + 0.5;

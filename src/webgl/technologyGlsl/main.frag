@@ -47,18 +47,30 @@ vec4 hvBlur(sampler2D u_texture, vec2 texCoords) {
     return (hBlur + vBlur) / 2.0;
 }
 
+vec2 eye1 = vec2(0.33, 0.5);
+vec2 eye2 = vec2(0.58, 0.5);
+
+float drawEye(vec2 eyePos, vec2 uv) {
+    float dist = distance(eyePos, uv);
+    return pow(smoothstep(0.02, 0.00, dist), 2.);
+}
+float drawEye2(vec2 uv) {
+    return drawEye(eye1, uv) + drawEye(eye2, uv);
+}
+
 // 计算法线
 vec3 computeNormalFromDepth(
     sampler2D depthMap,
     vec2 uv
 ) {
-    vec2 texelSize = 1.0 / vec2(textureSize(depthMap, int(lod)));
 
-    float depthCenter = texture(depthMap, uv, lod).r;
+    vec2 texelSize = 1.0 / vec2(textureSize(depthMap, int(lod)));
+    float texLod = lod;
+    float depthCenter = texture(depthMap, uv, texLod).r;
 
     // 邻域像素的深度值
-    float depthRight = texture(depthMap, uv + vec2(texelSize.x, 0.0), lod).r;
-    float depthUp = texture(depthMap, uv + vec2(0.0, texelSize.y), lod).r;
+    float depthRight = texture(depthMap, uv + vec2(texelSize.x, 0.0), texLod).r;
+    float depthUp = texture(depthMap, uv + vec2(0.0, texelSize.y), texLod).r;
     // 构建两个方向的切线向量（右和上）
     vec3 pCenter = vec3(uv, depthCenter * depthScale);
     vec3 pRight = vec3(uv + vec2(texelSize.x, 0.0), depthRight * depthScale);
@@ -84,6 +96,6 @@ void main() {
     vec3 frenelColor = frenel * edgeColor * 4.0;
     float maskY = pow(uv.y, 0.8);
 
-    vec3 finalColor = edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
+    vec3 finalColor = drawEye2(uv) * edgeColor + edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
     gl_FragColor = vec4(finalColor, 1.0);
 }
