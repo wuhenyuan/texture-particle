@@ -60,7 +60,7 @@ export default function useMediaPipe() {
       outputConfidenceMasks: false,
     });
     labels = imageSegmenter.getLabels();
-    console.log("faceLandmarker created.", faceLandmarker);
+    // console.log("faceLandmarker created.", faceLandmarker);
     if (globalConfig.isLocal) {
       // setTimeout(() => {
       try {
@@ -106,7 +106,6 @@ export default function useMediaPipe() {
     if (results.faceLandmarks.length && results.faceLandmarks[0].length > 0) {
       needResult = true;
     }
-    console.log(results);
     const drawingUtils = new DrawingUtils(ctx);
     for (const landmarks of results.faceLandmarks) {
       drawingUtils.drawConnectors(
@@ -336,7 +335,7 @@ export default function useMediaPipe() {
     let min = 0;
     if (results && results.faceLandmarks && needResult) {
       const faceLandmarks = results.faceLandmarks[0];
-      console.log(faceLandmarks);
+      // console.log(faceLandmarks);
       needResult = false;
       globalConfig.isFaceLamkmardUpdate = true;
       const scale = 1;

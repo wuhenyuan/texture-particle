@@ -5578,7 +5578,6 @@ for (let i = 0; i < len; i++) {
     lipsIndex.push(a, b, c);
   }
 }
-debugger;
 lipsIndex.forEach((i) => console.log(i));
 
 const getPointsData = (pointLamk) => {
@@ -5660,9 +5659,7 @@ function getPointsInLipArea(lipPolygon) {
   return pointsInside;
 }
 
-debugger;
 const lips = getPointsData(FACE_LANDMARKS_LIPS);
-debugger;
 const result = getPointsInLipArea(lips);
 
 const getIndex = (map) => {

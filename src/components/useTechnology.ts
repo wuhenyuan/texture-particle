@@ -20,7 +20,7 @@ import {
   Float32BufferAttribute,
   ClampToEdgeWrapping,
   Vector2,
-  NearestFilter,
+  NearestFilter,LinearMipmapLinearFilter,
   TextureUtils,
   LinearFilter,
   Color,
@@ -39,13 +39,16 @@ import {
 import { useGlobalConfig } from "../stores";
 import useGui from "./useCustomGui";
 import mainFrag from "../webgl/technologyGlsl/main.frag";
+import mainFrag2 from "../webgl/technologyGlsl/main2.frag";
 import maskFrag from "../webgl/technologyGlsl/mask.frag";
 import depthVert from "../webgl/glsl/depth.vert";
 import depthFrag from "../webgl/glsl/depth.frag";
 import copyFrag from "../webgl/glsl/copy.frag";
+import calNormal from '../webgl/technologyGlsl/calNormal.frag'
 import usePileline from "./usePipeline";
 import TouchTexture from "./../webgl/touchTexture";
 import { generate } from "@vue/compiler-core";
+import { render } from "less";
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -255,6 +258,67 @@ export const useTechnology = (scene, renderer, camera) => {
 
   const depthCopyWrapper = new Mesh(getFSGeometry(), depthCopyMaterial);
 
+
+    const calNormalMaterial = new ShaderMaterial({
+      name: "calNormalMaterial",
+      fragmentShader: /*glsl*/ calNormal,
+      vertexShader: /*glsl*/ `
+            varying vec2 vUv;
+            void main() {
+              vUv = uv;
+              gl_Position = vec4(position, 1.0);
+            }`,
+  
+      uniforms: {
+        depthMap: { value: null },
+        resolution: { value: resolution },
+      },
+    });
+  
+    const calNormalWrapper = new Mesh(getFSGeometry(), calNormalMaterial);
+    const calNormalRt = new WebGLRenderTarget(1, 1, {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      wrapS: ClampToEdgeWrapping,
+      wrapT: ClampToEdgeWrapping,
+      type: FloatType,
+    });
+
+    
+
+  const baseNormalMaterial = new ShaderMaterial({
+    name: "baseNormalMaterial",
+    side: DoubleSide,
+    depthTest: false,
+    vertexShader: `
+    varying vec3 vNormal;
+    void main() {
+      vNormal = normal; // 模型空间法线
+      gl_Position = vec4(position.xy * 2.0, position.z, 1.0); // 忽略 view/projection
+    }
+  `,
+    fragmentShader: /*glsl*/ `
+      varying vec2 vUv;
+    varying vec3 vNormal;
+      void main() {
+         gl_FragColor = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
+      }`,
+  });
+  const baseNormalWrapper = new Mesh(faceGeometry2, baseNormalMaterial);
+  const baseNormaRt = new WebGLRenderTarget(1, 1, {
+    minFilter: LinearMipmapLinearFilter,
+    magFilter: LinearFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    generateMipmaps: true,
+    type: FloatType,
+    samples: 8,
+  });
+
+
+  window.rt = baseNormaRt;
+
+
   const mainMaterial = new ShaderMaterial({
     name: "mainMaterial",
     uniforms: {
@@ -281,6 +345,34 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 1,
   });
 
+
+    const mainMaterial2 = new ShaderMaterial({
+    name: "mainMaterial2",
+    uniforms: {
+      blurMap: { value: null },
+      maskMap: { value: null },
+      normalMap: { value: null },
+      colorMap: { value: null },
+      bgMap: { value: null },
+      iResolution: { value: resolution },
+      edgeColor: { value: new Color(0.0, 0.0, 0.0) },
+      lod: { value: 1 },
+      depthScale: { value: 1 },
+    },
+    vertexShader,
+    fragmentShader: mainFrag2,
+  });
+  const mainWrapper2 = new Mesh(getFSGeometry(), mainMaterial2);
+  const mainRt2 = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+    samples: 1,
+  });
+
+
   function updateRenderConfig() {
     maskMaterial.uniforms.keyColor.value.set(config.keyColor);
     maskMaterial.uniforms.tolerance.value = config.tolerance;
@@ -290,7 +382,14 @@ export const useTechnology = (scene, renderer, camera) => {
     depthRenderMaterial.uniforms.offset.value = config.offset;
     // mainMaterial.uniforms.resolution.value.set(mainRt.width, mainRt.height);
     // const depthMap = globalDepthTexture;
+
+
+    calNormalMaterial.uniforms.depthMap.value = depthRenderRt.texture;
+    // calNormalMaterial.uniforms.depthMap.value = globalDepthTexture;
+
     const depthMap = depthRenderRt.texture;
+
+
     mainMaterial.uniforms.blurMap.value = depthMap;
     mainMaterial.uniforms.maskMap.value = maskRt.texture;
     mainMaterial.uniforms.depthMap.value = depthMap;
@@ -300,6 +399,19 @@ export const useTechnology = (scene, renderer, camera) => {
     // console.log(mainMaterial.uniforms.edgeColor.value);
     mainMaterial.uniforms.lod.value = config.lod;
     mainMaterial.uniforms.depthScale.value = config.depthScale;
+
+    
+    // mainMaterial2.uniforms.blurMap.value = depthMap;
+    mainMaterial2.uniforms.maskMap.value = maskRt.texture;
+    // mainMaterial2.uniforms.depthMap.value = depthMap;
+    mainMaterial2.uniforms.normalMap.value = baseNormaRt.texture;
+    mainMaterial2.uniforms.colorMap.value = colorTexture;
+    mainMaterial2.uniforms.bgMap.value = bgTexture;
+    mainMaterial2.uniforms.edgeColor.value.set(config.edgeColor);
+    // console.log(mainMaterial.uniforms.edgeColor.value);
+    mainMaterial2.uniforms.lod.value = config.lod;
+    mainMaterial2.uniforms.depthScale.value = config.depthScale;
+
 
     // probMaterial
   }
@@ -324,9 +436,22 @@ export const useTechnology = (scene, renderer, camera) => {
       }
     }
 
+
+    renderer.setRenderTarget(calNormalRt);
+    renderer.clear();
+    renderer.render(calNormalWrapper, camera);
+
+    renderer.setRenderTarget(baseNormaRt);
+    renderer.clear();
+    renderer.render(baseNormalWrapper, camera);
+
     renderer.setRenderTarget(mainRt);
     renderer.clear();
     renderer.render(mainWrapper, camera);
+
+    renderer.setRenderTarget(mainRt2);
+    renderer.clear();
+    renderer.render(mainWrapper2, camera);
   }
   const showHandleResult = (texture, offset) => {
     const scale = 2;
@@ -353,11 +478,12 @@ export const useTechnology = (scene, renderer, camera) => {
     showHandleResult(mainRt.texture, 1);
     // showHandleResult(globalDepthTexture, 0);
     // showHandleResult(colorTexture, 1);
-    showHandleResult(depthRenderRt.texture, 0);
+    showHandleResult(calNormalRt.texture, 0);
     // showHandleResult(blurRt2.texture, 1);
     // showHandleResult(depthBlendRt.texture, 1);
 
-    // showHandleResult(baseNormaRt.texture, 1);
+    // showHandleResult(baseNormaRt.texture, -1);
+    showHandleResult(mainRt2.texture, -1);
     // showHandleResult(blurRt2.texture, 1);
 
     // showHandleResult(highProbabilityRt.texture, 1);
@@ -384,8 +510,11 @@ export const useTechnology = (scene, renderer, camera) => {
 
     resolution.set(width, height);
     maskRt.setSize(width, height);
+    calNormalRt.setSize(width, height);
+    baseNormaRt.setSize(width, height);
     depthRenderRt.setSize(width, height);
     mainRt.setSize(width, height);
+    mainRt2.setSize(width, height);
     console.log("-----------mainMateri");
     console.log(mainRt.width, mainRt.height);
     if (globalConfig.debugTexture) {

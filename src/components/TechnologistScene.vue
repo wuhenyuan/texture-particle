@@ -245,6 +245,10 @@ const initThree = (isLocal) => {
 
   const numberTexture = generateDigitTextureAtlas();
   // if (createBackground) createBackground();
+
+const isWebGL2 = renderer.capabilities.isWebGL2;
+console.log("WebGL2?", isWebGL2);
+
 };
 
 const createBackground = () => {

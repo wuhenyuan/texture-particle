@@ -542,7 +542,7 @@ export default function usePileline(scene, renderer, camera) {
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
-    samples: 8,
+    // samples: 8,
   });
 
   const depthBlurMaterial = new ShaderMaterial({
@@ -642,7 +642,7 @@ export default function usePileline(scene, renderer, camera) {
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
-    samples: 8,
+    // samples: 8,
   });
 
   //   init blend
