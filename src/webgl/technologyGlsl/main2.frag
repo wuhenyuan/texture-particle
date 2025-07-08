@@ -15,6 +15,7 @@ uniform float scale;
 uniform float power;
 uniform float normalThreshold;
 
+uniform vec4 eyeBall;
 varying vec2 vUv;
 
 float blurScale = 2.0;
@@ -56,10 +57,10 @@ vec2 eye2 = vec2(0.58, 0.5);
 
 float drawEye(vec2 eyePos, vec2 uv) {
     float dist = distance(eyePos, uv);
-    return pow(smoothstep(0.02, 0.00, dist), 2.);
+    return pow(smoothstep(0.03, 0.00, dist), 2.);
 }
 float drawEye2(vec2 uv) {
-    return drawEye(eye1, uv) + drawEye(eye2, uv);
+    return drawEye(eyeBall.xy, uv) + drawEye(eyeBall.zw, uv);
 }
 
 float getFresnel(vec3 normal, vec3 viewDir, float bias, float scale, float power) {

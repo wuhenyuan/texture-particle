@@ -11,6 +11,7 @@ uniform vec3 outEdgeColor;
 uniform float depthScale;
 uniform float lod;
 
+
 varying vec2 vUv;
 
 float blurScale = 2.0;

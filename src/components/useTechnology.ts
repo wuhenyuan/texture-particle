@@ -27,7 +27,7 @@ import {
   Color,
   FloatType,
   TextureLoader,
-  DoubleSide,
+  DoubleSide,Vector4,
 } from "three";
 import {
   getFaceIndex,
@@ -354,6 +354,10 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 1,
   });
 
+
+  
+  const eyeBall = new Vector4();
+  globalConfig.eyeBall = eyeBall
   const mainMaterial2 = new ShaderMaterial({
     name: "mainMaterial2",
     depthTest: false,
@@ -371,7 +375,8 @@ export const useTechnology = (scene, renderer, camera) => {
       bias: { value: 1 },
       scale: { value: 1 },
       power: { value: 1 },
-      normalThreshold: {value: 0.02}
+      normalThreshold: {value: 0.02},
+      eyeBall: {value: globalConfig.eyeBall}
     },
     vertexShader,
     fragmentShader: mainFrag2,
@@ -425,7 +430,8 @@ export const useTechnology = (scene, renderer, camera) => {
     mainMaterial2.uniforms.scale.value = config.scale;
     mainMaterial2.uniforms.power.value = config.power;
     mainMaterial2.uniforms.normalThreshold.value = config.normalThreshold;
-
+    
+    // eyeBall.set(globalConfig.eyeBall)
     // probMaterial
   }
 

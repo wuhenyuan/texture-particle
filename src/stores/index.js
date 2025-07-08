@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { Vector4 } from "three";
 
 export const useGlobalConfig = defineStore("app", {
   state: () => ({
@@ -23,5 +24,6 @@ export const useGlobalConfig = defineStore("app", {
     faceGeometry: null,
     isUseGlobalDepth: true,
     isRenderDepth: false,
+    eyeBall: new Vector4()
   }),
 });

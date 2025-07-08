@@ -5042,6 +5042,8 @@ export const FACE_LANDMARKS_RIGHT_IRIS = [
   { start: 471, end: 472 },
   { start: 472, end: 469 },
 ];
+
+
 // 脸部轮廓备份
 export const FACE_LANDMARKS_FACE_OVAL_BACKUP = [
   { start: 10, end: 338 },
@@ -5451,6 +5453,16 @@ export const getLipsIndex = () => {
     324, 191, 95, 80,
   ];
 };
+
+export const getEyeball =() => {
+  const eyeBallLeft = [474,475, 476,  477]
+const eyeBallRight = [469, 470, 471, 472]
+return {
+  eyeBallLeft,
+  eyeBallRight
+}
+}
+
 export const getAllLipsIndex = () => {
   return [
     308, 415, 324, 78, 95, 191, 267, 0, 302, 37, 72, 0, 11, 302, 0, 11, 0, 72,

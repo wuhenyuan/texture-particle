@@ -15,6 +15,7 @@ import {
   FACE_LANDMARKS_RIGHT_IRIS,
   FACE_LANDMARKS_FACE_OVAL,
   FACE_LANDMARKS_CONTOURS,
+  getEyeball,
 } from "./partData";
 import { useGlobalConfig } from "../stores";
 import { BufferGeometry } from "three";
@@ -280,9 +281,9 @@ export default function useMediaPipe() {
         // drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_RIGHT_EYEBROW, {
         //   color: "#FF3030",
         // });
-        // drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_LEFT_EYE, {
-        //   color: "#30FF30",
-        // });
+        drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_LEFT_EYE, {
+          color: "#30FF30",
+        });
         drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_LEFT_EYEBROW, {
           color: "#30FF30",
         });
@@ -295,9 +296,9 @@ export default function useMediaPipe() {
         // drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_RIGHT_IRIS, {
         //   color: "#FF3030",
         // });
-        // drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_LEFT_IRIS, {
-        //   color: "#30FF30",
-        // });
+        drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_LEFT_IRIS, {
+          color: "#30FF30",
+        });
 
         // drawingUtils.drawConnectors(landmarks, FACE_LANDMARKS_NOSE, {
         //   color: "#ff0000",
@@ -333,6 +334,7 @@ export default function useMediaPipe() {
     const positions = position.array;
     let max = 0;
     let min = 0;
+    let lx = 0, ly = 0, rx =0 , ry = 0;
     if (results && results.faceLandmarks && needResult) {
       const faceLandmarks = results.faceLandmarks[0];
       // console.log(faceLandmarks);
@@ -349,8 +351,22 @@ export default function useMediaPipe() {
         if (max < z) max = z;
         if (min > z) min = z;
       }
+
+      // 更新眼珠位置
+      const {eyeBallRight, eyeBallLeft} = getEyeball();
+
+       const [i1,i2,i3,i4] = eyeBallLeft;
+       const [j1,j2,j3,j4] = eyeBallRight;
+       lx = ( faceLandmarks[i1].x + faceLandmarks[i2].x + faceLandmarks[i3].x + faceLandmarks[i4].x) / 4;
+       ly = ( faceLandmarks[i1].y + faceLandmarks[i2].y + faceLandmarks[i3].y + faceLandmarks[i4].y) / 4;
+       rx = ( faceLandmarks[j1].x + faceLandmarks[j2].x + faceLandmarks[j3].x + faceLandmarks[j4].x) / 4;
+       ry = ( faceLandmarks[j1].y + faceLandmarks[j2].y + faceLandmarks[j3].y + faceLandmarks[j4].y) / 4;
+
+
       position.needsUpdate = true;
     }
+
+    globalConfig.eyeBall.set(lx, ly, rx, ry);
     globalConfig.faceDepthMax = max;
     globalConfig.faceDepthMin = min;
     faceGeometry2.attributes.position.needsUpdate = true;
