@@ -10,6 +10,9 @@ uniform vec3 edgeColor;
 uniform vec3 outEdgeColor;
 uniform float depthScale;
 uniform float lod;
+uniform float bias;
+uniform float scale;
+uniform float power;
 
 varying vec2 vUv;
 
@@ -58,26 +61,32 @@ float drawEye2(vec2 uv) {
     return drawEye(eye1, uv) + drawEye(eye2, uv);
 }
 
+float getFresnel(vec3 normal, vec3 viewDir, float bias, float scale, float power) {
+    float fresnel = bias + scale * pow(1.0 - dot(normalize(normal), normalize(viewDir)), power);
+    return clamp(fresnel, 0.0, 1.0);
+}
 
 void main() {
     vec2 uv = vUv;
 
-    vec3 normal = textureLod(normalMap, uv, lod).rgb;
+    vec4 normalColor = textureLod(normalMap, uv, lod).rgba;
+    vec3 normal = normalColor.rgb * 2.0 - 1.0;
+    normal *= normalColor.a;
     vec3 bgColor = texture2D(bgMap, uv).rgb;
     float blur = texture2D(blurMap, uv).x;
     float mask2 = hvBlur(maskMap, uv).x;
-    normal.z =  normal.z * depthScale;
+    normal.z = normal.z * depthScale;
     normal = normalize(normal);
 
     vec3 outEdge = blur * (1.0 - mask2) * outEdgeColor * 2.0;
    // float frenel = (1.0 - dot(normal, normalize(vec3(0.0, 0.0, 1.0)))) ;
    // frenel = pow(clamp(frenel, 0.0, 1.0), 20.0);
   // frenel *= mask2;
-float fresnelRaw = 1.0 - dot(normal, vec3(0.0, 0.0, 1.0));
-float frenel = smoothstep(0.3, 0.9, fresnelRaw); // 控制从哪个角度开始变亮
-frenel = pow(frenel, 3.5); // 再强化边缘
-frenel *= mask2;
-
+    // float fresnelRaw = 1.0 - dot(normal, vec3(0.0, 0.0, 1.0));
+    // float frenel = smoothstep(0.3, 0.9, fresnelRaw); // 控制从哪个角度开始变亮
+    // frenel = pow(frenel, 0.8); // 再强化边缘
+    // frenel *= mask2;
+    float frenel = getFresnel(normal, vec3(0., 0., 1.), bias, scale, power);
     float light = dot(normal, normalize(vec3(4.0, 0.0, 1.0))) * mask2;
 
   //  frenel = pow(frenel, 0.2);

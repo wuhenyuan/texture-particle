@@ -20,7 +20,8 @@ import {
   Float32BufferAttribute,
   ClampToEdgeWrapping,
   Vector2,
-  NearestFilter,LinearMipmapLinearFilter,
+  NearestFilter,
+  LinearMipmapLinearFilter,
   TextureUtils,
   LinearFilter,
   Color,
@@ -44,7 +45,7 @@ import maskFrag from "../webgl/technologyGlsl/mask.frag";
 import depthVert from "../webgl/glsl/depth.vert";
 import depthFrag from "../webgl/glsl/depth.frag";
 import copyFrag from "../webgl/glsl/copy.frag";
-import calNormal from '../webgl/technologyGlsl/calNormal.frag'
+import calNormal from "../webgl/technologyGlsl/calNormal.frag";
 import usePileline from "./usePipeline";
 import TouchTexture from "./../webgl/touchTexture";
 import { generate } from "@vue/compiler-core";
@@ -100,6 +101,9 @@ const config = {
   edgeColor: 0x009aff,
   keyColor: 0x00ff00,
   offset: 0.18,
+  bias: 1.0,
+  scale: 1.0,
+  power: 1.0,
 };
 
 export const useTechnology = (scene, renderer, camera) => {
@@ -116,6 +120,9 @@ export const useTechnology = (scene, renderer, camera) => {
   addConfig("depthScale", "depthScale", 0.0, 4.0, 0.1);
   addConfig("lod", "lod", 0, 8.0, 0.1);
   addConfig("offset", "offset", -1, 1, 0.1);
+  addConfig("bias", "bias", -1, 5, 0.1);
+  addConfig("scale", "scale", -1, 5, 0.1);
+  addConfig("power", "power", -1, 5, 0.1);
 
   let width,
     height,
@@ -258,33 +265,30 @@ export const useTechnology = (scene, renderer, camera) => {
 
   const depthCopyWrapper = new Mesh(getFSGeometry(), depthCopyMaterial);
 
-
-    const calNormalMaterial = new ShaderMaterial({
-      name: "calNormalMaterial",
-      fragmentShader: /*glsl*/ calNormal,
-      vertexShader: /*glsl*/ `
+  const calNormalMaterial = new ShaderMaterial({
+    name: "calNormalMaterial",
+    fragmentShader: /*glsl*/ calNormal,
+    vertexShader: /*glsl*/ `
             varying vec2 vUv;
             void main() {
               vUv = uv;
               gl_Position = vec4(position, 1.0);
             }`,
-  
-      uniforms: {
-        depthMap: { value: null },
-        resolution: { value: resolution },
-      },
-    });
-  
-    const calNormalWrapper = new Mesh(getFSGeometry(), calNormalMaterial);
-    const calNormalRt = new WebGLRenderTarget(1, 1, {
-      minFilter: NearestFilter,
-      magFilter: NearestFilter,
-      wrapS: ClampToEdgeWrapping,
-      wrapT: ClampToEdgeWrapping,
-      type: FloatType,
-    });
 
-    
+    uniforms: {
+      depthMap: { value: null },
+      resolution: { value: resolution },
+    },
+  });
+
+  const calNormalWrapper = new Mesh(getFSGeometry(), calNormalMaterial);
+  const calNormalRt = new WebGLRenderTarget(1, 1, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    wrapS: ClampToEdgeWrapping,
+    wrapT: ClampToEdgeWrapping,
+    type: FloatType,
+  });
 
   const baseNormalMaterial = new ShaderMaterial({
     name: "baseNormalMaterial",
@@ -306,7 +310,7 @@ export const useTechnology = (scene, renderer, camera) => {
   });
   const baseNormalWrapper = new Mesh(faceGeometry2, baseNormalMaterial);
   const baseNormaRt = new WebGLRenderTarget(1, 1, {
-    minFilter: LinearMipmapLinearFilter,
+    minFilter: LinearFilter,
     magFilter: LinearFilter,
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
@@ -315,9 +319,7 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 8,
   });
 
-
   window.rt = baseNormaRt;
-
 
   const mainMaterial = new ShaderMaterial({
     name: "mainMaterial",
@@ -345,8 +347,7 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 1,
   });
 
-
-    const mainMaterial2 = new ShaderMaterial({
+  const mainMaterial2 = new ShaderMaterial({
     name: "mainMaterial2",
     uniforms: {
       blurMap: { value: null },
@@ -358,6 +359,9 @@ export const useTechnology = (scene, renderer, camera) => {
       edgeColor: { value: new Color(0.0, 0.0, 0.0) },
       lod: { value: 1 },
       depthScale: { value: 1 },
+      bias: { value: 1 },
+      scale: { value: 1 },
+      power: { value: 1 },
     },
     vertexShader,
     fragmentShader: mainFrag2,
@@ -372,7 +376,6 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 1,
   });
 
-
   function updateRenderConfig() {
     maskMaterial.uniforms.keyColor.value.set(config.keyColor);
     maskMaterial.uniforms.tolerance.value = config.tolerance;
@@ -383,12 +386,10 @@ export const useTechnology = (scene, renderer, camera) => {
     // mainMaterial.uniforms.resolution.value.set(mainRt.width, mainRt.height);
     // const depthMap = globalDepthTexture;
 
-
     calNormalMaterial.uniforms.depthMap.value = depthRenderRt.texture;
     // calNormalMaterial.uniforms.depthMap.value = globalDepthTexture;
 
     const depthMap = depthRenderRt.texture;
-
 
     mainMaterial.uniforms.blurMap.value = depthMap;
     mainMaterial.uniforms.maskMap.value = maskRt.texture;
@@ -400,7 +401,6 @@ export const useTechnology = (scene, renderer, camera) => {
     mainMaterial.uniforms.lod.value = config.lod;
     mainMaterial.uniforms.depthScale.value = config.depthScale;
 
-    
     // mainMaterial2.uniforms.blurMap.value = depthMap;
     mainMaterial2.uniforms.maskMap.value = maskRt.texture;
     // mainMaterial2.uniforms.depthMap.value = depthMap;
@@ -411,7 +411,9 @@ export const useTechnology = (scene, renderer, camera) => {
     // console.log(mainMaterial.uniforms.edgeColor.value);
     mainMaterial2.uniforms.lod.value = config.lod;
     mainMaterial2.uniforms.depthScale.value = config.depthScale;
-
+    mainMaterial2.uniforms.bias.value = config.bias;
+    mainMaterial2.uniforms.scale.value = config.scale;
+    mainMaterial2.uniforms.power.value = config.power;
 
     // probMaterial
   }
@@ -435,7 +437,6 @@ export const useTechnology = (scene, renderer, camera) => {
         renderer.render(depthRenderWrapper, camera);
       }
     }
-
 
     renderer.setRenderTarget(calNormalRt);
     renderer.clear();
