@@ -21,7 +21,7 @@ export const useGlobalConfig = defineStore("app", {
     cameraPosition: [1.8, 2.4, 398],
 
     faceGeometry: null,
-    isUseGlobalDepth: false,
-    isRenderDepth: true,
+    isUseGlobalDepth: true,
+    isRenderDepth: false,
   }),
 });

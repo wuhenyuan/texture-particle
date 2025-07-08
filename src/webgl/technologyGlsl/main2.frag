@@ -13,6 +13,7 @@ uniform float lod;
 uniform float bias;
 uniform float scale;
 uniform float power;
+uniform float normalThreshold;
 
 varying vec2 vUv;
 
@@ -72,11 +73,14 @@ void main() {
     vec4 normalColor = textureLod(normalMap, uv, lod).rgba;
     vec3 normal = normalColor.rgb * 2.0 - 1.0;
     normal *= normalColor.a;
+    float dot2 =  dot(normalize(normal), normalize(vec3(0., 0., 1.0)));
+    if(abs(dot2) < normalThreshold) return;
     vec3 bgColor = texture2D(bgMap, uv).rgb;
     float blur = texture2D(blurMap, uv).x;
     float mask2 = hvBlur(maskMap, uv).x;
     normal.z = normal.z * depthScale;
     normal = normalize(normal);
+
 
     vec3 outEdge = blur * (1.0 - mask2) * outEdgeColor * 2.0;
    // float frenel = (1.0 - dot(normal, normalize(vec3(0.0, 0.0, 1.0)))) ;
@@ -95,5 +99,5 @@ void main() {
     float maskY = pow(uv.y, 0.8);
 
     vec3 finalColor = drawEye2(uv) * edgeColor + edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
-    gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(finalColor, normalColor.a);
 }

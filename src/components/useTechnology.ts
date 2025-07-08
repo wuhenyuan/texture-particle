@@ -96,14 +96,15 @@ const config = {
   // feathering: 0.2,
   tolerance: 0.5,
   feathering: 0.15,
-  depthScale: 1.0,
-  lod: 2.0,
+  depthScale: 0.5,
+  lod: 3.0,
   edgeColor: 0x009aff,
   keyColor: 0x00ff00,
-  offset: 0.18,
-  bias: 1.0,
-  scale: 1.0,
-  power: 1.0,
+  offset: 0.2,
+  bias: -0.8,
+  scale: 1.1,
+  power: 0.6,
+  normalThreshold: 0.0,
 };
 
 export const useTechnology = (scene, renderer, camera) => {
@@ -123,6 +124,7 @@ export const useTechnology = (scene, renderer, camera) => {
   addConfig("bias", "bias", -1, 5, 0.1);
   addConfig("scale", "scale", -1, 5, 0.1);
   addConfig("power", "power", -1, 5, 0.1);
+  addConfig('normalThreshold', 'normalThreshold', 0, 1, 0.01)
 
   let width,
     height,
@@ -229,7 +231,7 @@ export const useTechnology = (scene, renderer, camera) => {
   // const faceOvalIndex = getFaceOvalIndex();
   const faceOvalIndex = getForeHeadLineIndex();
   for (let i = 0; i < faceOvalIndex.length; i++) {
-    // alphas[faceOvalIndex[i]] = 0;
+    alphas[faceOvalIndex[i]] = 0;
   }
 
   const alphaAttribute = new Float32BufferAttribute(
@@ -237,7 +239,7 @@ export const useTechnology = (scene, renderer, camera) => {
     1
   );
 
-  // faceGeometry2.setAttribute("alpha", alphaAttribute);
+  faceGeometry2.setAttribute("alpha", alphaAttribute);
 
   faceGeometry2.setIndex(getFaceIndex());
   // faceGeometry2.setIndex(getAllLipsIndex());
@@ -294,18 +296,24 @@ export const useTechnology = (scene, renderer, camera) => {
     name: "baseNormalMaterial",
     side: DoubleSide,
     depthTest: false,
+    transparent: true,
+    premultipliedAlpha:true,
     vertexShader: `
     varying vec3 vNormal;
+    attribute float alpha;
+    varying float vAlpha;
     void main() {
+      vAlpha = alpha;
       vNormal = normal; // 模型空间法线
       gl_Position = vec4(position.xy * 2.0, position.z, 1.0); // 忽略 view/projection
     }
   `,
     fragmentShader: /*glsl*/ `
       varying vec2 vUv;
+     varying float vAlpha;
     varying vec3 vNormal;
       void main() {
-         gl_FragColor = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
+         gl_FragColor = vec4(normalize(vNormal) * 0.5 + 0.5, vAlpha);
       }`,
   });
   const baseNormalWrapper = new Mesh(faceGeometry2, baseNormalMaterial);
@@ -319,7 +327,6 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 8,
   });
 
-  window.rt = baseNormaRt;
 
   const mainMaterial = new ShaderMaterial({
     name: "mainMaterial",
@@ -349,6 +356,8 @@ export const useTechnology = (scene, renderer, camera) => {
 
   const mainMaterial2 = new ShaderMaterial({
     name: "mainMaterial2",
+    depthTest: false,
+    transparent: true,
     uniforms: {
       blurMap: { value: null },
       maskMap: { value: null },
@@ -362,6 +371,7 @@ export const useTechnology = (scene, renderer, camera) => {
       bias: { value: 1 },
       scale: { value: 1 },
       power: { value: 1 },
+      normalThreshold: {value: 0.02}
     },
     vertexShader,
     fragmentShader: mainFrag2,
@@ -414,6 +424,7 @@ export const useTechnology = (scene, renderer, camera) => {
     mainMaterial2.uniforms.bias.value = config.bias;
     mainMaterial2.uniforms.scale.value = config.scale;
     mainMaterial2.uniforms.power.value = config.power;
+    mainMaterial2.uniforms.normalThreshold.value = config.normalThreshold;
 
     // probMaterial
   }
@@ -450,8 +461,8 @@ export const useTechnology = (scene, renderer, camera) => {
     renderer.clear();
     renderer.render(mainWrapper, camera);
 
-    renderer.setRenderTarget(mainRt2);
-    renderer.clear();
+    // renderer.setRenderTarget(mainRt2);
+    // renderer.clear();
     renderer.render(mainWrapper2, camera);
   }
   const showHandleResult = (texture, offset) => {
@@ -470,12 +481,12 @@ export const useTechnology = (scene, renderer, camera) => {
   };
 
   const show = () => {
-    showHandleResult(maskRt.texture, -1);
+    // showHandleResult(maskRt.texture, -1);
     // showHandleResult(digitTexture, 0);
     // showHandleResult(lowProbabilityRt.texture, 0);
     // showHandleResult(edgeDetectionRt.texture, 0);
     // showHandleResult(expandRt.texture, 1);
-    // showHandleResult(normalRt.texture, 1);
+    showHandleResult(baseNormaRt.texture, -1);
     showHandleResult(mainRt.texture, 1);
     // showHandleResult(globalDepthTexture, 0);
     // showHandleResult(colorTexture, 1);
@@ -484,7 +495,7 @@ export const useTechnology = (scene, renderer, camera) => {
     // showHandleResult(depthBlendRt.texture, 1);
 
     // showHandleResult(baseNormaRt.texture, -1);
-    showHandleResult(mainRt2.texture, -1);
+    // showHandleResult(mainRt2.texture, -1);
     // showHandleResult(blurRt2.texture, 1);
 
     // showHandleResult(highProbabilityRt.texture, 1);
