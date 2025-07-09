@@ -80,15 +80,15 @@ const canvasRef = ref(null);
 let width;
 let height;
 let ratio;
-let composer;
+let composer, bloomComposer;
 let startDetecte, detectPicture, updateLandMark;
 let landMarksPosition;
-let renderConfig;
 let image;
 const NUM_KEYPOINTS = 478;
 const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
 const faceVertices = vertices;
 const faceGeometryAttribute = new BufferAttribute(vertices, 3);
+const renderConfig = globalConfig.config;
 // window.faceGeometryAttribute = faceGeometryAttribute;
 const initThree = (isLocal) => {
   // 创建场景
@@ -200,7 +200,7 @@ const initThree = (isLocal) => {
     };
   }
 
-  composer = usePostprocessing(scene, renderer, camera);
+  ({ composer, bloomComposer } = usePostprocessing(scene, renderer, camera));
 
   // 动画循环
   const animate = () => {
@@ -230,7 +230,9 @@ const initThree = (isLocal) => {
       digitalMesh.visible = true;
     }
 
+    composer.updatePostprocessing(renderConfig);
     renderer.setClearAlpha(0);
+    bloomComposer.render();
     // renderer.render(scene, camera);
     composer.render();
   };
@@ -253,7 +255,6 @@ const initThree = (isLocal) => {
   preTreatment = _preTreatment;
   updateTexture = _updateTexture;
   getRenderResultTexture = _getRenderResultTexture;
-  renderConfig = config;
 
   const { renderTexture, maskTexture, digitalMesh } = getRenderResultTexture();
   // createDigitalHumanWrapper(renderTexture);

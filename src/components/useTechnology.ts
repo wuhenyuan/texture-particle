@@ -92,24 +92,9 @@ const vertexShader = /*glsl*/ `
             gl_Position = vec4(position, 1.0);
           }`;
 
-const config = {
-  // tolerance: 0.4,
-  // feathering: 0.2,
-  tolerance: 0.21,
-  feathering: 0.15,
-  depthScale: 0.5,
-  lod: 3.0,
-  edgeColor: 0x57a6dc,
-  keyColor: 0x00ff00,
-  offset: 0.2,
-  bias: -0.4,
-  scale: 1.1,
-  power: 0.7,
-  normalThreshold: 0.0,
-  rainColor: 0xcbff,
-};
-
 export const useTechnology = (scene, renderer, camera) => {
+  const globalConfig = useGlobalConfig();
+  const config = globalConfig.config;
   const textureLoader = new TextureLoader();
   const { addGui } = useGui(config);
 
@@ -128,6 +113,9 @@ export const useTechnology = (scene, renderer, camera) => {
   addConfig("bias", "bias", -1, 5, 0.01);
   addConfig("scale", "scale", -1, 5, 0.01);
   addConfig("power", "power", -1, 5, 0.01);
+  addConfig("strength", "strength", 0, 10, 0.01);
+  addConfig("radius", "radius", 0, 1, 0.01);
+  addConfig("threshold", "threshold", 0, 1, 0.01);
   // addConfig("normalThreshold", "normalThreshold", 0, 1, 0.01);
 
   let width,
@@ -138,7 +126,6 @@ export const useTechnology = (scene, renderer, camera) => {
   let resolution = new Vector2(1, 1);
   let renderResolution = new Vector2(1, 1);
   renderer.getSize(renderResolution);
-  const globalConfig = useGlobalConfig();
   const getFSGeometry = () => {
     let fsGeometry;
     if (fsGeometry && !fsGeometry._isDisposed) return fsGeometry;
@@ -612,7 +599,6 @@ export const useTechnology = (scene, renderer, camera) => {
     console.log(mainRt.width, mainRt.height);
     const planeGeometry = new PlaneGeometry(width, height);
     digitalMesh.geometry = planeGeometry;
-    window.digitalMesh = digitalMesh;
     if (globalConfig.debugTexture) {
       show();
     }

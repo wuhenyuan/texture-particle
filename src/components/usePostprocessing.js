@@ -59,12 +59,76 @@ export default function usePostprocessing(scene, renderer, camera) {
   // toneMappingEffect.
   window.composer = composer;
 
-  // mipmapBlur: !0,
-  // luminanceThreshold: 0.5,
-  // luminanceSmoothing: 1.3,
+  const bloomComposer = new EffectComposer(renderer);
+  const getBloomBloomPassMaterial = () => {
+    const fragmentShader = /*glsl*/ `
+    uniform sampler2D baseTexture;
+        uniform sampler2D bloomTexture;
 
-  // composer.addPass(new EffectPass(camera, bloomEffect));
+        varying vec2 vUv;
+
+        void main() {
+          gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( bloomTexture, vUv ) );
+        }`;
+
+    return new ShaderMaterial({
+      uniforms: {
+        baseTexture: { value: null },
+        bloomTexture: { value: bloomComposer.inputBuffer.texture },
+      },
+      vertexShader: `varying vec2 vUv;
+        void main() {
+
+          vUv = uv;
+
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+        }`,
+      fragmentShader,
+      defines: {},
+    });
+  };
+
+  let baseBloomPass;
+
+  const addSelectBloomEffect = (opts) => {
+    baseBloomPass = new UnrealBloomPass(scene, camera, {
+      resolution,
+      strength: opts.strength,
+      radius: opts.radius,
+      threshold: opts.threshold,
+    });
+    bloomComposer.autoRenderToScreen = false;
+    const renderPass = new RenderPass(scene, camera);
+    bloomComposer.addPass(renderPass);
+    bloomComposer.addPass(baseBloomPass);
+    bloomComposer.renderToScreen = false;
+    // this.isAlpha = false;
+    const bloomPass = new ShaderPass(
+      getBloomBloomPassMaterial(),
+      "baseTexture"
+    );
+    composer.addPass(bloomPass);
+  };
+
+  addSelectBloomEffect({
+    strength: 7.8,
+    radius: 0.87,
+    threshold: 0.27,
+  });
+
+  const updatePostprocessing = (config) => {
+    baseBloomPass.strength = config.strength;
+    baseBloomPass.radius = config.radius;
+    baseBloomPass.threshold = config.threshold;
+  };
+
+  composer.updatePostprocessing = updatePostprocessing;
+
   composer.addPass(new EffectPass(camera, toneMappingEffect));
 
-  return composer;
+  return {
+    bloomComposer,
+    composer,
+  };
 }
