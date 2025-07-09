@@ -2,7 +2,7 @@ uniform sampler2D blurMap; // blur
 uniform sampler2D maskMap; // mask
 uniform sampler2D normalMap; // depth
 uniform sampler2D colorMap; // color
-uniform sampler2D bgMap; // bg
+// uniform sampler2D bgMap; // bg
 
 uniform float iTime;
 uniform vec2 iResolution;
@@ -56,7 +56,15 @@ vec2 eye1 = vec2(0.33, 0.5);
 vec2 eye2 = vec2(0.58, 0.5);
 
 float drawEye(vec2 eyePos, vec2 uv) {
-    float dist = distance(eyePos, uv);
+
+    vec2 aspect = vec2(iResolution.x / iResolution.y, iResolution.y / iResolution.x); // 水平方向可能被压缩或拉伸
+    // vec2 aspect = vec2(iResolution.x / iResolution.y, 1.0); // 水平方向可能被压缩或拉伸
+
+    vec2 uvNorm = uv * aspect;
+    vec2 eyePosNorm = eyePos * aspect;
+
+    float dist = distance(eyePosNorm, uvNorm);
+    // float dist = distance(eyePos, uv);
     return pow(smoothstep(0.03, 0.00, dist), 2.);
 }
 float drawEye2(vec2 uv) {
@@ -72,16 +80,18 @@ void main() {
     vec2 uv = vUv;
 
     vec4 normalColor = textureLod(normalMap, uv, lod).rgba;
+    // vec4 normalColor = texture2D(normalMap, uv).rgba;
     vec3 normal = normalColor.rgb * 2.0 - 1.0;
     normal *= normalColor.a;
-    float dot2 =  dot(normalize(normal), normalize(vec3(0., 0., 1.0)));
-    if(abs(dot2) < normalThreshold) return;
-    vec3 bgColor = texture2D(bgMap, uv).rgb;
+    float dot2 = dot(normalize(normal), normalize(vec3(0., 0., 1.0)));
+    if(abs(dot2) < normalThreshold)
+        return;
+    // vec3 bgColor = texture2D(bgMap, uv).rgb;
+    vec3 bgColor = vec3(0.);
     float blur = texture2D(blurMap, uv).x;
     float mask2 = hvBlur(maskMap, uv).x;
-    normal.z = normal.z * depthScale;
-    normal = normalize(normal);
-
+    // normal.z = normal.z * depthScale;
+    // normal = normalize(normal);
 
     vec3 outEdge = blur * (1.0 - mask2) * outEdgeColor * 2.0;
    // float frenel = (1.0 - dot(normal, normalize(vec3(0.0, 0.0, 1.0)))) ;
@@ -99,6 +109,6 @@ void main() {
     vec3 frenelColor = frenel * edgeColor * 4.0;
     float maskY = pow(uv.y, 0.8);
 
-    vec3 finalColor = drawEye2(uv) * edgeColor + edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
+    vec3 finalColor = drawEye2(uv) * edgeColor + edgeColor * light * 0.3 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
     gl_FragColor = vec4(finalColor, normalColor.a);
 }

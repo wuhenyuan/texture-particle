@@ -1,8 +1,8 @@
 uniform sampler2D tDiffuse;
 // uniform vec3 keyColor;
 
-// vec3 keyColor = vec3(76.0 / 255.0, 150.0 / 255.0, 29.0 / 255.0);
-vec3 keyColor = vec3(0.0, 1.0, 0.0);
+vec3 keyColor = vec3(0.298, 0.588, 0.113);
+// vec3 keyColor = vec3(0.0, 1.0, 0.0);
 uniform float tolerance;
 uniform float feathering;
 varying vec2 vUv;
@@ -18,6 +18,6 @@ void main() {
     vec2 uv = vUv;
     vec3 color = texture(tDiffuse, uv).rgb; // 颜色
     float mask = chromaKey(color, keyColor, tolerance, feathering);
-    gl_FragColor = vec4(vec3(mask), 1.0);
+    gl_FragColor = vec4(vec3(mask), step(tolerance + feathering, mask));
 
 }

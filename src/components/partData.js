@@ -5043,7 +5043,6 @@ export const FACE_LANDMARKS_RIGHT_IRIS = [
   { start: 472, end: 469 },
 ];
 
-
 // 脸部轮廓备份
 export const FACE_LANDMARKS_FACE_OVAL_BACKUP = [
   { start: 10, end: 338 },
@@ -5454,14 +5453,14 @@ export const getLipsIndex = () => {
   ];
 };
 
-export const getEyeball =() => {
-  const eyeBallLeft = [474,475, 476,  477]
-const eyeBallRight = [469, 470, 471, 472]
-return {
-  eyeBallLeft,
-  eyeBallRight
-}
-}
+export const getEyeball = () => {
+  const eyeBallLeft = [474, 475, 476, 477];
+  const eyeBallRight = [469, 470, 471, 472];
+  return {
+    eyeBallLeft,
+    eyeBallRight,
+  };
+};
 
 export const getAllLipsIndex = () => {
   return [
@@ -5590,7 +5589,7 @@ for (let i = 0; i < len; i++) {
     lipsIndex.push(a, b, c);
   }
 }
-lipsIndex.forEach((i) => console.log(i));
+// lipsIndex.forEach((i) => console.log(i));
 
 const getPointsData = (pointLamk) => {
   const indexSet = new Set();

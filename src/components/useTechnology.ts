@@ -20,6 +20,7 @@ import {
   Float32BufferAttribute,
   ClampToEdgeWrapping,
   Vector2,
+  AdditiveBlending,
   NearestFilter,
   LinearMipmapLinearFilter,
   TextureUtils,
@@ -27,7 +28,8 @@ import {
   Color,
   FloatType,
   TextureLoader,
-  DoubleSide,Vector4,
+  DoubleSide,
+  Vector4,
 } from "three";
 import {
   getFaceIndex,
@@ -40,16 +42,15 @@ import {
 import { useGlobalConfig } from "../stores";
 import useGui from "./useCustomGui";
 import mainFrag from "../webgl/technologyGlsl/main.frag";
+import rainMaskFragmentShader from "../webgl/technologyGlsl/rainMaskFragmentShader.frag";
 import mainFrag2 from "../webgl/technologyGlsl/main2.frag";
 import maskFrag from "../webgl/technologyGlsl/mask.frag";
 import depthVert from "../webgl/glsl/depth.vert";
 import depthFrag from "../webgl/glsl/depth.frag";
 import copyFrag from "../webgl/glsl/copy.frag";
 import calNormal from "../webgl/technologyGlsl/calNormal.frag";
-import usePileline from "./usePipeline";
-import TouchTexture from "./../webgl/touchTexture";
-import { generate } from "@vue/compiler-core";
-import { render } from "less";
+// import usePileline from "./usePipeline";
+import generateDigitTextureAtlas from "./useNumberTexture";
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -94,22 +95,25 @@ const vertexShader = /*glsl*/ `
 const config = {
   // tolerance: 0.4,
   // feathering: 0.2,
-  tolerance: 0.5,
+  tolerance: 0.21,
   feathering: 0.15,
   depthScale: 0.5,
   lod: 3.0,
-  edgeColor: 0x009aff,
+  edgeColor: 0x57a6dc,
   keyColor: 0x00ff00,
   offset: 0.2,
-  bias: -0.8,
+  bias: -0.4,
   scale: 1.1,
-  power: 0.6,
+  power: 0.7,
   normalThreshold: 0.0,
+  rainColor: 0xcbff,
 };
 
 export const useTechnology = (scene, renderer, camera) => {
   const textureLoader = new TextureLoader();
   const { addGui } = useGui(config);
+
+  const digitTexture = generateDigitTextureAtlas();
 
   function addConfig(key, name, min, max, step) {
     // config[key] = defaultValue;
@@ -120,11 +124,11 @@ export const useTechnology = (scene, renderer, camera) => {
   addConfig("feathering", "feathering", 0, 1, 0.01);
   addConfig("depthScale", "depthScale", 0.0, 4.0, 0.1);
   addConfig("lod", "lod", 0, 8.0, 0.1);
-  addConfig("offset", "offset", -1, 1, 0.1);
-  addConfig("bias", "bias", -1, 5, 0.1);
-  addConfig("scale", "scale", -1, 5, 0.1);
-  addConfig("power", "power", -1, 5, 0.1);
-  addConfig('normalThreshold', 'normalThreshold', 0, 1, 0.01)
+  addConfig("offset", "offset", -1, 1, 0.01);
+  addConfig("bias", "bias", -1, 5, 0.01);
+  addConfig("scale", "scale", -1, 5, 0.01);
+  addConfig("power", "power", -1, 5, 0.01);
+  // addConfig("normalThreshold", "normalThreshold", 0, 1, 0.01);
 
   let width,
     height,
@@ -132,6 +136,8 @@ export const useTechnology = (scene, renderer, camera) => {
   let texture;
 
   let resolution = new Vector2(1, 1);
+  let renderResolution = new Vector2(1, 1);
+  renderer.getSize(renderResolution);
   const globalConfig = useGlobalConfig();
   const getFSGeometry = () => {
     let fsGeometry;
@@ -188,13 +194,14 @@ export const useTechnology = (scene, renderer, camera) => {
       tolerance: { value: 0.5 },
       feathering: { value: 0.2 },
     },
+    transparent: true,
     vertexShader,
     fragmentShader: maskFrag,
   });
   const maskWrapper = new Mesh(getFSGeometry(), maskMaterial);
   const maskRt = new WebGLRenderTarget(1, 1, {
-    minFilter: LinearFilter,
-    magFilter: LinearFilter,
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
@@ -297,7 +304,7 @@ export const useTechnology = (scene, renderer, camera) => {
     side: DoubleSide,
     depthTest: false,
     transparent: true,
-    premultipliedAlpha:true,
+    premultipliedAlpha: true,
     vertexShader: `
     varying vec3 vNormal;
     attribute float alpha;
@@ -327,7 +334,6 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 8,
   });
 
-
   const mainMaterial = new ShaderMaterial({
     name: "mainMaterial",
     uniforms: {
@@ -354,10 +360,8 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 1,
   });
 
-
-  
   const eyeBall = new Vector4();
-  globalConfig.eyeBall = eyeBall
+  globalConfig.eyeBall = eyeBall;
   const mainMaterial2 = new ShaderMaterial({
     name: "mainMaterial2",
     depthTest: false,
@@ -375,8 +379,8 @@ export const useTechnology = (scene, renderer, camera) => {
       bias: { value: 1 },
       scale: { value: 1 },
       power: { value: 1 },
-      normalThreshold: {value: 0.02},
-      eyeBall: {value: globalConfig.eyeBall}
+      normalThreshold: { value: 0.02 },
+      eyeBall: { value: globalConfig.eyeBall },
     },
     vertexShader,
     fragmentShader: mainFrag2,
@@ -391,7 +395,64 @@ export const useTechnology = (scene, renderer, camera) => {
     samples: 1,
   });
 
+  const digitalVertex = `// 顶点着色器
+            // 输入顶点坐标的属性
+
+            varying vec2 vUv;
+
+            // 顶点着色器的主函数
+            void main() {
+                vUv = uv;
+                // 将顶点坐标从模型空间变换到剪裁空间
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+    `;
+  const digitalMaterial = new ShaderMaterial({
+    name: "digitalMesh",
+    transparent: true,
+    uniforms: {
+      tDiffuse: { value: mainRt.texture },
+      // iResolution: { value: null },
+      // iChannelResolution: { value: null },
+      // uContrast: { value: null },
+    },
+    blending: AdditiveBlending,
+    vertexShader: digitalVertex,
+    fragmentShader: copyFrag,
+  });
+  // digitalMaterial.onBeforeRender = () => {
+  //   console.log("render ditital");
+  // };
+  const digitalMesh = new Mesh(getFSGeometry(), digitalMaterial);
+  globalConfig.digitalMesh = digitalMesh;
+  let isInitMask = false;
+  const rainMaskMaterial = new ShaderMaterial({
+    name: "rainMask",
+    uniforms: {
+      tDiffuse: { value: maskRt.texture },
+      resolution: { value: renderResolution },
+      faceAera: { value: globalConfig.faceAera },
+      // maskRatio: { value: 0.5 },
+    },
+    transparent: true,
+    vertexShader: digitalVertex,
+    fragmentShader: rainMaskFragmentShader,
+  });
+  const maskRainRt = new WebGLRenderTarget(
+    renderResolution.x,
+    renderResolution.y,
+    {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      wrapS: ClampToEdgeWrapping,
+      wrapT: ClampToEdgeWrapping,
+      type: FloatType,
+    }
+  );
+
   function updateRenderConfig() {
+    maskMaterial.uniforms.tDiffuse.value = texture;
+
     maskMaterial.uniforms.keyColor.value.set(config.keyColor);
     maskMaterial.uniforms.tolerance.value = config.tolerance;
     maskMaterial.uniforms.feathering.value = config.feathering;
@@ -410,7 +471,7 @@ export const useTechnology = (scene, renderer, camera) => {
     mainMaterial.uniforms.maskMap.value = maskRt.texture;
     mainMaterial.uniforms.depthMap.value = depthMap;
     mainMaterial.uniforms.colorMap.value = colorTexture;
-    mainMaterial.uniforms.bgMap.value = bgTexture;
+    // mainMaterial.uniforms.bgMap.value = bgTexture;
     mainMaterial.uniforms.edgeColor.value.set(config.edgeColor);
     // console.log(mainMaterial.uniforms.edgeColor.value);
     mainMaterial.uniforms.lod.value = config.lod;
@@ -421,7 +482,7 @@ export const useTechnology = (scene, renderer, camera) => {
     // mainMaterial2.uniforms.depthMap.value = depthMap;
     mainMaterial2.uniforms.normalMap.value = baseNormaRt.texture;
     mainMaterial2.uniforms.colorMap.value = colorTexture;
-    mainMaterial2.uniforms.bgMap.value = bgTexture;
+    // mainMaterial2.uniforms.bgMap.value = bgTexture;
     mainMaterial2.uniforms.edgeColor.value.set(config.edgeColor);
     // console.log(mainMaterial.uniforms.edgeColor.value);
     mainMaterial2.uniforms.lod.value = config.lod;
@@ -430,7 +491,7 @@ export const useTechnology = (scene, renderer, camera) => {
     mainMaterial2.uniforms.scale.value = config.scale;
     mainMaterial2.uniforms.power.value = config.power;
     mainMaterial2.uniforms.normalThreshold.value = config.normalThreshold;
-    
+
     // eyeBall.set(globalConfig.eyeBall)
     // probMaterial
   }
@@ -470,12 +531,20 @@ export const useTechnology = (scene, renderer, camera) => {
     // renderer.setRenderTarget(mainRt2);
     // renderer.clear();
     renderer.render(mainWrapper2, camera);
+
+    // if (!isInitMask) {
+    renderer.setRenderTarget(maskRainRt);
+    renderer.clear();
+    digitalMesh.material = rainMaskMaterial;
+    renderer.render(digitalMesh, camera);
+    digitalMesh.material = digitalMaterial;
+    // }
   }
   const showHandleResult = (texture, offset) => {
     const scale = 2;
     const plane = new Mesh(
       new PlaneGeometry(width / scale, height / scale),
-      new MeshBasicMaterial({ map: texture })
+      new MeshBasicMaterial({ map: texture, transparent: true })
       // new MeshBasicMaterial({ color: 0xffffff })
     );
     plane.position.z = 0;
@@ -492,11 +561,13 @@ export const useTechnology = (scene, renderer, camera) => {
     // showHandleResult(lowProbabilityRt.texture, 0);
     // showHandleResult(edgeDetectionRt.texture, 0);
     // showHandleResult(expandRt.texture, 1);
-    showHandleResult(baseNormaRt.texture, -1);
-    showHandleResult(mainRt.texture, 1);
+    // showHandleResult(baseNormaRt.texture, -1);
+    showHandleResult(maskRt.texture, -1);
+    showHandleResult(digitTexture, 0);
+    showHandleResult(maskRainRt.texture, 1);
     // showHandleResult(globalDepthTexture, 0);
     // showHandleResult(colorTexture, 1);
-    showHandleResult(calNormalRt.texture, 0);
+    // showHandleResult(calNormalRt.texture, 0);
     // showHandleResult(blurRt2.texture, 1);
     // showHandleResult(depthBlendRt.texture, 1);
 
@@ -521,6 +592,10 @@ export const useTechnology = (scene, renderer, camera) => {
       height = _texture.image.height;
     }
 
+    // 592 796
+    console.log("----------------width-------------------height");
+    console.log(width, height);
+
     ratio = width / height;
     const maxWidth = globalConfig.maxWidth;
     width = Math.min(maxWidth, width);
@@ -535,6 +610,9 @@ export const useTechnology = (scene, renderer, camera) => {
     mainRt2.setSize(width, height);
     console.log("-----------mainMateri");
     console.log(mainRt.width, mainRt.height);
+    const planeGeometry = new PlaneGeometry(width, height);
+    digitalMesh.geometry = planeGeometry;
+    window.digitalMesh = digitalMesh;
     if (globalConfig.debugTexture) {
       show();
     }
@@ -546,8 +624,10 @@ export const useTechnology = (scene, renderer, camera) => {
     return {
       // probTexture: blendProbRt.texture,
       probTexture: maskRt.texture,
+      renderTexture: mainRt.texture,
       // maskTexture: grayRt.texture,
-      maskTexture: maskRt.texture,
+      maskTexture: maskRainRt.texture,
+      digitalMesh,
       // particleMap: digitTexture,
       // highLightTexture: edgeDetectionRt.texture,
       // highLightTexture: edgeDetectionRt.texture,

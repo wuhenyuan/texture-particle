@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
-import { Vector4 } from "three";
+import { Vector4, Mesh } from "three";
 
 export const useGlobalConfig = defineStore("app", {
   state: () => ({
     maxWidth: 2000,
-    debugTexture: true,
+    debugTexture: false,
     particleVisible: false,
     isLocal: true,
-    isUseAsr: true,
+    isUseAsr: false,
     faceDepthMin: 0,
     faceDepthMax: 0,
     // 是否使用人脸识别
@@ -19,11 +19,17 @@ export const useGlobalConfig = defineStore("app", {
     helperMeshVisible: false,
     helperPointVisible: false,
     globalDepthTextureUrl: "/src/assets/jialuoDepth2.png",
-    cameraPosition: [1.8, 2.4, 398],
+    cameraPosition: [0, 0, 177],
+    // cameraPosition: [0, 0, 1063],
 
     faceGeometry: null,
     isUseGlobalDepth: true,
     isRenderDepth: false,
-    eyeBall: new Vector4()
+    eyeBall: new Vector4(),
+    drawFaceDetection: false,
+
+    faceAera: new Vector4(),
+    particleNumber: 300,
+    digitalMesh: new Mesh(),
   }),
 });

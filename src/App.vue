@@ -5,6 +5,18 @@
       <button id="startFace" @click="startFace">开始人脸</button>
       <button id="start" @click="start">开始</button>
       <button id="stop" @click="stop">结束</button>
+      <button id="exportButton">导出图片</button>
+      <!-- <img id="img" /> -->
+      <div class="gender-selector">
+        <label>
+          <input type="radio" name="gender" value="0" v-model="gender" />
+          女生
+        </label>
+        <label>
+          <input type="radio" name="gender" value="1" v-model="gender" />
+          男生
+        </label>
+      </div>
       <h2>上传文件</h2>
       <form @submit.prevent="handleUpload">
         <input type="file" ref="fileInput" required />
@@ -66,6 +78,7 @@ export default {
       loading: false,
       message: "",
       isVideo: false,
+      gender: 0, // 0女 1男
     };
   },
   methods: {
@@ -96,8 +109,11 @@ export default {
     stop() {
       window.stop = stop;
       window.stopAsr = stopAsr;
+      const config = useGlobalConfig();
       try {
-        stopAsr();
+        if (config.isUseAsr) {
+          stopAsr();
+        }
         stop();
       } catch (error) {
         console.log(error);
@@ -117,6 +133,7 @@ export default {
 
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("type", this.gender);
       this.loading = true;
       this.message = "上传中，请稍候...";
 
@@ -132,14 +149,14 @@ export default {
           throw new Error(`HTTP错误: ${response.status}`);
         }
 
-        if (this.isVideo) {
-          this.stop();
-          setTimeout(() => {
-            this.start();
-          }, 1000);
-        } else {
-          this.start();
-        }
+        // if (this.isVideo) {
+        //   this.stop();
+        //   setTimeout(() => {
+        //     this.start();
+        //   }, 1000);
+        // } else {
+        //   this.start();
+        // }
 
         const result = await response.json();
         this.message = "上传成功: " + JSON.stringify(result);
@@ -190,5 +207,6 @@ div {
   height: 200px;
 }
 #video {
+  display: none;
 }
 </style>

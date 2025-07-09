@@ -1,17 +1,33 @@
 import {
   BloomEffect,
   EffectComposer,
+  ToneMappingEffect,
+  BlendFunction,
   EffectPass,
   RenderPass,
   SMAAEffect,
-  BlendFunction,
   SMAAPreset,
-  PredicationMode,
   EdgeDetectionMode,
-  ToneMappingEffect,
+  PredicationMode,
+  FXAAEffect,
+  OutlineEffect,
+  // DepthDownsamplingPass,
+  NormalPass,
+  // SSAOEffect,
+  TextureEffect,
+  KawaseBlurPass,
+  SavePass,
+  DepthOfFieldEffect,
+  DepthPass,
+  // Resolution,
+  DepthEffect,
+  // VignetteEffect，
   ToneMappingMode,
+  ShaderPass,
 } from "postprocessing";
 import { FloatType } from "three";
+import { Mesh, Object3D, Vector4, Color, Vector2, ShaderMaterial } from "three";
+import UnrealBloomPass from "../webgl/postProcessing/UnrealBloomPass";
 
 export default function usePostprocessing(scene, renderer, camera) {
   const composer = new EffectComposer(renderer, {
@@ -20,9 +36,11 @@ export default function usePostprocessing(scene, renderer, camera) {
   });
   composer.addPass(new RenderPass(scene, camera));
 
+  const resolution = new Vector2();
+  renderer.getSize(resolution);
   const bloomEffect = new BloomEffect({
     // blendFunction: BlendFunction.ADD,
-    luminanceThreshold: 0.8,
+    luminanceThreshold: 0.1,
     luminanceSmoothing: 0.01,
     intensity: 5,
     mipmapBlur: true,

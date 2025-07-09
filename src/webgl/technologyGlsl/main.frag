@@ -11,7 +11,6 @@ uniform vec3 outEdgeColor;
 uniform float depthScale;
 uniform float lod;
 
-
 varying vec2 vUv;
 
 float blurScale = 2.0;
@@ -85,18 +84,20 @@ void main() {
     vec2 uv = vUv;
     vec3 bgColor = texture2D(bgMap, uv).rgb;
     float blur = texture2D(blurMap, uv).x;
+    float mask = texture2D(maskMap, uv).a;
     float mask2 = hvBlur(maskMap, uv).x;
 
     vec3 normal = computeNormalFromDepth(depthMap, uv);
 
     vec3 outEdge = blur * (1.0 - mask2) * outEdgeColor * 2.0;
     float frenel = (1.0 - dot(normal, normalize(vec3(0.0, 0.0, 1.0)))) * mask2;
-    float light = dot(normal, normalize(vec3(4.0, 0.0, 1.0))) * mask2;
+    float light = dot(normal, normalize(vec3(4.0, 0.0, 1.0)));
 
     frenel = smoothstep(0.1, 1.5, frenel);
     vec3 frenelColor = frenel * edgeColor * 4.0;
     float maskY = pow(uv.y, 0.8);
 
     vec3 finalColor = drawEye2(uv) * edgeColor + edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
-    gl_FragColor = vec4(finalColor, 1.0);
+    // gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(finalColor, mask);
 }

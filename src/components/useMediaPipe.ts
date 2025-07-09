@@ -1,6 +1,5 @@
 import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
-const { FaceLandmarker, DrawingUtils, ImageSegmenter, FilesetResolver } =
-  vision;
+const { FaceLandmarker, DrawingUtils, FilesetResolver } = vision;
 import {
   FACE_LANDMARKS_NOSE,
   NOSE_LANDMARKS,
@@ -16,6 +15,7 @@ import {
   FACE_LANDMARKS_FACE_OVAL,
   FACE_LANDMARKS_CONTOURS,
   getEyeball,
+  getFaceOvalIndex,
 } from "./partData";
 import { useGlobalConfig } from "../stores";
 import { BufferGeometry } from "three";
@@ -50,17 +50,17 @@ export default function useMediaPipe() {
       numFaces: 1,
     });
 
-    imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-models/image_segmenter/deeplab_v3/float32/1/deeplab_v3.tflite",
-        delegate: "GPU",
-      },
-      runningMode: runningMode,
-      outputCategoryMask: true,
-      outputConfidenceMasks: false,
-    });
-    labels = imageSegmenter.getLabels();
+    // imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
+    //   baseOptions: {
+    //     modelAssetPath:
+    //       "https://storage.googleapis.com/mediapipe-models/image_segmenter/deeplab_v3/float32/1/deeplab_v3.tflite",
+    //     delegate: "GPU",
+    //   },
+    //   runningMode: runningMode,
+    //   outputCategoryMask: true,
+    //   outputConfidenceMasks: false,
+    // });
+    // labels = imageSegmenter.getLabels();
     // console.log("faceLandmarker created.", faceLandmarker);
     if (globalConfig.isLocal) {
       // setTimeout(() => {
@@ -266,7 +266,7 @@ export default function useMediaPipe() {
       needResult = true;
     }
 
-    if (results.faceLandmarks) {
+    if (results.faceLandmarks && globalConfig.drawFaceDetection) {
       // ctx.fillStyle = "#000"; // 背景色
       ctx.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
       // ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
@@ -323,7 +323,6 @@ export default function useMediaPipe() {
     console.log("-------------startDetecte---------------");
     if (globalConfig.isFaceReady) return;
     if (!faceLandmarker) return;
-    globalConfig.isFaceReady = true;
     requestAnimationFrame(predictWebcam);
   }
   function updateLandMark() {
@@ -334,8 +333,18 @@ export default function useMediaPipe() {
     const positions = position.array;
     let max = 0;
     let min = 0;
-    let lx = 0, ly = 0, rx =0 , ry = 0;
+    let lx = 0,
+      ly = 0,
+      rx = 0,
+      ry = 0;
+
+    let minx, maxx, miny, maxy;
+    minx = miny = 1;
+    maxx = maxy = -1;
     if (results && results.faceLandmarks && needResult) {
+      setTimeout(() => {
+        globalConfig.isFaceReady = true;
+      });
       const faceLandmarks = results.faceLandmarks[0];
       // console.log(faceLandmarks);
       needResult = false;
@@ -353,20 +362,49 @@ export default function useMediaPipe() {
       }
 
       // 更新眼珠位置
-      const {eyeBallRight, eyeBallLeft} = getEyeball();
+      const { eyeBallRight, eyeBallLeft } = getEyeball();
 
-       const [i1,i2,i3,i4] = eyeBallLeft;
-       const [j1,j2,j3,j4] = eyeBallRight;
-       lx = ( faceLandmarks[i1].x + faceLandmarks[i2].x + faceLandmarks[i3].x + faceLandmarks[i4].x) / 4;
-       ly = ( faceLandmarks[i1].y + faceLandmarks[i2].y + faceLandmarks[i3].y + faceLandmarks[i4].y) / 4;
-       rx = ( faceLandmarks[j1].x + faceLandmarks[j2].x + faceLandmarks[j3].x + faceLandmarks[j4].x) / 4;
-       ry = ( faceLandmarks[j1].y + faceLandmarks[j2].y + faceLandmarks[j3].y + faceLandmarks[j4].y) / 4;
+      const [i1, i2, i3, i4] = eyeBallLeft;
+      const [j1, j2, j3, j4] = eyeBallRight;
+      lx =
+        (faceLandmarks[i1].x +
+          faceLandmarks[i2].x +
+          faceLandmarks[i3].x +
+          faceLandmarks[i4].x) /
+        4;
+      ly =
+        (faceLandmarks[i1].y +
+          faceLandmarks[i2].y +
+          faceLandmarks[i3].y +
+          faceLandmarks[i4].y) /
+        4;
+      rx =
+        (faceLandmarks[j1].x +
+          faceLandmarks[j2].x +
+          faceLandmarks[j3].x +
+          faceLandmarks[j4].x) /
+        4;
+      ry =
+        (faceLandmarks[j1].y +
+          faceLandmarks[j2].y +
+          faceLandmarks[j3].y +
+          faceLandmarks[j4].y) /
+        4;
 
-
+      const faceOvel = getFaceOvalIndex();
+      for (let i = 0; i < faceOvel.length; i++) {
+        const index = faceOvel[i];
+        const landmark = faceLandmarks[index];
+        if (minx > landmark.x) minx = landmark.x;
+        if (maxx < landmark.x) maxx = landmark.x;
+        if (miny > landmark.y) miny = landmark.y;
+        if (maxy < landmark.y) maxy = landmark.y;
+      }
       position.needsUpdate = true;
     }
 
     globalConfig.eyeBall.set(lx, ly, rx, ry);
+    globalConfig.faceAera.set(minx, miny, maxx, maxy);
     globalConfig.faceDepthMax = max;
     globalConfig.faceDepthMin = min;
     faceGeometry2.attributes.position.needsUpdate = true;

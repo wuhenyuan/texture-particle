@@ -63,6 +63,7 @@ import { getLineIndex, getFaceIndex, getMouseIndex } from "./partData";
 import pointsPng from "../assets/point.png";
 
 import { useGlobalConfig } from "@/stores/index";
+import { DigitalRain } from "../webgl/DigitalRain";
 
 const globalConfig = useGlobalConfig();
 
@@ -82,7 +83,7 @@ let ratio;
 let composer;
 let startDetecte, detectPicture, updateLandMark;
 let landMarksPosition;
-
+let renderConfig;
 let image;
 const NUM_KEYPOINTS = 478;
 const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
@@ -220,6 +221,15 @@ const initThree = (isLocal) => {
       updateLandMark();
     }
 
+    if (rain) {
+      rain.updateConfig(renderConfig);
+      rain.update(delta);
+    }
+
+    if (globalConfig.isFaceReady) {
+      digitalMesh.visible = true;
+    }
+
     renderer.setClearAlpha(0);
     // renderer.render(scene, camera);
     composer.render();
@@ -233,6 +243,7 @@ const initThree = (isLocal) => {
 
   if (createFaceGeometry) createFaceGeometry();
 
+  creaRain();
   const {
     preTreatment: _preTreatment,
     updatePipelineConfig: _updateTexture,
@@ -242,13 +253,22 @@ const initThree = (isLocal) => {
   preTreatment = _preTreatment;
   updateTexture = _updateTexture;
   getRenderResultTexture = _getRenderResultTexture;
+  renderConfig = config;
 
-  const numberTexture = generateDigitTextureAtlas();
+  const { renderTexture, maskTexture, digitalMesh } = getRenderResultTexture();
+  // createDigitalHumanWrapper(renderTexture);
+
+  scene.add(digitalMesh);
+  rain.setMask(maskTexture);
+  if (!globalConfig.isFaceReady) {
+    digitalMesh.visible = false;
+  }
+  window.setScale = (a) => digitalMesh.scale.set(a, a, a);
+  setScale(0.1);
   // if (createBackground) createBackground();
 
-const isWebGL2 = renderer.capabilities.isWebGL2;
-console.log("WebGL2?", isWebGL2);
-
+  const isWebGL2 = renderer.capabilities.isWebGL2;
+  console.log("WebGL2?", isWebGL2);
 };
 
 const createBackground = () => {
@@ -266,6 +286,15 @@ const createBackground = () => {
   videoTexture.format = RGBFormat;
   // 设置为场景背景
   scene.background = videoTexture;
+};
+
+let rain;
+const creaRain = () => {
+  const number = globalConfig.particleNumber;
+  rain = new DigitalRain(number);
+  rain.mesh.position.z = camera.position.z - 50;
+  scene.add(rain.mesh);
+  rain.setResolution(width, height);
 };
 
 const createFaceGeometry = () => {
