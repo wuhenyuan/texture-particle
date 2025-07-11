@@ -207,6 +207,6 @@ div {
   height: 200px;
 }
 #video {
-  display: none;
+  /* display: none; */
 }
 </style>

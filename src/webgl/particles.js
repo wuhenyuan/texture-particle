@@ -22,7 +22,7 @@ import particleVert from "./depthShader/particles.vert";
 // import TouchTexture from "./TouchTexture";
 
 export default class Particles extends Object3D {
-  constructor(scene, ratio) {
+  constructor(scene, renderTexture, ratio) {
     super();
     this.scene = scene;
     this.scene.add(this);
@@ -38,28 +38,55 @@ export default class Particles extends Object3D {
     // this.webgl = webgl;
     // this.container = new Object3D();
     // todo init width, height
+    this.texture = renderTexture;
+    this.resolution = new Vector2(this.width, this.height);
+    this.uniforms = {
+      uTime: { value: 0 },
+      uRandom: { value: 0.0 },
+      uDepth: { value: 2.0 },
+      uSize: { value: 0.5 },
+      uTextureSize: { value: this.resolution },
+      uTexture: { value: this.texture },
+      uPTexture: { value: this.uPTexture },
+      uProgress: { value: this.progress },
+    };
   }
 
-  init(videoTexture, video) {
-    this.texture = videoTexture;
+  updateTexture() {
+    this.init(this.texture);
+    // this.texture.needsUpdate = true;
+    // this.material.uniforms.uTexture.value.needsUpdate = true;
+    // this.material.needsUpdate = true;
+  }
+
+  init() {
+    // this.texture = videoTexture;
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
     this.texture.format = RGBAFormat;
-    if (video) {
-      const { videoWidth, videoHeight } = video;
-      this.width = videoWidth;
-      this.height = videoHeight;
-    } else {
-      const texture = videoTexture;
-      this.width = texture.image.width;
-      this.height = texture.image.height;
-    }
-    const maxWidth = 180;
+    // if (video) {
+    //   const { videoWidth, videoHeight } = video;
+    //   this.width = videoWidth;
+    //   this.height = videoHeight;
+    // } else {
+    //   const texture = videoTexture;
+    //   this.width = texture.image.width;
+    //   this.height = texture.image.height;
+    // }
+
+    const texture = this.texture;
+    this.width = texture.image.width;
+    this.height = texture.image.height;
+    console.log(this.width, this.height);
+    const maxWidth = 100;
     if (this.width > maxWidth && this.width < this.height) {
       const ratio = this.width / this.height;
       this.width = maxWidth;
       this.height = maxWidth / ratio;
     }
+    console.log(this.width, this.height);
+
+    this.resolution.set(this.width, this.height);
     this.initPoints(true);
     // this.initHitArea();
     // this.initTouch();
@@ -86,19 +113,10 @@ export default class Particles extends Object3D {
     this.numPoints = width * height;
 
     let numVisible = this.numPoints;
-    const uniforms = {
-      uTime: { value: 0 },
-      uRandom: { value: 0.0 },
-      uDepth: { value: 2.0 },
-      uSize: { value: 1.5 },
-      uTextureSize: { value: new Vector2(this.width, this.height) },
-      uTexture: { value: this.texture },
-      uPTexture: { value: this.uPTexture },
-      uProgress: { value: this.progress },
-    };
 
     const material = new RawShaderMaterial({
-      uniforms,
+      name: "pointMaterial",
+      uniforms: this.uniforms,
       // vertexShader: glslify(require("../../../shaders/particle.vert")),
       // fragmentShader: glslify(require("../../../shaders/particle.frag")),
       vertexShader: particleVert,
@@ -190,8 +208,8 @@ export default class Particles extends Object3D {
     this.material = material;
 
     this.instancePoints = new Mesh(geometry, material);
-    // this.container.add(this.instancePoints);
-    // instancedMesh.frustumCulled = false;
+    this.add(this.instancePoints);
+    this.instancePoints.frustumCulled = false;
     // this.add(this.instancePoints);
     // this.add(this.instancePoints);
     // updatePartile
@@ -213,12 +231,17 @@ export default class Particles extends Object3D {
     this.hitArea = null;
   }
 
+  get isDead() {
+    return false;
+  }
+
   update(t) {
+    if (this.visible === false) return;
     if (!this.material) return;
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
-      this.progress = this.time / 3;
+      this.progress = this.time / 6;
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
     } else {

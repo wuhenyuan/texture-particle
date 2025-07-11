@@ -6,7 +6,7 @@ export const useGlobalConfig = defineStore("app", {
     maxWidth: 2000,
     debugTexture: false,
     particleVisible: false,
-    isLocal: true,
+    isLocal: false,
     isUseAsr: false,
     faceDepthMin: 0,
     faceDepthMax: 0,
@@ -31,6 +31,7 @@ export const useGlobalConfig = defineStore("app", {
     faceAera: new Vector4(),
     particleNumber: 300,
     digitalMesh: new Mesh(),
+    hasFaceInfo: false,
     config: {
       // tolerance: 0.4,
       // feathering: 0.2,

@@ -361,50 +361,55 @@ export default function useMediaPipe() {
         if (min > z) min = z;
       }
 
-      // 更新眼珠位置
-      const { eyeBallRight, eyeBallLeft } = getEyeball();
+      if (!globalConfig.hasFaceInfo) {
+        // 更新眼珠位置
+        const { eyeBallRight, eyeBallLeft } = getEyeball();
 
-      const [i1, i2, i3, i4] = eyeBallLeft;
-      const [j1, j2, j3, j4] = eyeBallRight;
-      lx =
-        (faceLandmarks[i1].x +
-          faceLandmarks[i2].x +
-          faceLandmarks[i3].x +
-          faceLandmarks[i4].x) /
-        4;
-      ly =
-        (faceLandmarks[i1].y +
-          faceLandmarks[i2].y +
-          faceLandmarks[i3].y +
-          faceLandmarks[i4].y) /
-        4;
-      rx =
-        (faceLandmarks[j1].x +
-          faceLandmarks[j2].x +
-          faceLandmarks[j3].x +
-          faceLandmarks[j4].x) /
-        4;
-      ry =
-        (faceLandmarks[j1].y +
-          faceLandmarks[j2].y +
-          faceLandmarks[j3].y +
-          faceLandmarks[j4].y) /
-        4;
+        const [i1, i2, i3, i4] = eyeBallLeft;
+        const [j1, j2, j3, j4] = eyeBallRight;
+        lx =
+          (faceLandmarks[i1].x +
+            faceLandmarks[i2].x +
+            faceLandmarks[i3].x +
+            faceLandmarks[i4].x) /
+          4;
+        ly =
+          (faceLandmarks[i1].y +
+            faceLandmarks[i2].y +
+            faceLandmarks[i3].y +
+            faceLandmarks[i4].y) /
+          4;
+        rx =
+          (faceLandmarks[j1].x +
+            faceLandmarks[j2].x +
+            faceLandmarks[j3].x +
+            faceLandmarks[j4].x) /
+          4;
+        ry =
+          (faceLandmarks[j1].y +
+            faceLandmarks[j2].y +
+            faceLandmarks[j3].y +
+            faceLandmarks[j4].y) /
+          4;
 
-      const faceOvel = getFaceOvalIndex();
-      for (let i = 0; i < faceOvel.length; i++) {
-        const index = faceOvel[i];
-        const landmark = faceLandmarks[index];
-        if (minx > landmark.x) minx = landmark.x;
-        if (maxx < landmark.x) maxx = landmark.x;
-        if (miny > landmark.y) miny = landmark.y;
-        if (maxy < landmark.y) maxy = landmark.y;
+        const faceOvel = getFaceOvalIndex();
+        for (let i = 0; i < faceOvel.length; i++) {
+          const index = faceOvel[i];
+          const landmark = faceLandmarks[index];
+          if (minx > landmark.x) minx = landmark.x;
+          if (maxx < landmark.x) maxx = landmark.x;
+          if (miny > landmark.y) miny = landmark.y;
+          if (maxy < landmark.y) maxy = landmark.y;
+        }
+        position.needsUpdate = true;
       }
-      position.needsUpdate = true;
     }
 
-    globalConfig.eyeBall.set(lx, ly, rx, ry);
-    globalConfig.faceAera.set(minx, miny, maxx, maxy);
+    if (!globalConfig.hasFaceInfo) {
+      // globalConfig.hasFaceInfo = true;
+      globalConfig.eyeBall.set(lx, ly, rx, ry);
+      globalConfig.faceAera.set(minx, miny, maxx, maxy);
+    }
     globalConfig.faceDepthMax = max;
     globalConfig.faceDepthMin = min;
     faceGeometry2.attributes.position.needsUpdate = true;

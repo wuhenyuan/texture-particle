@@ -155,7 +155,7 @@ void main() {
   vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
 	// particle size
-  float psize = 2.0;
+  float psize = .5;
 	// psize *= max(grey, 0.2);
   psize *= uSize;
 

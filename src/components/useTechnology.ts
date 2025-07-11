@@ -411,6 +411,8 @@ export const useTechnology = (scene, renderer, camera) => {
   //   console.log("render ditital");
   // };
   const digitalMesh = new Mesh(getFSGeometry(), digitalMaterial);
+  const scale = 5;
+  digitalMesh.scale.set(scale, scale, 1);
   globalConfig.digitalMesh = digitalMesh;
   let isInitMask = false;
   const rainMaskMaterial = new ShaderMaterial({
@@ -521,9 +523,13 @@ export const useTechnology = (scene, renderer, camera) => {
 
     // if (!isInitMask) {
     renderer.setRenderTarget(maskRainRt);
-    renderer.clear();
+    // renderer.clear();
+    // debugger;
+    const visibvle = digitalMesh.visible;
+    digitalMesh.visible = true;
     digitalMesh.material = rainMaskMaterial;
     renderer.render(digitalMesh, camera);
+    digitalMesh.visible = visibvle;
     digitalMesh.material = digitalMaterial;
     // }
   }

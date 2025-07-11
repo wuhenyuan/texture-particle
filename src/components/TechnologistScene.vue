@@ -55,10 +55,7 @@ import { useTechnology } from "./useTechnology";
 import ProbParticle from "../webgl/probParticle";
 import useMediaPipe from "./useMediaPipe";
 import { Points } from "three";
-import { AmbientLight } from "three";
-import { PointLight } from "three";
-import { LineBasicMaterial } from "three";
-import { LineSegments } from "three";
+import Particles from "../webgl/particles";
 import { getLineIndex, getFaceIndex, getMouseIndex } from "./partData";
 import pointsPng from "../assets/point.png";
 
@@ -84,6 +81,7 @@ let composer, bloomComposer;
 let startDetecte, detectPicture, updateLandMark;
 let landMarksPosition;
 let image;
+let particle;
 const NUM_KEYPOINTS = 478;
 const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
 const faceVertices = vertices;
@@ -183,6 +181,7 @@ const initThree = (isLocal) => {
       startFaceDetect();
     }
     updateTexture(videoTexture, video);
+    particle.updateTexture();
     //   // 使用概率分布图作为采样图
   });
 
@@ -207,7 +206,6 @@ const initThree = (isLocal) => {
     requestAnimationFrame(animate);
     orbitControls.update();
 
-    renderer.clear();
     const delta = clock.getDelta();
     if (globalConfig.isFaceReady) {
       // faceLine.visible = true;
@@ -227,6 +225,11 @@ const initThree = (isLocal) => {
     }
 
     if (globalConfig.isFaceReady) {
+      particle.visible = true;
+      digitalMesh.visible = false;
+    }
+    particle.update(delta);
+    if (particle.isDead) {
       digitalMesh.visible = true;
     }
 
@@ -236,8 +239,6 @@ const initThree = (isLocal) => {
     // renderer.render(scene, camera);
     composer.render();
   };
-
-  animate();
 
   scene = scene;
   camera = camera;
@@ -258,7 +259,15 @@ const initThree = (isLocal) => {
 
   const { renderTexture, maskTexture, digitalMesh } = getRenderResultTexture();
   // createDigitalHumanWrapper(renderTexture);
+  particle = new Particles(scene, digitalMesh.material.uniforms.tDiffuse.value);
+  // scene.add(particle);
+  particle.visible = true;
+  // particle.scale.set(0.493, 0.493, 1);
+  const scale = 0.6;
+  particle.scale.set(scale, scale, 1);
 
+  // globalConfig.particle = particle;
+  window.particle = particle;
   scene.add(digitalMesh);
   rain.setMask(maskTexture);
   if (!globalConfig.isFaceReady) {
@@ -270,6 +279,7 @@ const initThree = (isLocal) => {
 
   const isWebGL2 = renderer.capabilities.isWebGL2;
   console.log("WebGL2?", isWebGL2);
+  animate();
 };
 
 const createBackground = () => {
@@ -341,8 +351,8 @@ const createFaceGeometry = () => {
   );
   // scene.add(points);
   // scene.add(points2);
-  points.scale.set(570 * 2, 792 * 2, 1000);
-  points2.scale.set(570, 792, 1000);
+  // points.scale.set(570 * 2, 792 * 2, 1000);
+  // points2.scale.set(570, 792, 1000);
   globalConfig.faceGeometry = faceGeometry;
 };
 function startFaceDetect() {
