@@ -15,6 +15,7 @@ import {
   RGBAFormat,
   NearestFilter,
   ShaderMaterial,
+  Vector4,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
 import particleFrag from "./depthShader/particles.frag";
@@ -47,11 +48,12 @@ export default class Particles extends Object3D {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
       uDepth: { value: 2.0 },
-      uSize: { value: 0.75 },
+      uSize: { value: 0.5 },
       uTextureSize: { value: this.resolution },
       uTexture: { value: this.texture },
       uPTexture: { value: this.uPTexture },
       uProgress: { value: this.progress },
+      eyeBall: { value: this.globalConfig.eyeBall },
     };
   }
 
@@ -240,6 +242,7 @@ export default class Particles extends Object3D {
   update(t) {
     if (this.visible === false) return;
     if (!this.material) return;
+
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {

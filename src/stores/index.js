@@ -10,7 +10,7 @@ export const useGlobalConfig = defineStore("app", {
     isUseAsr: false,
     faceDepthMin: 0,
     faceDepthMax: 0,
-    maxWidth: 100,
+    maxWidth: 200,
     widthScale: 1,
     // 是否使用人脸识别
     useFaceDetection: true,

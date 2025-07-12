@@ -5,6 +5,36 @@ float random2D(vec2 value) {
   return fract(sin(dot(value.xy, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
+// Simplex 2D noise
+//
+vec3 permute(vec3 x) {
+  return mod(((x * 34.0) + 1.0) * x, 289.0);
+}
+
+float snoise(vec2 v) {
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+  vec2 i = floor(v + dot(v, C.yy));
+  vec2 x0 = v - i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+  vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+  m = m * m;
+  m = m * m;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
+  vec3 g;
+  g.x = a0.x * x0.x + h.x * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
 //	Simplex 3D Noise
 //	by Ian McEwan, Ashima Arts
 //
@@ -13,6 +43,10 @@ vec4 permute(vec4 x) {
 }
 vec4 taylorInvSqrt(vec4 r) {
   return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+float random(float n) {
+  return fract(sin(n) * 43758.5453123);
 }
 
 float simplexNoise3d(vec3 v) {
@@ -103,12 +137,29 @@ uniform float uSize;
 uniform vec2 uTextureSize;
 uniform sampler2D uTexture;
 uniform float uProgress;
+uniform vec4 eyeBall;
 // uniform sampler2D uTouch;
 
 varying vec2 vPUv;
 varying vec2 vUv;
 
 // noise
+float drawEye(vec2 eyePos, vec2 uv) {
+
+  vec2 aspect = vec2(uTextureSize.x / uTextureSize.y, uTextureSize.y / uTextureSize.x * 1.5); // 水平方向可能被压缩或拉伸
+    // vec2 aspect = vec2(iResolution.x / iResolution.y, 1.0); // 水平方向可能被压缩或拉伸
+
+  vec2 uvNorm = uv * aspect;
+  vec2 eyePosNorm = eyePos * aspect;
+
+  float dist = distance(eyePosNorm, uvNorm);
+    // float dist = distance(eyePos, uv);
+  // return pow(smoothstep(0.02, 0.00, dist), 2.);
+  return step(0.02, dist);
+}
+float drawEye2(vec2 uv) {
+  return drawEye(eyeBall.xy, uv) * drawEye(eyeBall.zw, uv);
+}
 
 void main() {
   vUv = uv;
@@ -123,7 +174,13 @@ void main() {
 
 	// displacement
   vec3 displaced = offset;
-  displaced.z = 0.1;
+
+  float eyeMask = drawEye2(puv);
+  vec2 floatVec2 = vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * eyeMask;
+  displaced.xy += floatVec2;
+  float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1))) * eyeMask;
+  // displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
+
 	// center
   displaced.xy -= uTextureSize * 0.5;
 
@@ -149,9 +206,10 @@ void main() {
 
   vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
-  float scale1 = sin(uTime + rand(float(gl_InstanceID)) * 351354.0);
+  // float scale1 = sin(uTime + rand(float(gl_InstanceID)) * 351354.0);
+  float scale1 = snoise(vec2(uTime, pindex) * 0.5) * eyeMask;
 	// particle size
-  float psize = uSize + scale1 * uSize * mix(2., 0.1, uProgress);
+  float psize = uSize + scale1 * uSize * mix(2., 0.2, uProgress);
 
 	// particle size
   // float psize = .5;
