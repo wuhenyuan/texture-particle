@@ -26,6 +26,7 @@ import {
   TextureUtils,
   LinearFilter,
   Color,
+  Texture,
   FloatType,
   TextureLoader,
   DoubleSide,
@@ -143,9 +144,14 @@ export const useTechnology = (scene, renderer, camera) => {
     return fsGeometry;
   };
 
-  let globalDepthTexture = textureLoader.load(
-    globalConfig.globalDepthTextureUrl
-  );
+  let globalDepthTexture =
+    !globalConfig.isLocal && globalConfig.depthPictureBitmap
+      ? new Texture(globalConfig.depthPictureBitmap)
+      : textureLoader.load(
+          globalConfig.isLocal
+            ? globalConfig.globalDepthLocal
+            : globalConfig.globalDepthTextureUrl
+        );
 
   let colorTexture = textureLoader.load("src/assets/jialuo2.png");
   let bgTexture = textureLoader.load("src/assets/bg.png");
@@ -154,7 +160,9 @@ export const useTechnology = (scene, renderer, camera) => {
   let globalDepths = [];
   const initDepth = async () => {
     const { width, height, arr } = await getDepthArray(
-      globalConfig.globalDepthTextureUrl
+      globalConfig.isLocal
+        ? globalConfig.globalDepthLocal
+        : globalConfig.globalDepthTextureUrl
     );
     globalDepthTextureMax = width;
     globalDepthTextureMin = height;
@@ -331,6 +339,7 @@ export const useTechnology = (scene, renderer, camera) => {
       bgMap: { value: null },
       iResolution: { value: resolution },
       edgeColor: { value: new Color(0.0, 0.0, 0.0) },
+      eyeColor: { value: new Color(0.0, 0.0, 0.0) },
       lod: { value: 1 },
       depthScale: { value: 1 },
     },
@@ -344,7 +353,6 @@ export const useTechnology = (scene, renderer, camera) => {
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
-    samples: 1,
   });
 
   const eyeBall = new Vector4();
@@ -361,6 +369,7 @@ export const useTechnology = (scene, renderer, camera) => {
       bgMap: { value: null },
       iResolution: { value: resolution },
       edgeColor: { value: new Color(0.0, 0.0, 0.0) },
+      eyeColor: { value: new Color(0.0, 0.0, 0.0) },
       lod: { value: 1 },
       depthScale: { value: 1 },
       bias: { value: 1 },
@@ -379,7 +388,6 @@ export const useTechnology = (scene, renderer, camera) => {
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
-    samples: 1,
   });
 
   const digitalVertex = `// 顶点着色器
@@ -411,8 +419,8 @@ export const useTechnology = (scene, renderer, camera) => {
   //   console.log("render ditital");
   // };
   const digitalMesh = new Mesh(getFSGeometry(), digitalMaterial);
-  const scale = 5;
-  digitalMesh.scale.set(scale, scale, 1);
+  // const scale = 5;
+  // digitalMesh.scale.set(scale, scale, 1);
   globalConfig.digitalMesh = digitalMesh;
   let isInitMask = false;
   const rainMaskMaterial = new ShaderMaterial({
@@ -465,6 +473,7 @@ export const useTechnology = (scene, renderer, camera) => {
     // console.log(mainMaterial.uniforms.edgeColor.value);
     mainMaterial.uniforms.lod.value = config.lod;
     mainMaterial.uniforms.depthScale.value = config.depthScale;
+    mainMaterial.uniforms.eyeColor.value.set(config.eyeColor);
 
     // mainMaterial2.uniforms.blurMap.value = depthMap;
     mainMaterial2.uniforms.maskMap.value = maskRt.texture;
@@ -481,6 +490,7 @@ export const useTechnology = (scene, renderer, camera) => {
     mainMaterial2.uniforms.power.value = config.power;
     mainMaterial2.uniforms.normalThreshold.value = config.normalThreshold;
 
+    mainMaterial2.uniforms.eyeColor.value.set(config.eyeColor);
     // eyeBall.set(globalConfig.eyeBall)
     // probMaterial
   }
@@ -523,7 +533,7 @@ export const useTechnology = (scene, renderer, camera) => {
 
     // if (!isInitMask) {
     renderer.setRenderTarget(maskRainRt);
-    // renderer.clear();
+    renderer.clear();
     // debugger;
     const visibvle = digitalMesh.visible;
     digitalMesh.visible = true;
@@ -549,15 +559,16 @@ export const useTechnology = (scene, renderer, camera) => {
   };
 
   const show = () => {
-    // showHandleResult(maskRt.texture, -1);
+    showHandleResult(maskRt.texture, -1);
     // showHandleResult(digitTexture, 0);
     // showHandleResult(lowProbabilityRt.texture, 0);
     // showHandleResult(edgeDetectionRt.texture, 0);
     // showHandleResult(expandRt.texture, 1);
     // showHandleResult(baseNormaRt.texture, -1);
-    showHandleResult(maskRt.texture, -1);
-    showHandleResult(digitTexture, 0);
+    // showHandleResult(maskRt.texture, -1);
+    // showHandleResult(digitTexture, 0);
     showHandleResult(maskRainRt.texture, 1);
+    // showHandleResult(rainmask)
     // showHandleResult(globalDepthTexture, 0);
     // showHandleResult(colorTexture, 1);
     // showHandleResult(calNormalRt.texture, 0);
@@ -590,10 +601,18 @@ export const useTechnology = (scene, renderer, camera) => {
     console.log(width, height);
 
     ratio = width / height;
+
     const maxWidth = globalConfig.maxWidth;
+
+    // const widhtScale = maxWidth / width;
+    globalConfig.widthScale = 1;
+    // globalConfig.widthScale = widhtScale;
     width = Math.min(maxWidth, width);
     height = Math.floor(width / ratio);
 
+    // console.log(widhtScale);
+    // window.setScale = (a) => digitalMesh.scale.set(a, a, a);
+    // setScale(widhtScale);
     resolution.set(width, height);
     maskRt.setSize(width, height);
     calNormalRt.setSize(width, height);
@@ -604,7 +623,9 @@ export const useTechnology = (scene, renderer, camera) => {
     console.log("-----------mainMateri");
     console.log(mainRt.width, mainRt.height);
     const planeGeometry = new PlaneGeometry(width, height);
+    console.log(planeGeometry);
     digitalMesh.geometry = planeGeometry;
+    window.digitalMesh = digitalMesh;
     if (globalConfig.debugTexture) {
       show();
     }

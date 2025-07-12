@@ -125,6 +125,7 @@ export default {
       uploadToHuman(this.inputValue);
     },
     async handleUpload() {
+      const globalconfig = useGlobalConfig();
       const file = this.$refs.fileInput.files[0];
       if (!file) {
         message.value = "请先选择文件";
@@ -140,13 +141,23 @@ export default {
       debugger;
       // return;
       try {
-        const response = await fetch("http://10.7.3.50:8010/create_human", {
+        const response = await fetch("http://10.7.11.111:8010/create_human", {
           method: "POST",
           body: formData,
         });
+        // .then((res) => res.blob())
+        // .then((blob) => createImageBitmap(blob))
+        // .then((bitmap) => {
+        //   globalconfig.depthPictureBitmap = bitmap;
+        // });
+        const blob = await response.blob();
+        const imageBitmap = await createImageBitmap(blob);
+        globalconfig.depthPictureBitmap = imageBitmap;
 
         if (!response.ok) {
           throw new Error(`HTTP错误: ${response.status}`);
+        } else {
+          console.log("reponse ok");
         }
 
         // if (this.isVideo) {
@@ -158,8 +169,9 @@ export default {
         //   this.start();
         // }
 
-        const result = await response.json();
-        this.message = "上传成功: " + JSON.stringify(result);
+        // const result = await response.json();
+        // this.message = "上传成功: " + JSON.stringify(result);
+        // console.log(this.message);
       } catch (err) {
         this.message = "上传失败: " + err.message;
       } finally {

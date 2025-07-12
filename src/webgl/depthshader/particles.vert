@@ -93,13 +93,8 @@ float noise(float p) {
 precision highp float;
 
 attribute float pindex;
-attribute vec3 position;
 attribute vec3 offset;
-attribute vec2 uv;
 attribute float angle;
-
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
 
 uniform float uTime;
 uniform float uRandom;
@@ -154,10 +149,14 @@ void main() {
 
   vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
+  float scale1 = sin(uTime + rand(float(gl_InstanceID)) * 351354.0);
 	// particle size
-  float psize = .5;
+  float psize = uSize + scale1 * uSize * mix(2., 0.1, uProgress);
+
+	// particle size
+  // float psize = .5;
 	// psize *= max(grey, 0.2);
-  psize *= uSize;
+  // psize = 0.5 * uSize;
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

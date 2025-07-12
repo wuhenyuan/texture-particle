@@ -407,8 +407,9 @@ export default function useMediaPipe() {
 
     if (!globalConfig.hasFaceInfo) {
       // globalConfig.hasFaceInfo = true;
-      globalConfig.eyeBall.set(lx, ly, rx, ry);
-      globalConfig.faceAera.set(minx, miny, maxx, maxy);
+      globalConfig.eyeBall.set(lx, 1.0 - ly, rx, 1.0 - ry);
+      // globalConfig.faceAera.set(minx, miny, maxx, maxy);
+      globalConfig.faceAera.set(minx, 1 - maxy, maxx, 1 - miny);
     }
     globalConfig.faceDepthMax = max;
     globalConfig.faceDepthMin = min;

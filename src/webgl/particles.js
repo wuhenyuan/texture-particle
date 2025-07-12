@@ -14,10 +14,12 @@ import {
   RGBFormat,
   RGBAFormat,
   NearestFilter,
+  ShaderMaterial,
 } from "three";
 // import { particleFrag, particleVert } from "./shader";
 import particleFrag from "./depthShader/particles.frag";
 import particleVert from "./depthShader/particles.vert";
+import { useGlobalConfig } from "../stores";
 
 // import TouchTexture from "./TouchTexture";
 
@@ -40,11 +42,12 @@ export default class Particles extends Object3D {
     // todo init width, height
     this.texture = renderTexture;
     this.resolution = new Vector2(this.width, this.height);
+    this.globalConfig = useGlobalConfig();
     this.uniforms = {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
       uDepth: { value: 2.0 },
-      uSize: { value: 0.5 },
+      uSize: { value: 0.75 },
       uTextureSize: { value: this.resolution },
       uTexture: { value: this.texture },
       uPTexture: { value: this.uPTexture },
@@ -77,8 +80,7 @@ export default class Particles extends Object3D {
     const texture = this.texture;
     this.width = texture.image.width;
     this.height = texture.image.height;
-    console.log(this.width, this.height);
-    const maxWidth = 100;
+    const maxWidth = this.globalConfig.maxWidth;
     if (this.width > maxWidth && this.width < this.height) {
       const ratio = this.width / this.height;
       this.width = maxWidth;
@@ -114,7 +116,7 @@ export default class Particles extends Object3D {
 
     let numVisible = this.numPoints;
 
-    const material = new RawShaderMaterial({
+    const material = new ShaderMaterial({
       name: "pointMaterial",
       uniforms: this.uniforms,
       // vertexShader: glslify(require("../../../shaders/particle.vert")),

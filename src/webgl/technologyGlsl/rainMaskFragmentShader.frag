@@ -8,11 +8,14 @@ void main() {
     float validValue = 1.0;
 
     if(vUv.x < faceAera.x || vUv.x > faceAera.z || vUv.y < faceAera.y) {
-        validValue = 0.0;
+        discard;
     }
 
+    // if(mask < 0.2)
+    //     discard;
+
     validValue = mask * validValue;
-    // gl_FragColor = vec4(vec3(), 1.0);
-    gl_FragColor = vec4(mask);
+    gl_FragColor = vec4(vec3(validValue), 1.0);
+    // gl_FragColor = vec4(mask);
     // gl_FragColor = vec4(0.5);
 }

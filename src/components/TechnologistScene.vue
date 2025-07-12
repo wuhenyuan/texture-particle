@@ -226,7 +226,7 @@ const initThree = (isLocal) => {
 
     if (globalConfig.isFaceReady) {
       particle.visible = true;
-      digitalMesh.visible = false;
+      digitalMesh.visible = globalConfig.showDigital;
     }
     particle.update(delta);
     if (particle.isDead) {
@@ -261,9 +261,10 @@ const initThree = (isLocal) => {
   // createDigitalHumanWrapper(renderTexture);
   particle = new Particles(scene, digitalMesh.material.uniforms.tDiffuse.value);
   // scene.add(particle);
-  particle.visible = true;
+  // particle.visible = true;
+  particle.visible = false;
   // particle.scale.set(0.493, 0.493, 1);
-  const scale = 0.6;
+  const scale = 1;
   particle.scale.set(scale, scale, 1);
 
   // globalConfig.particle = particle;
@@ -273,8 +274,8 @@ const initThree = (isLocal) => {
   if (!globalConfig.isFaceReady) {
     digitalMesh.visible = false;
   }
-  window.setScale = (a) => digitalMesh.scale.set(a, a, a);
-  setScale(0.1);
+
+  // setScale(0.1);
   // if (createBackground) createBackground();
 
   const isWebGL2 = renderer.capabilities.isWebGL2;

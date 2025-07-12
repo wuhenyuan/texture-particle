@@ -8,6 +8,7 @@ uniform float iTime;
 uniform vec2 iResolution;
 uniform vec3 edgeColor;
 uniform vec3 outEdgeColor;
+uniform vec3 eyeColor;
 uniform float depthScale;
 uniform float lod;
 
@@ -97,7 +98,7 @@ void main() {
     vec3 frenelColor = frenel * edgeColor * 4.0;
     float maskY = pow(uv.y, 0.8);
 
-    vec3 finalColor = drawEye2(uv) * edgeColor + edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
+    vec3 finalColor = drawEye2(uv) * eyeColor + edgeColor * light * 0.2 + frenelColor * maskY + outEdge + bgColor * (1.0 - mask2);
     // gl_FragColor = vec4(finalColor, 1.0);
     gl_FragColor = vec4(finalColor, mask);
 }
