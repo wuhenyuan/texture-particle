@@ -74,7 +74,7 @@ float drawEye2(vec2 uv) {
 
 float getFresnel(vec3 normal, vec3 viewDir, float bias, float scale, float power) {
     float fresnel = bias + scale * pow(1.0 - dot(normalize(normal), normalize(viewDir)), power);
-    return clamp(fresnel, 0.0, 1.0);
+    return 1.0 - clamp(fresnel, 0.0, 1.0);
 }
 
 void main() {

@@ -214,7 +214,7 @@ void main() {
 	// particle size
   // float psize = .5;
 	// psize *= max(grey, 0.2);
-  // psize = 0.5 * uSize;
+  psize = 1.5 * uSize;
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

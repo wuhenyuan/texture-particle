@@ -304,7 +304,7 @@ let rain;
 const creaRain = () => {
   const number = globalConfig.particleNumber;
   rain = new DigitalRain(number);
-  rain.mesh.position.z = camera.position.z - 50;
+  rain.mesh.position.z = camera.position.z - 70;
   scene.add(rain.mesh);
   rain.setResolution(width, height);
 };

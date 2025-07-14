@@ -23,7 +23,7 @@ export const useGlobalConfig = defineStore("app", {
     helperPointVisible: false,
     globalDepthTextureUrl: "/src/assets/deep2.png",
     globalDepthLocal: "/src/assets/jialuoDepth2.png",
-    cameraPosition: [0, 0, 177],
+    cameraPosition: [0, 0, 230],
     // cameraPosition: [0, 0, 1063],
 
     faceGeometry: null,
@@ -51,7 +51,7 @@ export const useGlobalConfig = defineStore("app", {
       normalThreshold: 0.0,
       rainColor: 0x5959cf,
       eyeColor: 0xcbff,
-      strength: 0,
+      strength: 3.34,
       // strength: 3.34,
       radius: 0.99,
       threshold: 0.01,

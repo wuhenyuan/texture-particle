@@ -91,7 +91,7 @@ void main() {
     vec3 normal = computeNormalFromDepth(depthMap, uv);
 
     vec3 outEdge = blur * (1.0 - mask2) * outEdgeColor * 2.0;
-    float frenel = (1.0 - dot(normal, normalize(vec3(0.0, 0.0, 1.0)))) * mask2;
+    float frenel = dot(normal, normalize(vec3(0.0, 0.0, 1.0))) * mask2;
     float light = dot(normal, normalize(vec3(4.0, 0.0, 1.0)));
 
     frenel = smoothstep(0.1, 1.5, frenel);
