@@ -73,8 +73,8 @@ float drawEye2(vec2 uv) {
 }
 
 float getFresnel(vec3 normal, vec3 viewDir, float bias, float scale, float power) {
-    float fresnel = bias + scale * pow(1.0 - dot(normalize(normal), normalize(viewDir)), power);
-    return 1.0 - clamp(fresnel, 0.0, 1.0);
+    float fresnel = bias + scale * pow(dot(normalize(normal), normalize(viewDir)), power);
+    return clamp(fresnel, 0.0, 1.0);
 }
 
 void main() {
@@ -102,8 +102,9 @@ void main() {
     // float frenel = smoothstep(0.3, 0.9, fresnelRaw); // 控制从哪个角度开始变亮
     // frenel = pow(frenel, 0.8); // 再强化边缘
     // frenel *= mask2;
-    float frenel = getFresnel(normal, vec3(0., 0., 1.), bias, scale, power);
-    float light = dot(normal, normalize(vec3(4.0, 0.0, 1.0))) * mask2;
+    float frenel = getFresnel(normal, vec3(4.0, -4., 4.), bias, scale, power);
+    // float light = dot(normal, normalize(vec3(4.0, 0.0, 1.0))) * 0.;
+    float light = dot(normal, normalize(vec3(.0, 0.0, 1.0))) * 0.5;
 
   //  frenel = pow(frenel, 0.2);
     //frenel = smoothstep(0.1, 1.5, frenel);

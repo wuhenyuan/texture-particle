@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>黑白织物粒子纹理</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      canvas {
+        background-color: #1a1a1a;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="textureCanvas"></canvas>
+
+    <script>
+      const canvas = document.getElementById("textureCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const gridSize = 20; // 每格尺寸（正方形）
+      const numCols = 150;
+      const numRows = 200;
+
+      function resizeCanvas() {
+        canvas.width = gridSize * numCols;
+        canvas.height = gridSize * numRows;
+        drawTexture();
+      }
+
+      function drawTexture() {
+        ctx.fillStyle = "#1A1A1A";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const particleColor = "#E0E0E0";
+
+        for (let row = 0; row < numRows; row++) {
+          for (let col = 0; col < numCols; col++) {
+            ctx.save();
+
+            const x = col * gridSize;
+            const y = row * gridSize;
+
+            ctx.translate(x + gridSize / 2, y + gridSize / 2);
+
+            const isHorizontal = Math.random() > 0.5;
+            const randomFactor = 0.8 + Math.random() * 0.4;
+
+            let w, h;
+
+            if (isHorizontal) {
+              w = gridSize * 0.9 * randomFactor;
+              h = gridSize * 0.5 * (0.8 + Math.random() * 0.3);
+            } else {
+              w = gridSize * 0.5 * (0.8 + Math.random() * 0.3);
+              h = gridSize * 0.9 * randomFactor;
+            }
+
+            w = Math.max(2, w);
+            h = Math.max(2, h);
+
+            const angle = (Math.random() - 0.5) * (Math.PI / 12);
+            const offsetX = (Math.random() - 0.5) * gridSize * 0.1;
+            const offsetY = (Math.random() - 0.5) * gridSize * 0.1;
+
+            ctx.rotate(angle);
+            ctx.fillStyle = particleColor;
+            ctx.fillRect(-w / 2 + offsetX, -h / 2 + offsetY, w, h);
+
+            ctx.restore();
+          }
+        }
+      }
+
+      // 页面加载完成后立即绘制
+      window.onload = resizeCanvas;
+    </script>
+  </body>
+</html>

@@ -50,10 +50,10 @@ export default class Particles extends Object3D {
       uDepth: { value: 2.0 },
       uSize: { value: 0.5 },
       uTextureSize: { value: this.resolution },
-      decorationTextuer: { value: null },
       uTexture: { value: this.texture },
       uPTexture: { value: this.uPTexture },
       uProgress: { value: this.progress },
+
       eyeBall: { value: this.globalConfig.eyeBall },
     };
   }
@@ -240,21 +240,13 @@ export default class Particles extends Object3D {
     return false;
   }
 
-  updateUniforms() {
-    const config = this.globalConfig.config;
-    debugger;
-    this.material.uniforms.uSize.value = config.size;
-    this.material.uniforms.decorationTextuer.value =
-      this.globalConfig.maps.decorationMap;
-  }
   update(t) {
     if (this.visible === false) return;
     if (!this.material) return;
-    this.updateUniforms();
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
-      this.progress = this.time;
+      this.progress = this.time / 6;
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
     } else {

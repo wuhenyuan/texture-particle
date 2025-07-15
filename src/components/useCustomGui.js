@@ -6,10 +6,10 @@ export default function useGui(config) {
   isInit = true;
   const gui = new dat.GUI();
 
-  gui.addColor(config, "edgeColor").name("edgeColor");
+  // gui.addColor(config, "edgeColor").name("edgeColor");
 
-  gui.addColor(config, "rainColor").name("粒子颜色");
-  gui.addColor(config, "eyeColor").name("眼睛颜色");
+  // gui.addColor(config, "rainColor").name("粒子颜色");
+  // gui.addColor(config, "eyeColor").name("眼睛颜色");
   function addGui(key, name, min, max, step) {
     gui
       .add(config, key, min ?? -1, max ?? 10, step ?? 0.01)

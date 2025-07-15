@@ -62,7 +62,8 @@
 
 <script>
 // import ThreeScene from "./components/ParticleScene.vue";
-import ThreeScene from "./components/TechnologistScene.vue";
+// import ThreeScene from "./components/TechnologistScene.vue";
+import ThreeScene from "./components/PictureParticleScene.vue";
 import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
 import { DebugEnvironment } from "three/examples/jsm/Addons.js";
@@ -141,7 +142,7 @@ export default {
       debugger;
       // return;
       try {
-        const response = await fetch("http://10.7.3.50:8010/create_human", {
+        const response = await fetch("http://10.7.11.111:8010/create_human", {
           // const response = await fetch("http://10.7.11.111:8010/create_human", {
           method: "POST",
           body: formData,
@@ -220,6 +221,6 @@ div {
   height: 200px;
 }
 #video {
-  /* display: none; */
+  display: none;
 }
 </style>

@@ -137,29 +137,10 @@ uniform float uSize;
 uniform vec2 uTextureSize;
 uniform sampler2D uTexture;
 uniform float uProgress;
-uniform vec4 eyeBall;
 // uniform sampler2D uTouch;
 
 varying vec2 vPUv;
 varying vec2 vUv;
-
-// noise
-float drawEye(vec2 eyePos, vec2 uv) {
-
-  vec2 aspect = vec2(uTextureSize.x / uTextureSize.y, uTextureSize.y / uTextureSize.x * 1.5); // 水平方向可能被压缩或拉伸
-    // vec2 aspect = vec2(iResolution.x / iResolution.y, 1.0); // 水平方向可能被压缩或拉伸
-
-  vec2 uvNorm = uv * aspect;
-  vec2 eyePosNorm = eyePos * aspect;
-
-  float dist = distance(eyePosNorm, uvNorm);
-    // float dist = distance(eyePos, uv);
-  // return pow(smoothstep(0.02, 0.00, dist), 2.);
-  return step(0.02, dist);
-}
-float drawEye2(vec2 uv) {
-  return drawEye(eyeBall.xy, uv) * drawEye(eyeBall.zw, uv);
-}
 
 void main() {
   vUv = uv;
@@ -175,14 +156,17 @@ void main() {
 	// displacement
   vec3 displaced = offset;
 
-  float eyeMask = drawEye2(puv);
-  vec2 floatVec2 = vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * eyeMask;
-  displaced.xy += floatVec2;
-  float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1))) * eyeMask;
+  // float eyeMask = drawEye2(puv);
+  // vec2 floatVec2 = vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * eyeMask;
+  // displaced.xy += floatVec2;
+  // float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1))) * eyeMask;
   // displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
 
 	// center
   displaced.xy -= uTextureSize * 0.5;
+
+  float luminal = texture2D(uTexture, puv).r;
+  float luminalScale = clamp(luminal, 0.2, 1.0);
 
   // progress noise
   float multiplier = uTextureSize.x * 2.0; // distance factor
@@ -207,14 +191,14 @@ void main() {
   vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
   // float scale1 = sin(uTime + rand(float(gl_InstanceID)) * 351354.0);
-  float scale1 = snoise(vec2(uTime, pindex) * 0.5) * eyeMask;
+  // float scale1 = snoise(vec2(uTime, pindex) * 0.5) * eyeMask;
 	// particle size
-  float psize = uSize + scale1 * uSize * mix(2., 0.2, uProgress);
+  // float psize = uSize + scale1 * uSize * mix(2., 0.2, uProgress);
 
 	// particle size
   // float psize = .5;
 	// psize *= max(grey, 0.2);
-  psize = 1.5 * uSize;
+  float psize = 1.5 * uSize * luminalScale;
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

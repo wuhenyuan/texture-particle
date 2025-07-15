@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     vue(),
     glsl({
-      include: "./src/webgl//**/*.(vert|frag|glsl)",
+      include: "./src/**/**/*.(vert|frag|glsl)",
       exclude: "node_modules/**",
       // types: { library: "threejs" },
     }),
