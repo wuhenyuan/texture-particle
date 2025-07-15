@@ -25,11 +25,11 @@
 
     <script>
       const canvas = document.getElementById("textureCanvas");
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", {alpha: true});
 
       const gridSize = 20; // 每格尺寸（正方形）
       const numCols = 150;
-      const numRows = 200;
+      const numRows = 201;
 
       function resizeCanvas() {
         canvas.width = gridSize * numCols;
@@ -38,8 +38,8 @@
       }
 
       function drawTexture() {
-        ctx.fillStyle = "#1A1A1A";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(0, 0, 0, 0)";
 
         const particleColor = "#E0E0E0";
 

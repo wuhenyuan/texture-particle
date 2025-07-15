@@ -141,20 +141,27 @@ uniform float uProgress;
 
 varying vec2 vPUv;
 varying vec2 vUv;
+varying vec2 dTUv;
 
 void main() {
   vUv = uv;
 
 	// particle uv
   vec2 puv = offset.xy / uTextureSize;
+    vec2 tel = vec2(1.0 / uTextureSize.x, 1.0 / uTextureSize.y);
   vPUv = puv;
 
 	// pixel color
 	// vec4 colA = texture2D(uTexture, puv);
 	// float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
+  
+
 	// displacement
   vec3 displaced = offset;
+  
+  dTUv = (offset.xy + uv) / uTextureSize;
+
 
   // float eyeMask = drawEye2(puv);
   // vec2 floatVec2 = vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * eyeMask;
@@ -166,7 +173,11 @@ void main() {
   displaced.xy -= uTextureSize * 0.5;
 
   float luminal = texture2D(uTexture, puv).r;
-  float luminalScale = clamp(luminal, 0.2, 1.0);
+  if (luminal <= 0.01) {
+    gl_Position  = vec4(5.0, 5.0, 5.0, 1.0);
+    return;
+  }
+  float luminalScale = clamp(luminal, 0., 1.0);
 
   // progress noise
   float multiplier = uTextureSize.x * 2.0; // distance factor
@@ -198,7 +209,7 @@ void main() {
 	// particle size
   // float psize = .5;
 	// psize *= max(grey, 0.2);
-  float psize = 1.5 * uSize * luminalScale;
+  float psize = 1.5 * uSize * pow(luminalScale, 1.5) ;
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

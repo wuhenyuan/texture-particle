@@ -110,6 +110,9 @@ export const usePictureScene = (scene, renderer, camera) => {
   }
 
   addConfig("size", "size", 0.5, 5, 0.01);
+  addConfig("strength", "strength", 0, 10, 0.01);
+  addConfig("radius", "radius", 0, 1, 0.01);
+  addConfig("threshold", "threshold", 0, 1, 0.01);
   // addConfig("normalThreshold", "normalThreshold", 0, 1, 0.01);
 
   let width,

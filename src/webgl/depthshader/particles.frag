@@ -9,15 +9,16 @@ uniform vec2 uTextureSize;
 
 varying vec2 vPUv;
 varying vec2 vUv;
+varying vec2 dTUv;
 
 void main() {
     vec4 color = vec4(0.0);
     vec2 uv = vUv;
     vec2 puv = vPUv;
-    vec2 tel = vec2(1.0 / uTextureSize.x, 1.0 / uTextureSize.y);
+    // vec2 tel = vec2(1.0 / uTextureSize.x, 1.0 / uTextureSize.y);
 
     // vec2 dirUv = uv - 0.5;
-    vec2 dTUv = puv + uv * tel;
+    // vec2 dTUv = puv + uv * tel;
 
 	// pixel color
     vec4 colA = texture2D(uTexture, puv);
@@ -30,7 +31,7 @@ void main() {
 		// greyscale
         if(colA.a < 0.02)
             discard;
-        // gl_FragColor = vec4(vec3(colorB.rgb), 1.0);
-        gl_FragColor = vec4(1.0);
+        gl_FragColor = vec4(vec3(colorB.rgb), 1.0);
+        // gl_FragColor = vec4(1.0);
     }
 }
