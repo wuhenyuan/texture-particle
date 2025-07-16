@@ -25,7 +25,7 @@
 
     <script>
       const canvas = document.getElementById("textureCanvas");
-      const ctx = canvas.getContext("2d", {alpha: true});
+      const ctx = canvas.getContext("2d", { alpha: true });
 
       const gridSize = 20; // 每格尺寸（正方形）
       const numCols = 150;
@@ -57,12 +57,15 @@
 
             let w, h;
 
+            let widthScale = 0.9;
+            let heightScale = 0.4;
+
             if (isHorizontal) {
-              w = gridSize * 0.9 * randomFactor;
-              h = gridSize * 0.5 * (0.8 + Math.random() * 0.3);
+              w = gridSize * widthScale * randomFactor;
+              h = gridSize * heightScale * (0.8 + Math.random() * 0.3);
             } else {
-              w = gridSize * 0.5 * (0.8 + Math.random() * 0.3);
-              h = gridSize * 0.9 * randomFactor;
+              w = gridSize * heightScale * (0.8 + Math.random() * 0.3);
+              h = gridSize * widthScale * randomFactor;
             }
 
             w = Math.max(2, w);

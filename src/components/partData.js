@@ -4983,6 +4983,24 @@ export const FACE_LANDMARKS_LEFT_EYE = [
   { start: 380, end: 381 },
   { start: 381, end: 382 },
   { start: 382, end: 362 },
+  { start: 362, end: 362 },
+  { start: 398, end: 466 },
+  { start: 384, end: 387 },
+  { start: 385, end: 386 },
+  { start: 386, end: 385 },
+  { start: 387, end: 384 },
+  { start: 388, end: 398 },
+  { start: 466, end: 362 },
+];
+export const FACE_LANDMARKS_LEFT_EYE_BACKUP = [
+  { start: 263, end: 249 },
+  { start: 249, end: 390 },
+  { start: 390, end: 373 },
+  { start: 373, end: 374 },
+  { start: 374, end: 380 },
+  { start: 380, end: 381 },
+  { start: 381, end: 382 },
+  { start: 382, end: 362 },
   { start: 263, end: 466 },
   { start: 466, end: 388 },
   { start: 388, end: 387 },
@@ -5009,6 +5027,25 @@ export const FACE_LANDMARKS_LEFT_IRIS = [
   { start: 477, end: 474 },
 ];
 export const FACE_LANDMARKS_RIGHT_EYE = [
+  { start: 33, end: 246 },
+  { start: 246, end: 161 },
+  { start: 161, end: 160 },
+  { start: 160, end: 159 },
+  { start: 159, end: 158 },
+  { start: 158, end: 157 },
+  { start: 157, end: 173 },
+  { start: 173, end: 133 },
+  { start: 133, end: 155 },
+  { start: 155, end: 154 },
+  { start: 154, end: 153 },
+  { start: 153, end: 153 },
+  { start: 145, end: 145 },
+  { start: 144, end: 144 },
+  { start: 163, end: 163 },
+  { start: 7, end: 33 },
+];
+
+export const FACE_LANDMARKS_RIGHT_EYE_BADKUP = [
   { start: 33, end: 7 },
   { start: 7, end: 163 },
   { start: 163, end: 144 },
@@ -5044,7 +5081,7 @@ export const FACE_LANDMARKS_RIGHT_IRIS = [
 ];
 
 // 脸部轮廓备份
-export const FACE_LANDMARKS_FACE_OVAL_BACKUP = [
+export const FACE_LANDMARKS_FACE_OVAL = [
   { start: 10, end: 338 },
   { start: 338, end: 297 },
   { start: 297, end: 332 },
@@ -5083,7 +5120,7 @@ export const FACE_LANDMARKS_FACE_OVAL_BACKUP = [
   { start: 109, end: 10 },
 ];
 
-export const FACE_LANDMARKS_FACE_OVAL = [
+export const FACE_LANDMARKS_FACE_OVAL222 = [
   // { start: 162, end: 21 },
   // { start: 21, end: 54 },
   // { start: 54, end: 103 },

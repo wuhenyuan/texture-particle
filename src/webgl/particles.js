@@ -23,6 +23,7 @@ import particleVert from "./depthShader/particles.vert";
 import { useGlobalConfig } from "../stores";
 
 // import TouchTexture from "./TouchTexture";
+import getCrossTexture from "./../components/getCrossTexture";
 
 export default class Particles extends Object3D {
   constructor(scene, renderTexture, ratio) {
@@ -38,6 +39,7 @@ export default class Particles extends Object3D {
     this.sampleStepX = this.sampleStep;
     // this.sampleStepY = this.sampleStepX / ratio;
     this.sampleStepY = this.sampleStep;
+    this.isTextureInit = false;
     // this.webgl = webgl;
     // this.container = new Object3D();
     // todo init width, height
@@ -242,10 +244,15 @@ export default class Particles extends Object3D {
 
   updateUniforms() {
     const config = this.globalConfig.config;
-    debugger;
     this.material.uniforms.uSize.value = config.size;
-    this.material.uniforms.decorationTextuer.value =
-      this.globalConfig.maps.decorationMap;
+    // this.material.uniforms.decorationTextuer.value =
+    //   this.globalConfig.maps.decorationMap;
+    if (!this.isTextureInit) {
+      this.isTextureInit = true;
+      const texture = getCrossTexture(this.width, this.height);
+      this.material.uniforms.decorationTextuer.value = texture;
+      this.globalConfig.maps.decorationMap = texture;
+    }
   }
   update(t) {
     if (this.visible === false) return;

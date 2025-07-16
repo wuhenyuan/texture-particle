@@ -148,20 +148,17 @@ void main() {
 
 	// particle uv
   vec2 puv = offset.xy / uTextureSize;
-    vec2 tel = vec2(1.0 / uTextureSize.x, 1.0 / uTextureSize.y);
+  vec2 tel = vec2(1.0 / uTextureSize.x, 1.0 / uTextureSize.y);
   vPUv = puv;
 
 	// pixel color
 	// vec4 colA = texture2D(uTexture, puv);
 	// float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-  
-
 	// displacement
   vec3 displaced = offset;
-  
-  dTUv = (offset.xy + uv) / uTextureSize;
 
+  dTUv = (offset.xy + uv) / uTextureSize;
 
   // float eyeMask = drawEye2(puv);
   // vec2 floatVec2 = vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * eyeMask;
@@ -173,8 +170,8 @@ void main() {
   displaced.xy -= uTextureSize * 0.5;
 
   float luminal = texture2D(uTexture, puv).r;
-  if (luminal <= 0.01) {
-    gl_Position  = vec4(5.0, 5.0, 5.0, 1.0);
+  if(luminal <= 0.05) {
+    gl_Position = vec4(5.0, 5.0, 5.0, 1.0);
     return;
   }
   float luminalScale = clamp(luminal, 0., 1.0);
@@ -209,7 +206,7 @@ void main() {
 	// particle size
   // float psize = .5;
 	// psize *= max(grey, 0.2);
-  float psize = 1.5 * uSize * pow(luminalScale, 1.5) ;
+  float psize = 1.5 * uSize * pow(smoothstep(0.05, 1., luminalScale), 1.0) + 0.15;
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

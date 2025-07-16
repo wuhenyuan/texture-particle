@@ -40,6 +40,7 @@ import {
   PointsMaterial,
   BufferAttribute,
   LinearFilter,
+  LinearMipMapLinearFilter,
   RGBFormat,
   AdditiveBlending,
   Color,
@@ -155,9 +156,10 @@ const initThree = (isLocal) => {
     const texture = new VideoTexture(video);
     console.log(texture);
     // const texture = new VideoTexture(video);
-    texture.minFilter = NearestFilter;
-    texture.magFilter = NearestFilter;
+    texture.minFilter = LinearMipMapLinearFilter;
+    texture.magFilter = LinearFilter;
     texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
+    texture.generateMipmaps = true;
 
     videoTexture = texture;
     const base = 100;
@@ -219,7 +221,7 @@ const initThree = (isLocal) => {
     }
 
     if (globalConfig.isFaceReady) {
-      particle.visible = true;
+      if (globalConfig.particleVisible) particle.visible = true;
     }
     particle.update(delta);
     if (particle.isDead) {
@@ -282,8 +284,8 @@ const createBackground = () => {
   backgroundVideo.play(); // 触发播放
   // 创建 VideoTexture
   const videoTexture = new VideoTexture(backgroundVideo);
-  videoTexture.minFilter = LinearFilter;
-  videoTexture.magFilter = LinearFilter;
+  videoTexture.minFilter = NearestFilter;
+  videoTexture.magFilter = NearestFilter;
   videoTexture.format = RGBFormat;
   // 设置为场景背景
   scene.background = videoTexture;

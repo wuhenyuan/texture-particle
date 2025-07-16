@@ -30,6 +30,8 @@ import {
   FloatType,
   TextureLoader,
   DoubleSide,
+  RGBAFormat,
+  UnsignedByteType,
   Vector4,
 } from "three";
 import {
@@ -49,13 +51,16 @@ import mainFrag2 from "../webgl/technologyGlsl/main2.frag";
 import { LUTCubeLoader } from "postprocessing";
 import maskFrag from "../webgl/technologyGlsl/mask.frag";
 import depthVert from "../webgl/glsl/depth.vert";
+import downsamplerFrag from "../webgl/glsl/downsampler.frag";
 import depthFrag from "../webgl/glsl/depth.frag";
 import copyFrag from "../webgl/glsl/copy.frag";
 import calNormal from "../webgl/technologyGlsl/calNormal.frag";
 import lutFragmentShader from "../effect/lut.frag";
 // import usePileline from "./usePipeline";
 import generateDigitTextureAtlas from "./useNumberTexture";
-import { textureLoad } from "three/tsl";
+import { max, textureLoad } from "three/tsl";
+import { WebGL } from "three/examples/jsm/Addons.js";
+import { the } from "./tasks-vision";
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -187,7 +192,7 @@ export const usePictureScene = (scene, renderer, camera) => {
           }
 
           void main() {
-            vec4 color = texture2D(tDiffuse, vUv);
+            vec4 color = texture2D(tDiffuse, vUv, 1.0);
             // vec4 bgColor = texture2D(tDiffuse, vec2(0.01, 0.01));
             vec4 bgColor = vec4(79.0 / 255.0, 153.0 / 255.0, 39.0 / 255.0, 1.0);
             float diff = distance(color.rgb, bgColor.rgb);
@@ -205,8 +210,8 @@ export const usePictureScene = (scene, renderer, camera) => {
   });
   const grayWrapper = new Mesh(getFSGeometry(), grayMaterial);
   const grayRt = new WebGLRenderTarget(1, 1, {
-    minFilter: LinearFilter,
-    magFilter: LinearFilter,
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
     wrapS: ClampToEdgeWrapping,
     wrapT: ClampToEdgeWrapping,
     type: FloatType,
@@ -443,15 +448,46 @@ export const usePictureScene = (scene, renderer, camera) => {
     mainMaterial.uniforms.eyeColor.value.set(config.eyeColor);
   }
 
+  const preResolution = new Vector2();
+  const downSamplersMaterial = new ShaderMaterial({
+    name: "downSamplers",
+    uniforms: {
+      uTexture: { value: null },
+      uTexelSize: { value: preResolution },
+    },
+    fragmentShader: downsamplerFrag,
+    vertexShader,
+  });
+  const downSamplerWrapper = new Mesh(getFSGeometry(), downSamplersMaterial);
   function preTreatment() {
     if (!texture) return;
     updateRenderConfig();
+
+    for (let i = 0; i < downSamplingRts.length; i++) {
+      if (i === 0) {
+        downSamplersMaterial.uniforms.uTexture.value = texture;
+        preResolution.set(originWidth, originHeight);
+      } else {
+        downSamplersMaterial.uniforms.uTexture.value =
+          downSamplingRts[i - 1].texture;
+        preResolution.set(
+          downSamplingRts[i - 1].texture.image.width,
+          downSamplingRts[i - 1].texture.image.height
+        );
+        console.log(preResolution.width, preResolution.height);
+      }
+      renderer.setRenderTarget(downSamplingRts[i]);
+      renderer.clear();
+      renderer.render(downSamplerWrapper, camera);
+    }
 
     // 提取灰度
     renderer.setRenderTarget(maskRt);
     renderer.clear();
     renderer.render(maskWrapper, camera);
 
+    grayMaterial.uniforms.tDiffuse.value =
+      downSamplingRts[downSamplingRts.length - 1].texture;
     // 提取灰度
     renderer.setRenderTarget(grayRt);
     renderer.clear();
@@ -503,9 +539,11 @@ export const usePictureScene = (scene, renderer, camera) => {
 
   const show = () => {
     // showHandleResult(maskRt.texture, -1);
-    // showHandleResult(digitTexture, 0);
-    // showHandleResult(mainRt.texture, 1);
+    showHandleResult(downSamplingRts[downSamplingRts.length - 1].texture, 0);
     showHandleResult(grayRt.texture, -1);
+    // setTimeout(() => {
+    //   showHandleResult(globalConfig.maps.decorationMap, 1);
+    // }, 4000);
     showHandleResult(lutRt.texture, 1);
     // showHandleResult(lowProbabilityRt.texture, 0);
     // showHandleResult(edgeDetectionRt.texture, 0);
@@ -531,6 +569,14 @@ export const usePictureScene = (scene, renderer, camera) => {
     // showHandleResult(probRt.texture, 1);
   };
 
+  let downSamplingRts: WebGLRenderTarget[] = [];
+
+  function updateCurrentTexture(_texture) {
+    grayMaterial.uniforms.tDiffuse.value = _texture;
+  }
+
+  let originWidth = 0;
+  let originHeight = 0;
   function updatePipelineConfig(_texture, video) {
     texture = _texture;
     if (video) {
@@ -542,6 +588,8 @@ export const usePictureScene = (scene, renderer, camera) => {
       height = _texture.image.height;
     }
 
+    originWidth = width;
+    originHeight = height;
     // 592 796
     console.log("----------------width-------------------height");
     console.log(width, height);
@@ -570,16 +618,54 @@ export const usePictureScene = (scene, renderer, camera) => {
     const planeGeometry = new PlaneGeometry(width, height);
     console.log(planeGeometry);
     lutRt.setSize(width, height);
+
+    updateCurrentTexture(_texture);
+
+    debugger;
+
+    let tempWidth = Math.floor(originWidth / 2);
+    let tempHeight = Math.floor(originHeight / 2);
+    while (tempWidth > width || tempHeight > height) {
+      tempWidth = Math.max(tempWidth, width);
+      tempHeight = Math.max(tempHeight, height);
+      const rts = new WebGLRenderTarget(tempWidth, tempHeight, {
+        minFilter: NearestFilter,
+        magFilter: NearestFilter,
+        wrapS: ClampToEdgeWrapping,
+        wrapT: ClampToEdgeWrapping,
+        format: RGBAFormat,
+        type: UnsignedByteType,
+        depthBuffer: false,
+        stencilBuffer: false,
+      });
+      downSamplingRts.push(rts);
+      tempWidth = Math.floor(tempWidth / 2);
+      tempHeight = Math.floor(tempHeight / 2);
+    }
+    tempWidth = Math.max(tempWidth, width);
+    tempHeight = Math.max(tempHeight, height);
+    const rts = new WebGLRenderTarget(tempWidth, tempHeight, {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      wrapS: ClampToEdgeWrapping,
+      wrapT: ClampToEdgeWrapping,
+      format: RGBAFormat,
+      type: UnsignedByteType,
+      depthBuffer: false,
+      stencilBuffer: false,
+    });
+    downSamplingRts.push(rts);
+
     if (globalConfig.debugTexture) {
       show();
     }
   }
 
   const testMap = textureLoader.load("/src/testGlsl/image2.png");
-  const decorationMap = textureLoader.load("/src/assets/picture.png");
+  // const decorationMap = textureLoader.load("/src/assets/picture.png");
   const maps = {
     // probTexture: blendProbRt.texture,
-    probTexture: maskRt.texture,
+    // probTexture: maskRt.texture,
     // renderTexture: mainRt.texture,
     renderTexture: lutRt.texture,
     // renderTexture: grayRt.texture,
@@ -588,8 +674,8 @@ export const usePictureScene = (scene, renderer, camera) => {
     // highLightTexture: edgeDetectionRt.texture,
     // highLightTexture: edgeDetectionRt.texture,
     // normalTexture: normalRt.texture,
-    normalTexture: baseNormaRt.texture,
-    decorationMap,
+    // normalTexture: baseNormaRt.texture,
+    // decorationMap,
     // normalTexture: blurRt2.texture,
     // depthTexture: depthBlendRt.texture,
     // depthTexture: depthRenderRt.texture,

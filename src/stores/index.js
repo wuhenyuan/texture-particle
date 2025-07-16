@@ -5,8 +5,8 @@ export const useGlobalConfig = defineStore("app", {
   state: () => ({
     debugTexture: false,
     showDigital: false,
-    particleVisible: false,
-    isLocal: true,
+    particleVisible: true,
+    isLocal: false,
     isUseAsr: false,
     faceDepthMin: 0,
     faceDepthMax: 0,
@@ -18,7 +18,7 @@ export const useGlobalConfig = defineStore("app", {
     isFaceReady: false,
     isFaceLamkmardUpdate: false,
     isUsePostProcessing: true,
-    drawFaceDetection: false,
+    drawFaceDetection: true,
     helperLineVisible: false,
     helperMeshVisible: false,
     helperPointVisible: false,
@@ -59,7 +59,7 @@ export const useGlobalConfig = defineStore("app", {
       // strength: 3.34,
       radius: 0.5,
       threshold: 0.3,
-      size: 1.5,
+      size: 1,
     },
     // lutParticle config
     // config: {

@@ -142,7 +142,7 @@ export default {
       debugger;
       // return;
       try {
-        const response = await fetch("http://10.7.11.111:8010/create_human", {
+        const response = await fetch("http://10.7.3.50:8010/create_human", {
           // const response = await fetch("http://10.7.11.111:8010/create_human", {
           method: "POST",
           body: formData,

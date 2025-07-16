@@ -170,62 +170,6 @@ export default function useMediaPipe() {
   //   faceMesh.geometry.attributes.position.needsUpdate = true;
   // }
 
-  function updateRandomLines(segmentationMask, faceLandmarks) {
-    if (!segmentationMask) return;
-    if (!randomLines) return;
-    const positions = randomLines.geometry.attributes.position.array;
-    const maskData = segmentationMask.data;
-    const maskWidth = segmentationMask.width;
-    const maskHeight = segmentationMask.height;
-
-    // 如果有面部数据，用它来确定身体的平均深度
-    let baseZ = 0;
-    if (faceLandmarks) {
-      let totalZ = 0;
-      faceLandmarks.forEach((p) => (totalZ += p.z));
-      baseZ = -(totalZ / faceLandmarks.length) * 2; // Z轴反转和缩放
-    }
-
-    let pointsFound = 0;
-    const maxAttempts = NUM_RANDOM_LINES * 50; // 设置一个尝试上限，防止死循环
-    let attempts = 0;
-
-    const validPoints = [];
-
-    // 循环直到找到足够多的点
-    while (pointsFound < NUM_RANDOM_LINES * 2 && attempts < maxAttempts) {
-      const x = Math.floor(Math.random() * maskWidth);
-      const y = Math.floor(Math.random() * maskHeight);
-
-      // 检查这个随机点是否在人的蒙版内
-      // maskData[y * maskWidth + x] > 0 表示属于人体
-      if (maskData[y * maskWidth + x] > 0) {
-        // 将2D蒙版坐标转换为3D世界坐标
-        const worldX = (x / maskWidth - 0.5) * 2.5; // 乘以系数调整宽度
-        const worldY = -(y / maskHeight - 0.5) * 2.5; // 乘以系数调整高度
-        const worldZ = baseZ + (Math.random() - 0.5) * BODY_LINE_DEPTH;
-        validPoints.push({ x: worldX, y: worldY, z: worldZ });
-        pointsFound++;
-      }
-      attempts++;
-    }
-
-    // 将找到的点填充到几何体中
-    for (let i = 0; i < NUM_RANDOM_LINES * 2; i++) {
-      if (i < validPoints.length) {
-        const p = validPoints[i];
-        positions[i * 3] = p.x;
-        positions[i * 3 + 1] = p.y;
-        positions[i * 3 + 2] = p.z;
-      } else {
-        // 如果点不够，就将多余的顶点藏起来
-        positions[i * 3] = positions[i * 3 + 1] = positions[i * 3 + 2] = 0;
-      }
-    }
-
-    randomLines.geometry.attributes.position.needsUpdate = true;
-  }
-
   async function predictWebcam() {
     if (!faceLandmarker) return;
     const radio = video.videoHeight / video.videoWidth;
@@ -268,6 +212,7 @@ export default function useMediaPipe() {
 
     if (results.faceLandmarks && globalConfig.drawFaceDetection) {
       // ctx.fillStyle = "#000"; // 背景色
+      const landmarks = results.faceLandmarks[0];
       ctx.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
       // ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
       for (const landmarks of results.faceLandmarks) {
@@ -313,11 +258,36 @@ export default function useMediaPipe() {
         //   color: "#00ffff",
         // });
       }
+      fillArea(landmarks, FACE_LANDMARKS_FACE_OVAL, "red");
+      fillArea(landmarks, FACE_LANDMARKS_RIGHT_EYE, "green");
+      fillArea(landmarks, FACE_LANDMARKS_LEFT_EYE, "green");
     }
 
     requestAnimationFrame(predictWebcam);
     // Call this function again to keep predicting when the browser is ready.
   }
+
+  const fillArea = (landmarks, paths, color) => {
+    ctx.beginPath(); // 开始新路径
+    for (let i = 0; i < paths.length; i++) {
+      const point = paths[i];
+      const lankmark = landmarks[point.start];
+      if (i === 0) {
+        ctx.moveTo(
+          lankmark.x * canvasElement.width,
+          lankmark.y * canvasElement.height
+        );
+      } else {
+        ctx.lineTo(
+          lankmark.x * canvasElement.width,
+          lankmark.y * canvasElement.height
+        );
+      }
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  };
 
   function startDetecte() {
     console.log("-------------startDetecte---------------");
@@ -326,11 +296,11 @@ export default function useMediaPipe() {
     requestAnimationFrame(predictWebcam);
   }
   function updateLandMark() {
-    const faceGeometry2 = globalConfig.faceGeometry as BufferGeometry;
-    if (!faceGeometry2) return;
+    // const faceGeometry2 = globalConfig.faceGeometry as BufferGeometry;
+    // if (!faceGeometry2) return;
+    // // const positions = position.array;
+    // const position = faceGeometry2.attributes.position;
     // const positions = position.array;
-    const position = faceGeometry2.attributes.position;
-    const positions = position.array;
     let max = 0;
     let min = 0;
     let lx = 0,
@@ -350,16 +320,16 @@ export default function useMediaPipe() {
       needResult = false;
       globalConfig.isFaceLamkmardUpdate = true;
       const scale = 1;
-      for (let i = 0; i < 478; i++) {
-        const lanmmark = faceLandmarks[i];
-        // positions.push(landmark.x, landmark.y, landmark.z);
-        positions[i * 3] = (lanmmark.x - 0.5) * scale;
-        positions[i * 3 + 1] = (0.5 - lanmmark.y) * scale;
-        const z = -lanmmark.z * scale;
-        positions[i * 3 + 2] = z;
-        if (max < z) max = z;
-        if (min > z) min = z;
-      }
+      // for (let i = 0; i < 478; i++) {
+      //   const lanmmark = faceLandmarks[i];
+      //   // positions.push(landmark.x, landmark.y, landmark.z);
+      //   positions[i * 3] = (lanmmark.x - 0.5) * scale;
+      //   positions[i * 3 + 1] = (0.5 - lanmmark.y) * scale;
+      //   const z = -lanmmark.z * scale;
+      //   positions[i * 3 + 2] = z;
+      //   if (max < z) max = z;
+      //   if (min > z) min = z;
+      // }
 
       if (!globalConfig.hasFaceInfo) {
         // 更新眼珠位置
@@ -401,7 +371,7 @@ export default function useMediaPipe() {
           if (miny > landmark.y) miny = landmark.y;
           if (maxy < landmark.y) maxy = landmark.y;
         }
-        position.needsUpdate = true;
+        // position.needsUpdate = true;
       }
     }
 
@@ -413,9 +383,9 @@ export default function useMediaPipe() {
     }
     globalConfig.faceDepthMax = max;
     globalConfig.faceDepthMin = min;
-    faceGeometry2.attributes.position.needsUpdate = true;
-    faceGeometry2.computeVertexNormals();
-    faceGeometry2.attributes.normal.needsUpdate = true;
+    // faceGeometry2.attributes.position.needsUpdate = true;
+    // faceGeometry2.computeVertexNormals();
+    // faceGeometry2.attributes.normal.needsUpdate = true;
   }
   return {
     startDetecte,
