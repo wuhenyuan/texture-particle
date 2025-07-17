@@ -67,7 +67,7 @@ import { useGlobalConfig } from "@/stores/index";
 
 const globalConfig = useGlobalConfig();
 
-let preTreatment, updateTexture, getRenderResultTexture;
+let preTreatment, updateTexture;
 
 let globalTexture;
 let scene;
@@ -196,18 +196,7 @@ const initThree = (isLocal) => {
     }
     updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
-    const {
-      probTexture,
-      maskTexture,
-      highLightTexture,
-      normalTexture,
-      depthTexture,
-    } = getRenderResultTexture();
-    particles.init(probTexture, video);
-    particles.setMaskMap(maskTexture);
-    particles.setHighLightMap(highLightTexture);
-    particles.setNormalMap(normalTexture);
-    particles.setDepthMap(depthTexture);
+    particles.init(globalConfig.maps.renderTexture, video);
   });
 
   if (isLocal) {

@@ -136,12 +136,34 @@ uniform float uDepth;
 uniform float uSize;
 uniform vec2 uTextureSize;
 uniform sampler2D uTexture;
+uniform sampler2D maskFaceTexture;
 uniform float uProgress;
+
+uniform float minSize;
+uniform float eyeIntensity;
+
+uniform vec4 faceAera;
 // uniform sampler2D uTouch;
 
 varying vec2 vPUv;
 varying vec2 vUv;
 varying vec2 dTUv;
+
+vec3 EYE_COLOR = vec3(1.0, 0., 0.);
+vec3 FACE_COLOR = vec3(0., 0., 1.);
+float maskEye(vec3 maskColor) {
+  float diff = 1. - distance(maskColor, EYE_COLOR);
+  return step(0.1, diff);
+}
+
+float maskFace(vec3 maskColor, vec2 uv) {
+  float diff = 1. - distance(maskColor, FACE_COLOR);
+  float center = (faceAera.y + faceAera.w) * 0.5;
+  float yMask = uv.y > center ? 1. : 0.;
+  return step(0.1, diff + yMask);
+  return step(0.1, diff);
+
+}
 
 void main() {
   vUv = uv;
@@ -170,7 +192,7 @@ void main() {
   displaced.xy -= uTextureSize * 0.5;
 
   float luminal = texture2D(uTexture, puv).r;
-  if(luminal <= 0.05) {
+  if(luminal <= 0.02) {
     gl_Position = vec4(5.0, 5.0, 5.0, 1.0);
     return;
   }
@@ -203,10 +225,22 @@ void main() {
 	// particle size
   // float psize = uSize + scale1 * uSize * mix(2., 0.2, uProgress);
 
+  vec3 maskColor = texture2D(maskFaceTexture, puv).rgb;
+  float eMask = maskEye(maskColor);
+  float fMask = maskFace(maskColor, puv);
+
+  fMask = clamp(fMask + 0.8, 0., 1.);
+  luminalScale *= fMask;
+  // luminalScale = (luminalScale, eyeIntensity, eMask);
+
+  float eyeTarget = luminalScale + eyeIntensity; // 理想目标
+  luminalScale = mix(luminalScale, eyeTarget, 0.3 * eMask);
+  // luminalScale += eyeIntensity * eMask;
+
 	// particle size
   // float psize = .5;
 	// psize *= max(grey, 0.2);
-  float psize = 1.5 * uSize * pow(smoothstep(0.05, 1., luminalScale), 1.0) + 0.15;
+  float psize = uSize * (min(1.0, pow(smoothstep(0.05, 1., luminalScale), 1.0) + minSize));
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

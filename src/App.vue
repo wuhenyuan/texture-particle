@@ -40,6 +40,7 @@
       </div>
       <div id="outputContianer">
         <canvas id="output"></canvas>
+        <canvas id="mask"></canvas>
       </div>
       <div id="media">
         <h2>Media</h2>
@@ -139,7 +140,6 @@ export default {
       this.loading = true;
       this.message = "上传中，请稍候...";
 
-      debugger;
       // return;
       try {
         const response = await fetch("http://10.7.3.50:8010/create_human", {
@@ -219,6 +219,7 @@ div {
 #output {
   width: 200px;
   height: 200px;
+  /* display: none; */
 }
 #video {
   display: none;

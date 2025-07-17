@@ -23,6 +23,7 @@ export default function getCrossTexture(width, height) {
 
   for (let row = 0; row < numRows; row++) {
     for (let col = 0; col < numCols; col++) {
+      if (Math.random() < 0.05) continue;
       ctx.save();
 
       const x = col * gridSize;
@@ -53,8 +54,20 @@ export default function getCrossTexture(width, height) {
       const offsetX = (Math.random() - 0.5) * gridSize * 0.1;
       const offsetY = (Math.random() - 0.5) * gridSize * 0.1;
 
-      ctx.rotate(angle);
-      ctx.fillStyle = particleColor;
+      ctx.rotate(angle); // 创建径向渐变，从中心到边缘过渡透明
+      const gradient = ctx.createRadialGradient(
+        offsetX,
+        offsetY,
+        0,
+        offsetX,
+        offsetY,
+        Math.max(w, h) / 2
+      );
+      gradient.addColorStop(0.0, "rgba(224, 224, 224, 1)");
+      gradient.addColorStop(0.6, "rgba(224, 224, 224, 0.6)");
+      gradient.addColorStop(1.0, "rgba(224, 224, 224, 0.1)");
+
+      ctx.fillStyle = gradient;
       ctx.fillRect(-w / 2 + offsetX, -h / 2 + offsetY, w, h);
 
       ctx.restore();

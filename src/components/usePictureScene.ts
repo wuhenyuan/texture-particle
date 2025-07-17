@@ -58,9 +58,7 @@ import calNormal from "../webgl/technologyGlsl/calNormal.frag";
 import lutFragmentShader from "../effect/lut.frag";
 // import usePileline from "./usePipeline";
 import generateDigitTextureAtlas from "./useNumberTexture";
-import { max, textureLoad } from "three/tsl";
-import { WebGL } from "three/examples/jsm/Addons.js";
-import { the } from "./tasks-vision";
+import { toRaw } from "vue";
 function loadImageToCanvas(src) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -118,6 +116,8 @@ export const usePictureScene = (scene, renderer, camera) => {
   addConfig("strength", "strength", 0, 10, 0.01);
   addConfig("radius", "radius", 0, 1, 0.01);
   addConfig("threshold", "threshold", 0, 1, 0.01);
+  addConfig("minSize", "minSize", 0, 1, 0.01);
+  addConfig("eyeIntensity", "eyeIntensity", 0, 1, 0.01);
   // addConfig("normalThreshold", "normalThreshold", 0, 1, 0.01);
 
   let width,
@@ -474,7 +474,6 @@ export const usePictureScene = (scene, renderer, camera) => {
           downSamplingRts[i - 1].texture.image.width,
           downSamplingRts[i - 1].texture.image.height
         );
-        console.log(preResolution.width, preResolution.height);
       }
       renderer.setRenderTarget(downSamplingRts[i]);
       renderer.clear();
@@ -540,11 +539,15 @@ export const usePictureScene = (scene, renderer, camera) => {
   const show = () => {
     // showHandleResult(maskRt.texture, -1);
     showHandleResult(downSamplingRts[downSamplingRts.length - 1].texture, 0);
-    showHandleResult(grayRt.texture, -1);
+    showHandleResult(lutRt.texture, -1);
     // setTimeout(() => {
     //   showHandleResult(globalConfig.maps.decorationMap, 1);
     // }, 4000);
-    showHandleResult(lutRt.texture, 1);
+    // showHandleResult(lutRt.texture, 1);
+    setTimeout(() => {
+      // showHandleResult(globalConfig.maps.maskFaceTexture, 1);
+      showHandleResult(toRaw(globalConfig.maps.renderTexture), 1);
+    }, 200);
     // showHandleResult(lowProbabilityRt.texture, 0);
     // showHandleResult(edgeDetectionRt.texture, 0);
     // showHandleResult(expandRt.texture, 1);
@@ -578,7 +581,9 @@ export const usePictureScene = (scene, renderer, camera) => {
   let originWidth = 0;
   let originHeight = 0;
   function updatePipelineConfig(_texture, video) {
-    texture = _texture;
+    if (globalConfig.useLocalPicture) {
+      texture = colorTexture;
+    } else texture = _texture;
     if (video) {
       const { videoWidth, videoHeight } = video;
       width = videoWidth;
@@ -621,8 +626,6 @@ export const usePictureScene = (scene, renderer, camera) => {
 
     updateCurrentTexture(_texture);
 
-    debugger;
-
     let tempWidth = Math.floor(originWidth / 2);
     let tempHeight = Math.floor(originHeight / 2);
     while (tempWidth > width || tempHeight > height) {
@@ -663,36 +666,37 @@ export const usePictureScene = (scene, renderer, camera) => {
 
   const testMap = textureLoader.load("/src/testGlsl/image2.png");
   // const decorationMap = textureLoader.load("/src/assets/picture.png");
-  const maps = {
-    // probTexture: blendProbRt.texture,
-    // probTexture: maskRt.texture,
-    // renderTexture: mainRt.texture,
-    renderTexture: lutRt.texture,
-    // renderTexture: grayRt.texture,
-    // maskTexture: grayRt.texture,
-    // particleMap: digitTexture,
-    // highLightTexture: edgeDetectionRt.texture,
-    // highLightTexture: edgeDetectionRt.texture,
-    // normalTexture: normalRt.texture,
-    // normalTexture: baseNormaRt.texture,
-    // decorationMap,
-    // normalTexture: blurRt2.texture,
-    // depthTexture: depthBlendRt.texture,
-    // depthTexture: depthRenderRt.texture,
-    // depthTexture: globalDepthTexture,
-    // highLightTexture: expandRt.texture,
-  };
-  globalConfig.maps = maps;
-  function getRenderResultTexture() {
-    // return probRt.texture;
-    // return blendRt.texture;
-    // return lowProbabilityRt.texture;
-    return maps;
-  }
+  // const maps = {
+  // probTexture: blendProbRt.texture,
+  // probTexture: maskRt.texture,
+  // renderTexture: mainRt.texture,
+  // renderTexture: lutRt.texture,
+  // renderTexture: grayRt.texture,
+  // maskTexture: grayRt.texture,
+  // particleMap: digitTexture,
+  // highLightTexture: edgeDetectionRt.texture,
+  // highLightTexture: edgeDetectionRt.texture,
+  // normalTexture: normalRt.texture,
+  // normalTexture: baseNormaRt.texture,
+  // decorationMap,
+  // normalTexture: blurRt2.texture,
+  // depthTexture: depthBlendRt.texture,
+  // depthTexture: depthRenderRt.texture,
+  // depthTexture: globalDepthTexture,
+  // highLightTexture: expandRt.texture,
+  // };
+  const maps = globalConfig.maps;
+  maps.renderTexture = lutRt.texture;
+  // function getRenderResultTexture() {
+  // return probRt.texture;
+  // return blendRt.texture;
+  // return lowProbabilityRt.texture;
+  // return maps;
+  // }
   return {
     preTreatment,
     updatePipelineConfig,
-    getRenderResultTexture,
+    // getRenderResultTexture,
     config,
   };
 };

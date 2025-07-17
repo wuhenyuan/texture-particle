@@ -251,11 +251,9 @@ const initThree = (isLocal) => {
   } = usePictureScene(scene, renderer, camera, globalTexture);
   preTreatment = _preTreatment;
   updateTexture = _updateTexture;
-  getRenderResultTexture = _getRenderResultTexture;
 
-  const { renderTexture, maskTexture } = getRenderResultTexture();
   // createDigitalHumanWrapper(renderTexture);
-  particle = new Particles(scene, renderTexture);
+  particle = new Particles(scene, globalConfig.maps.renderTexture);
   // scene.add(particle);
   // particle.visible = true;
   particle.visible = false;

@@ -15,8 +15,10 @@ import {
   RGBAFormat,
   NearestFilter,
   ShaderMaterial,
+  AdditiveBlending,
   Vector4,
 } from "three";
+import { toRaw } from "vue";
 // import { particleFrag, particleVert } from "./shader";
 import particleFrag from "./depthShader/particles.frag";
 import particleVert from "./depthShader/particles.vert";
@@ -53,10 +55,14 @@ export default class Particles extends Object3D {
       uSize: { value: 0.5 },
       uTextureSize: { value: this.resolution },
       decorationTextuer: { value: null },
-      uTexture: { value: this.texture },
+      maskFaceTexture: { value: null },
+      uTexture: { value: null },
       uPTexture: { value: this.uPTexture },
       uProgress: { value: this.progress },
       eyeBall: { value: this.globalConfig.eyeBall },
+      faceAera: { value: this.globalConfig.faceAera },
+      minSize: { value: 0 },
+      eyeIntensity: { value: 0 },
     };
   }
 
@@ -130,7 +136,7 @@ export default class Particles extends Object3D {
       fragmentShader: particleFrag,
       depthTest: false,
       transparent: true,
-      // blending: AdditiveBlending
+      // blending: AdditiveBlending,
     });
     material.onBeforeRender = () => {};
 
@@ -245,6 +251,8 @@ export default class Particles extends Object3D {
   updateUniforms() {
     const config = this.globalConfig.config;
     this.material.uniforms.uSize.value = config.size;
+    this.uniforms.minSize.value = config.minSize;
+    this.uniforms.eyeIntensity.value = config.eyeIntensity;
     // this.material.uniforms.decorationTextuer.value =
     //   this.globalConfig.maps.decorationMap;
     if (!this.isTextureInit) {
@@ -253,6 +261,12 @@ export default class Particles extends Object3D {
       this.material.uniforms.decorationTextuer.value = texture;
       this.globalConfig.maps.decorationMap = texture;
     }
+    this.material.uniforms.uTexture.value = toRaw(
+      this.globalConfig.maps.renderTexture
+    );
+    this.material.uniforms.maskFaceTexture.value = toRaw(
+      this.globalConfig.maps.maskFaceTexture
+    );
   }
   update(t) {
     if (this.visible === false) return;

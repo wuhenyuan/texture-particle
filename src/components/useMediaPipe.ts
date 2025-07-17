@@ -19,6 +19,8 @@ import {
 } from "./partData";
 import { useGlobalConfig } from "../stores";
 import { BufferGeometry } from "three";
+import { alphaT } from "three/tsl";
+import { CanvasTexture } from "three";
 
 export default function useMediaPipe() {
   const video: HTMLVideoElement = document.getElementById("video")!;
@@ -28,8 +30,21 @@ export default function useMediaPipe() {
   const canvasElement = document.getElementById("output") as HTMLCanvasElement;
   const ctx = canvasElement.getContext("2d") as CanvasRenderingContext2D;
 
+  const maskCanvasElement = document.getElementById(
+    "mask"
+  ) as HTMLCanvasElement;
+  const maskCtx = maskCanvasElement.getContext("2d", {
+    alpha: true,
+  }) as CanvasRenderingContext2D;
+
+  const maskFaceTexture = new CanvasTexture(maskCanvasElement);
+
   const globalConfig = useGlobalConfig();
+  setTimeout(() => {
+    globalConfig.maps.maskFaceTexture = maskFaceTexture;
+  });
   const videoWidth = 480;
+  let videoHeight = 0;
   let runningMode: "IMAGE" | "VIDEO" = "VIDEO";
   let vision, faceLandmarker, imageSegmenter;
   let labels;
@@ -170,15 +185,21 @@ export default function useMediaPipe() {
   //   faceMesh.geometry.attributes.position.needsUpdate = true;
   // }
 
-  async function predictWebcam() {
-    if (!faceLandmarker) return;
+  function setSize(_canvasElement, video) {
     const radio = video.videoHeight / video.videoWidth;
     video.style.width = videoWidth + "px";
-    video.style.height = videoWidth * radio + "px";
-    canvasElement.style.width = videoWidth + "px";
-    canvasElement.style.height = videoWidth * radio + "px";
-    canvasElement.width = video.videoWidth;
-    canvasElement.height = video.videoHeight;
+    videoHeight = videoWidth * radio;
+    video.style.height = videoHeight + "px";
+    _canvasElement.style.width = videoWidth + "px";
+    _canvasElement.style.height = videoHeight + "px";
+    _canvasElement.width = video.videoWidth;
+    _canvasElement.height = video.videoHeight;
+  }
+
+  async function predictWebcam() {
+    if (!faceLandmarker) return;
+    setSize(canvasElement, video);
+    setSize(maskCanvasElement, video);
     // Now let's start detecting the stream.
     let startTimeMs = performance.now();
     if (lastVideoTime !== video.currentTime) {
@@ -258,9 +279,11 @@ export default function useMediaPipe() {
         //   color: "#00ffff",
         // });
       }
-      fillArea(landmarks, FACE_LANDMARKS_FACE_OVAL, "red");
-      fillArea(landmarks, FACE_LANDMARKS_RIGHT_EYE, "green");
-      fillArea(landmarks, FACE_LANDMARKS_LEFT_EYE, "green");
+
+      maskCtx.clearRect(0, 0, videoWidth, videoHeight);
+      fillArea(landmarks, FACE_LANDMARKS_FACE_OVAL, "blue");
+      fillArea(landmarks, FACE_LANDMARKS_RIGHT_EYE, "red");
+      fillArea(landmarks, FACE_LANDMARKS_LEFT_EYE, "red");
     }
 
     requestAnimationFrame(predictWebcam);
@@ -268,25 +291,25 @@ export default function useMediaPipe() {
   }
 
   const fillArea = (landmarks, paths, color) => {
-    ctx.beginPath(); // 开始新路径
+    maskCtx.beginPath(); // 开始新路径
     for (let i = 0; i < paths.length; i++) {
       const point = paths[i];
       const lankmark = landmarks[point.start];
       if (i === 0) {
-        ctx.moveTo(
+        maskCtx.moveTo(
           lankmark.x * canvasElement.width,
           lankmark.y * canvasElement.height
         );
       } else {
-        ctx.lineTo(
+        maskCtx.lineTo(
           lankmark.x * canvasElement.width,
           lankmark.y * canvasElement.height
         );
       }
     }
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
+    maskCtx.closePath();
+    maskCtx.fillStyle = color;
+    maskCtx.fill();
   };
 
   function startDetecte() {

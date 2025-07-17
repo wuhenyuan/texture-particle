@@ -45,6 +45,7 @@
 
         for (let row = 0; row < numRows; row++) {
           for (let col = 0; col < numCols; col++) {
+            if (Math.random() < 0.2) continue;
             ctx.save();
 
             const x = col * gridSize;
@@ -57,7 +58,7 @@
 
             let w, h;
 
-            let widthScale = 0.9;
+            let widthScale = 0.8;
             let heightScale = 0.4;
 
             if (isHorizontal) {
@@ -76,7 +77,21 @@
             const offsetY = (Math.random() - 0.5) * gridSize * 0.1;
 
             ctx.rotate(angle);
-            ctx.fillStyle = particleColor;
+            // ctx.fillStyle = particleColor;
+            // 创建径向渐变，从中心到边缘过渡透明
+            const gradient = ctx.createRadialGradient(
+              offsetX,
+              offsetY,
+              0,
+              offsetX,
+              offsetY,
+              Math.max(w, h) / 2
+            );
+            gradient.addColorStop(0.0, "rgba(224, 224, 224, 1)");
+            gradient.addColorStop(0.7, "rgba(224, 224, 224, 0.6)");
+            gradient.addColorStop(1.0, "rgba(224, 224, 224, 0.3)");
+
+            ctx.fillStyle = gradient;
             ctx.fillRect(-w / 2 + offsetX, -h / 2 + offsetY, w, h);
 
             ctx.restore();

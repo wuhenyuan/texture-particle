@@ -1,17 +1,18 @@
 import { defineStore } from "pinia";
-import { Vector4, Mesh } from "three";
+import { Vector4, Mesh, Texture } from "three";
 
 export const useGlobalConfig = defineStore("app", {
   state: () => ({
     debugTexture: false,
     showDigital: false,
     particleVisible: true,
-    isLocal: false,
+    isLocal: true,
     isUseAsr: false,
     faceDepthMin: 0,
     faceDepthMax: 0,
     maxWidth: 150,
     widthScale: 1,
+    useLocalPicture: false,
     // 是否使用人脸识别
     useFaceDetection: true,
     isUseHalf: false,
@@ -37,7 +38,10 @@ export const useGlobalConfig = defineStore("app", {
     digitalMesh: new Mesh(),
     hasFaceInfo: false,
 
-    maps: {},
+    maps: {
+      renderTexture: new Texture(),
+      maskFaceTexture: new Texture(),
+    },
     // tenology config
     config: {
       // tolerance: 0.4,
@@ -55,11 +59,13 @@ export const useGlobalConfig = defineStore("app", {
       normalThreshold: 0.0,
       rainColor: 0x5959cf,
       eyeColor: 0xcbff,
-      strength: 0.5,
+      strength: 0.25,
       // strength: 3.34,
       radius: 0.5,
       threshold: 0.3,
-      size: 1,
+      size: 1.5,
+      minSize: 0.6,
+      eyeIntensity: 1,
     },
     // lutParticle config
     // config: {
