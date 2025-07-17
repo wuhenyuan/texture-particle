@@ -198,6 +198,7 @@ export default function useMediaPipe() {
 
   async function predictWebcam() {
     if (!faceLandmarker) return;
+    if (globalConfig.hasFaceInfo) return;
     setSize(canvasElement, video);
     setSize(maskCanvasElement, video);
     // Now let's start detecting the stream.
@@ -396,16 +397,18 @@ export default function useMediaPipe() {
         }
         // position.needsUpdate = true;
       }
+
+      if (!globalConfig.hasFaceInfo) {
+        if (lx === 1 || lx === 0) return;
+        globalConfig.hasFaceInfo = true;
+        globalConfig.eyeBall.set(lx, 1.0 - ly, rx, 1.0 - ry);
+        // globalConfig.faceAera.set(minx, miny, maxx, maxy);
+        globalConfig.faceAera.set(minx, 1 - maxy, maxx, 1 - miny);
+      }
+      globalConfig.faceDepthMax = max;
+      globalConfig.faceDepthMin = min;
     }
 
-    if (!globalConfig.hasFaceInfo) {
-      // globalConfig.hasFaceInfo = true;
-      globalConfig.eyeBall.set(lx, 1.0 - ly, rx, 1.0 - ry);
-      // globalConfig.faceAera.set(minx, miny, maxx, maxy);
-      globalConfig.faceAera.set(minx, 1 - maxy, maxx, 1 - miny);
-    }
-    globalConfig.faceDepthMax = max;
-    globalConfig.faceDepthMin = min;
     // faceGeometry2.attributes.position.needsUpdate = true;
     // faceGeometry2.computeVertexNormals();
     // faceGeometry2.attributes.normal.needsUpdate = true;

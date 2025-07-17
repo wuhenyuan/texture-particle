@@ -24,7 +24,7 @@ void main() {
     float dist = distance(center, puv);
     float radius = 0.;
     float directionlDist = max(0.0, dist - radius);
-    float directionMask = 1.0 - smoothstep(radius, aera, directionlDist);
+    float directionMask = 1.0 - smoothstep(radius, aera * 1.5, directionlDist);
     // float alphaMask = directionMask * alpha;
 
     // vec2 dirUv = uv - 0.5;

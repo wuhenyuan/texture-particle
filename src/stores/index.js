@@ -10,7 +10,8 @@ export const useGlobalConfig = defineStore("app", {
     isUseAsr: false,
     faceDepthMin: 0,
     faceDepthMax: 0,
-    maxWidth: 150,
+    maxWidth: 500,
+    maxParticleWidth: 200,
     widthScale: 1,
     useLocalPicture: false,
     // 是否使用人脸识别
@@ -59,13 +60,13 @@ export const useGlobalConfig = defineStore("app", {
       normalThreshold: 0.0,
       rainColor: 0x5959cf,
       eyeColor: 0xcbff,
-      strength: 0.25,
+      strength: 1.25,
       // strength: 3.34,
       radius: 0.5,
-      threshold: 0.3,
+      threshold: 0.06,
       size: 1.5,
       minSize: 0.6,
-      eyeIntensity: 1,
+      eyeIntensity: 0,
     },
     // lutParticle config
     // config: {

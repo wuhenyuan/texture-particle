@@ -1,8 +1,10 @@
 import { CanvasTexture, NearestFilter } from "three";
+import { useGlobalConfig } from "../stores";
 export default function getCrossTexture(width, height) {
   const gridSize = 20; // 每格尺寸（正方形）
-  const numCols = 150;
-  const numRows = 201;
+
+  const numCols = width;
+  const numRows = height;
   const canvas = document.createElement("canvas");
 
   canvas.width = gridSize * numCols;
@@ -23,7 +25,7 @@ export default function getCrossTexture(width, height) {
 
   for (let row = 0; row < numRows; row++) {
     for (let col = 0; col < numCols; col++) {
-      if (Math.random() < 0.05) continue;
+      // if (Math.random() < 0.01) continue;
       ctx.save();
 
       const x = col * gridSize;
@@ -37,7 +39,7 @@ export default function getCrossTexture(width, height) {
       let w, h;
 
       let widthScale = 0.8;
-      let heightScale = 0.5;
+      let heightScale = 0.3;
 
       if (isHorizontal) {
         w = gridSize * widthScale * randomFactor;
@@ -64,7 +66,7 @@ export default function getCrossTexture(width, height) {
         Math.max(w, h) / 2
       );
       gradient.addColorStop(0.0, "rgba(224, 224, 224, 1)");
-      gradient.addColorStop(0.6, "rgba(224, 224, 224, 0.6)");
+      gradient.addColorStop(0.4, "rgba(224, 224, 224, 0.6)");
       gradient.addColorStop(1.0, "rgba(224, 224, 224, 0.1)");
 
       ctx.fillStyle = gradient;

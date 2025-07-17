@@ -234,13 +234,13 @@ void main() {
   // luminalScale = (luminalScale, eyeIntensity, eMask);
 
   float eyeTarget = luminalScale + eyeIntensity; // 理想目标
-  luminalScale = mix(luminalScale, eyeTarget, 0.3 * eMask);
+  luminalScale = mix(luminalScale, eyeTarget, 0.7 * eMask);
   // luminalScale += eyeIntensity * eMask;
 
 	// particle size
   // float psize = .5;
 	// psize *= max(grey, 0.2);
-  float psize = uSize * (min(1.0, pow(smoothstep(0.05, 1., luminalScale), 1.0) + minSize));
+  float psize = uSize * (min(1.0, pow(smoothstep(0.2, 1., luminalScale), 1.5) + minSize));
 
 	// final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);

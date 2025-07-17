@@ -58,6 +58,7 @@ import useMediaPipe from "./useMediaPipe";
 import { Points } from "three";
 import Particles from "../webgl/particles";
 import { getLineIndex, getFaceIndex, getMouseIndex } from "./partData";
+import FloatingParticles from "../webgl/FloatingParticles";
 import pointsPng from "../assets/point.png";
 
 import { useGlobalConfig } from "@/stores/index";
@@ -82,6 +83,7 @@ let startDetecte, detectPicture, updateLandMark;
 let landMarksPosition;
 let image;
 let particle;
+let flaotParticle;
 const NUM_KEYPOINTS = 478;
 const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z 三个坐标
 const faceVertices = vertices;
@@ -220,8 +222,13 @@ const initThree = (isLocal) => {
       updateLandMark();
     }
 
+    if (flaotParticle) {
+      flaotParticle.update(delta);
+    }
+
     if (globalConfig.isFaceReady) {
       if (globalConfig.particleVisible) particle.visible = true;
+      if (!flaotParticle) createFloatParticles();
     }
     particle.update(delta);
     if (particle.isDead) {
@@ -270,6 +277,20 @@ const initThree = (isLocal) => {
   const isWebGL2 = renderer.capabilities.isWebGL2;
   console.log("WebGL2?", isWebGL2);
   animate();
+};
+
+const createFloatParticles = () => {
+  const faceAera = globalConfig.faceAera;
+  const centerx = ((faceAera.x + faceAera.z - 1.0) * particle.width) / 2;
+  const centery = ((faceAera.y + faceAera.w - 1.0) * particle.height) / 2;
+  flaotParticle = new FloatingParticles(
+    scene,
+    2000,
+    width / 4,
+    height / 4,
+    // new Vector3(centerx, centery, 0)
+    width / 4
+  );
 };
 
 const createBackground = () => {

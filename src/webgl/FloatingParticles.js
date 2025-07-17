@@ -1,0 +1,303 @@
+import * as THREE from "three";
+export default class FloatingParticles {
+  /**
+   * Constructor, initializes the particle system.
+   * @param {THREE.Scene} scene - The Three.js scene to add particles to.
+   * @param {number} particleCount - The number of particles.
+   * @param {number} width - The total width of the rectangular area where particles float.
+   * @param {number} height - The total height of the rectangular area where particles float.
+   * @param {number} depth - The total depth of the rectangular area where particles float.
+   */
+  constructor(
+    scene,
+    particleCount = 2000,
+    width = 10,
+    height = 10,
+    depth = 10
+  ) {
+    this.scene = scene;
+    this.particleCount = particleCount;
+    this.width = width; // Total width of the floating area
+    this.height = height; // Total height of the floating area
+    this.depth = depth; // Total depth of the floating area
+
+    // Store particle positions (x, y, z)
+    this.positions = new Float32Array(this.particleCount * 3);
+    // Store particle velocities (vx, vy, vz)
+    this.velocities = new Float32Array(this.particleCount * 3);
+    // Store particle sizes (will be passed as an attribute to the shader)
+    this.sizes = new Float32Array(this.particleCount);
+    // Store the UV start coordinates (u, v) for each particle in the texture atlas
+    this.uvs = new Float32Array(this.particleCount * 2);
+
+    this.initParticles();
+    this.createParticleSystem();
+    window.floatPoints = this;
+  }
+
+  /**
+   * Initializes the initial position, velocity, size, and texture UVs of particles.
+   */
+  initParticles() {
+    // Define UV start coordinates for each shape in the texture atlas
+    // Texture atlas is 128x64, divided into 4 columns x 2 rows (8 cells)
+    // Each cell is 32x32 pixels, which is 0.25x0.5 in UV space (32/128=0.25, 32/64=0.5)
+    const textureUVs = [
+      // Row 0
+      { u: 0.0, v: 0.0 }, // Shape 0: Square (top-left)
+      { u: 0.25, v: 0.0 }, // Shape 1: Circle
+      { u: 0.5, v: 0.0 }, // Shape 2: Cross
+      { u: 0.75, v: 0.0 }, // Shape 3: Small Dot
+
+      // Row 1
+      { u: 0.0, v: 0.5 }, // Shape 4: Horizontal Line
+      { u: 0.25, v: 0.5 }, // Shape 5: Vertical Line
+      { u: 0.5, v: 0.5 }, // Shape 6: Triangle
+      { u: 0.75, v: 0.5 }, // Shape 7: Diamond
+    ];
+
+    for (let i = 0; i < this.particleCount; i++) {
+      const i3 = i * 3;
+      const i2 = i * 2;
+
+      // Randomly set initial particle positions within the defined rectangular area
+      // Range is -width/2 to +width/2, -height/2 to +height/2, -depth/2 to +depth/2
+      this.positions[i3] = (Math.random() - 0.5) * this.width; // x
+      this.positions[i3 + 1] = (Math.random() - 0.5) * this.height; // y
+      this.positions[i3 + 2] = (Math.random() - 0.5) * this.depth; // z
+
+      // Randomly set initial particle velocities for subtle floating
+      // Adjusted velocity range for smaller, more delicate floating
+      const speed = 1;
+      this.velocities[i3] = (Math.random() - 0.5) * speed;
+      this.velocities[i3 + 1] = (Math.random() - 0.5) * speed;
+      this.velocities[i3 + 2] = (Math.random() - 0.5) * speed;
+
+      // Randomly set particle size
+      this.sizes[i] = 5 + Math.random() * 2;
+
+      // Randomly select a texture shape
+      const randomTextureIndex = Math.floor(Math.random() * textureUVs.length);
+      this.uvs[i2] = textureUVs[randomTextureIndex].u;
+      this.uvs[i2 + 1] = textureUVs[randomTextureIndex].v;
+    }
+  }
+
+  /**
+   * Creates the Three.js particle system (geometry and material).
+   */
+  createParticleSystem() {
+    this.geometry = new THREE.BufferGeometry();
+    this.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(this.positions, 3)
+    );
+    this.geometry.setAttribute(
+      "size",
+      new THREE.BufferAttribute(this.sizes, 1)
+    ); // Custom size attribute
+    this.geometry.setAttribute(
+      "uvOffset",
+      new THREE.BufferAttribute(this.uvs, 2)
+    ); // Custom UV offset attribute
+
+    // Create a Canvas as a texture atlas, drawing multiple shapes
+    const canvas = document.createElement("canvas");
+    canvas.width = 128; // Texture atlas width (4 * 32px per shape)
+    canvas.height = 64; // Texture atlas height (2 * 32px per shape)
+    const context = canvas.getContext("2d");
+    const cellSize = 32; // Each texture cell is 32x32 pixels
+
+    // Helper to draw a shape in a specific cell
+    const drawShape = (col, row, drawFn) => {
+      context.save();
+      context.translate(col * cellSize, row * cellSize);
+      drawFn(context, cellSize);
+      context.restore();
+    };
+
+    context.fillStyle = "white";
+
+    // Shape 0: Square (Row 0, Col 0)
+    drawShape(0, 0, (ctx, size) => {
+      ctx.fillRect(0, 0, size, size);
+    });
+
+    // Shape 1: Circle (Row 0, Col 1)
+    drawShape(1, 0, (ctx, size) => {
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2, false);
+      ctx.fill();
+    });
+
+    // Shape 2: Cross (Row 0, Col 2)
+    drawShape(2, 0, (ctx, size) => {
+      const barWidth = size / 3;
+      ctx.fillRect(0, (size - barWidth) / 2, size, barWidth); // Horizontal bar
+      ctx.fillRect((size - barWidth) / 2, 0, barWidth, size); // Vertical bar
+    });
+
+    // Shape 3: Small Dot (Row 0, Col 3)
+    drawShape(3, 0, (ctx, size) => {
+      const dotSize = size / 4;
+      ctx.fillRect(
+        (size - dotSize) / 2,
+        (size - dotSize) / 2,
+        dotSize,
+        dotSize
+      );
+    });
+
+    // Shape 4: Horizontal Line (Row 1, Col 0)
+    drawShape(0, 1, (ctx, size) => {
+      const lineHeight = size / 6;
+      ctx.fillRect(0, (size - lineHeight) / 2, size, lineHeight);
+    });
+
+    // Shape 5: Vertical Line (Row 1, Col 1)
+    drawShape(1, 1, (ctx, size) => {
+      const lineWidth = size / 6;
+      ctx.fillRect((size - lineWidth) / 2, 0, lineWidth, size);
+    });
+
+    // Shape 6: Triangle (Row 1, Col 2)
+    drawShape(2, 1, (ctx, size) => {
+      ctx.beginPath();
+      ctx.moveTo(size / 2, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(size, size);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    // Shape 7: Diamond (Rotated Square) (Row 1, Col 3)
+    drawShape(3, 1, (ctx, size) => {
+      ctx.save();
+      ctx.translate(size / 2, size / 2); // Move origin to center
+      ctx.rotate(Math.PI / 4); // Rotate 45 degrees
+      const diamondSize = size * 0.7; // Adjust size for visual fit
+      ctx.fillRect(
+        -diamondSize / 2,
+        -diamondSize / 2,
+        diamondSize,
+        diamondSize
+      );
+      ctx.restore();
+    });
+
+    const particleTexture = new THREE.CanvasTexture(canvas);
+    particleTexture.needsUpdate = true; // Ensure texture updates
+
+    // Define vertex shader code
+    const vertexShader = `
+                    attribute float size;       // Size of each particle
+                    attribute vec2 uvOffset;    // UV start coordinates for each particle in the texture atlas
+
+                    varying vec2 vUvOffset;    // Pass UV offset to fragment shader
+
+                    void main() {
+                        vUvOffset = uvOffset; // Pass UV offset to fragment shader
+
+                        // Calculate particle position in model-view space
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+                        // Calculate particle size on screen, considering perspective
+                        // Use the calculated mvPosition.z
+                        gl_PointSize = size * (200.0 / -mvPosition.z); // 200.0 is a scaling factor, can be adjusted
+
+                        gl_Position = projectionMatrix * mvPosition; // Use mvPosition to calculate final position
+                    }
+                `;
+
+    // Define fragment shader code
+    const fragmentShader = `
+                    uniform sampler2D u_particleTexture; // Particle texture atlas
+                    uniform vec3 u_color;                // Particle color
+                    uniform float u_opacity;             // Particle opacity
+                    uniform vec2 u_uvScale;              // UV size of each shape in the texture atlas (e.g., 0.25, 0.5)
+
+                    varying vec2 vUvOffset;             // UV offset passed from vertex shader
+
+                    void main() {
+                        // gl_PointCoord is the UV coordinate of the current pixel within the particle point (0.0 to 1.0)
+                        // vUvOffset is the starting UV coordinate for this particle in the texture atlas
+                        // u_uvScale is the UV size of a single texture in the atlas
+                        // (1.0 - gl_PointCoord.y) is because Three.js UV Y-axis direction might be opposite to gl_PointCoord's Y-axis
+                        vec2 uv = vec2(vUvOffset.x + gl_PointCoord.x * u_uvScale.x,
+                                       vUvOffset.y + (1.0 - gl_PointCoord.y) * u_uvScale.y);
+
+                        vec4 texColor = texture2D(u_particleTexture, uv);
+
+                        // Final color = texture color * particle color * particle opacity
+                        gl_FragColor = texColor * vec4(u_color, u_opacity);
+
+                        // Discard pixel if texture's alpha channel is 0 (for transparent backgrounds)
+                        if (gl_FragColor.a < 0.0001) discard;
+                    }
+                `;
+
+    // Define uniforms (global variables) for the shader material
+    const uniforms = {
+      u_particleTexture: { value: particleTexture },
+      u_color: { value: new THREE.Color(0xffffff) }, // White
+      u_opacity: { value: 0.7 },
+      u_uvScale: { value: new THREE.Vector2(0.25, 0.5) }, // Texture atlas is 4x2 grid, so each texture occupies 0.25x0.5 UV space
+    };
+
+    this.material = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      transparent: true,
+      blending: THREE.AdditiveBlending, // Additive blending mode
+      depthWrite: false, // Disable depth writing to prevent display issues with particles overlapping
+    });
+
+    // Create particle object and add to scene
+    this.particles = new THREE.Points(this.geometry, this.material);
+    this.scene.add(this.particles);
+  }
+
+  /**
+   * Updates the position of each particle, simulating a floating effect.
+   * Resets particles to the other side when they go out of bounds, creating an infinite floating effect.
+   */
+  update() {
+    const positionAttribute = this.geometry.attributes.position;
+    const velocityAttribute = this.velocities;
+
+    // Calculate half dimensions for boundary checks
+    const halfWidth = this.width / 2;
+    const halfHeight = this.height / 2;
+    const halfDepth = this.depth / 2;
+
+    for (let i = 0; i < this.particleCount; i++) {
+      const i3 = i * 3;
+
+      // Update position = current position + velocity
+      positionAttribute.array[i3] += velocityAttribute[i3];
+      positionAttribute.array[i3 + 1] += velocityAttribute[i3 + 1];
+      positionAttribute.array[i3 + 2] += velocityAttribute[i3 + 2];
+
+      // If particle goes out of bounds, reset it to the other side for infinite floating
+      // Check x-axis
+      if (positionAttribute.array[i3] > halfWidth)
+        positionAttribute.array[i3] = -halfWidth;
+      if (positionAttribute.array[i3] < -halfWidth)
+        positionAttribute.array[i3] = halfWidth;
+      // Check y-axis
+      if (positionAttribute.array[i3 + 1] > halfHeight)
+        positionAttribute.array[i3 + 1] = -halfHeight;
+      if (positionAttribute.array[i3 + 1] < -halfHeight)
+        positionAttribute.array[i3 + 1] = halfHeight;
+      // Check z-axis
+      if (positionAttribute.array[i3 + 2] > halfDepth)
+        positionAttribute.array[i3 + 2] = -halfDepth;
+      if (positionAttribute.array[i3 + 2] < -halfDepth)
+        positionAttribute.array[i3 + 2] = halfDepth;
+    }
+
+    // Mark position attribute as needing update, so Three.js re-uploads it to the GPU
+    positionAttribute.needsUpdate = true;
+  }
+}

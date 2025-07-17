@@ -91,7 +91,7 @@ export default class Particles extends Object3D {
     const texture = this.texture;
     this.width = texture.image.width;
     this.height = texture.image.height;
-    const maxWidth = this.globalConfig.maxWidth;
+    const maxWidth = this.globalConfig.maxParticleWidth;
     if (this.width > maxWidth && this.width < this.height) {
       const ratio = this.width / this.height;
       this.width = maxWidth;

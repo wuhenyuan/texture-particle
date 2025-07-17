@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Three.js 漂浮粒子</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden; /* 防止滚动条 */
+        background-color: #000000; /* 黑色背景 */
+      }
+      canvas {
+        display: block; /* 移除 canvas 下方的空白 */
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Three.js 库的 CDN 链接 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script type="module">
+      // 定义 FloatingParticles 类
+      class FloatingParticles {
+        /**
+         * 构造函数，初始化粒子系统。
+         * @param {THREE.Scene} scene - 要添加粒子的 Three.js 场景。
+         * @param {number} particleCount - 粒子的数量。
+         * @param {number} bounds - 粒子漂浮的立方体区域的半边长。
+         * 例如，如果 bounds 为 5，则粒子在 x, y, z 轴的范围都是 -5 到 5。
+         */
+        constructor(scene, particleCount = 2000, bounds = 5) {
+          this.scene = scene;
+          this.particleCount = particleCount;
+          this.bounds = bounds; // 粒子漂浮的边界范围（半边长）
+
+          // 存储粒子位置 (x, y, z)
+          this.positions = new Float32Array(this.particleCount * 3);
+          // 存储粒子速度 (vx, vy, vz)
+          this.velocities = new Float32Array(this.particleCount * 3);
+          // 存储粒子大小 (用于自定义着色器，此处PointsMaterial未使用)
+          this.sizes = new Float32Array(this.particleCount);
+
+          this.initParticles();
+          this.createParticleSystem();
+        }
+
+        /**
+         * 初始化粒子的初始位置、速度和大小。
+         */
+        initParticles() {
+          for (let i = 0; i < this.particleCount; i++) {
+            const i3 = i * 3;
+
+            // 随机设置粒子初始位置，分布在一个立方体区域内
+            // 范围是 -bounds 到 +bounds
+            this.positions[i3] = (Math.random() - 0.5) * (this.bounds * 2); // x
+            this.positions[i3 + 1] = (Math.random() - 0.5) * (this.bounds * 2); // y
+            this.positions[i3 + 2] = (Math.random() - 0.5) * (this.bounds * 2); // z
+
+            // 随机设置粒子初始速度，模拟轻微的漂浮
+            // 调整速度范围，使其更具随机性和漂浮感
+            this.velocities[i3] = (Math.random() - 0.5) * 0.01;
+            this.velocities[i3 + 1] = (Math.random() - 0.5) * 0.01;
+            this.velocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
+
+            // 随机设置粒子大小
+            this.sizes[i] = 0.05 + Math.random() * 0.2;
+          }
+        }
+
+        /**
+         * 创建 Three.js 粒子系统（几何体和材质）。
+         */
+        createParticleSystem() {
+          this.geometry = new THREE.BufferGeometry();
+          this.geometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(this.positions, 3)
+          );
+          this.geometry.setAttribute(
+            "size",
+            new THREE.BufferAttribute(this.sizes, 1)
+          );
+
+          // 创建一个 Canvas 作为纹理，绘制一个方块
+          const canvas = document.createElement("canvas");
+          canvas.width = 32;
+          canvas.height = 32;
+          const context = canvas.getContext("2d");
+          context.fillStyle = "white";
+          context.fillRect(0, 0, 32, 32); // 绘制一个白色方块
+
+          const particleTexture = new THREE.CanvasTexture(canvas);
+
+          this.material = new THREE.PointsMaterial({
+            color: 0xffffff, // 粒子颜色为白色
+            size: 0.15, // 调整默认粒子大小，使其更显方块感
+            sizeAttenuation: true, // 粒子大小随距离衰减
+            transparent: true, // 启用透明度
+            opacity: 0.7, // 粒子不透明度，略微降低以增加氛围感
+            blending: THREE.AdditiveBlending, // 叠加混合模式，使粒子看起来更亮
+            map: particleTexture, // 使用方块纹理
+          });
+
+          // 创建粒子对象并添加到场景
+          this.particles = new THREE.Points(this.geometry, this.material);
+          this.scene.add(this.particles);
+        }
+
+        /**
+         * 更新每个粒子的位置，模拟漂浮效果。
+         * 并在粒子超出边界时将其重置到另一侧，形成无限漂浮效果。
+         */
+        update() {
+          const positionAttribute = this.geometry.attributes.position;
+          const velocityAttribute = this.velocities;
+
+          for (let i = 0; i < this.particleCount; i++) {
+            const i3 = i * 3;
+
+            // 更新位置 = 当前位置 + 速度
+            positionAttribute.array[i3] += velocityAttribute[i3];
+            positionAttribute.array[i3 + 1] += velocityAttribute[i3 + 1];
+            positionAttribute.array[i3 + 2] += velocityAttribute[i3 + 2];
+
+            // 如果粒子超出边界，将其重置到另一侧，形成无限漂浮效果
+            // 检查 x 轴
+            if (positionAttribute.array[i3] > this.bounds)
+              positionAttribute.array[i3] = -this.bounds;
+            if (positionAttribute.array[i3] < -this.bounds)
+              positionAttribute.array[i3] = this.bounds;
+            // 检查 y 轴
+            if (positionAttribute.array[i3 + 1] > this.bounds)
+              positionAttribute.array[i3 + 1] = -this.bounds;
+            if (positionAttribute.array[i3 + 1] < -this.bounds)
+              positionAttribute.array[i3 + 1] = this.bounds;
+            // 检查 z 轴
+            if (positionAttribute.array[i3 + 2] > this.bounds)
+              positionAttribute.array[i3 + 2] = -this.bounds;
+            if (positionAttribute.array[i3 + 2] < -this.bounds)
+              positionAttribute.array[i3 + 2] = this.bounds;
+          }
+
+          // 标记位置属性需要更新，以便 Three.js 重新上传到 GPU
+          positionAttribute.needsUpdate = true;
+        }
+      }
+
+      // --- 主程序逻辑 ---
+
+      // 创建场景、摄像机和渲染器
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true }); // 启用抗锯齿
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // 设置摄像机位置
+      camera.position.z = 5;
+
+      // 实例化 FloatingParticles 类
+      // 第三个参数 `5` 定义了粒子漂浮的立方体范围，即在 x, y, z 轴上都在 -5 到 5 之间。
+      // 您可以修改这个值来调整漂浮的矩形范围大小。
+      const floatingParticles = new FloatingParticles(scene, 2000, 5);
+
+      // --- 动画循环 ---
+      function animate() {
+        requestAnimationFrame(animate); // 请求下一帧动画
+
+        // 调用粒子系统的 update 方法
+        floatingParticles.update();
+
+        // 渲染场景
+        renderer.render(scene, camera);
+      }
+
+      // 启动动画
+      animate();
+
+      // --- 窗口大小改变事件监听 ---
+      window.addEventListener("resize", () => {
+        // 更新摄像机宽高比
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix(); // 更新摄像机投影矩阵
+
+        // 更新渲染器大小
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
