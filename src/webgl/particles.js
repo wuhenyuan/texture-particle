@@ -275,7 +275,7 @@ export default class Particles extends Object3D {
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
-      this.progress = this.time;
+      this.progress = this.time / 4.5;
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
     } else {

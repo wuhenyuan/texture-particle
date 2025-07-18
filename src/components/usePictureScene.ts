@@ -45,7 +45,7 @@ import {
 import { useGlobalConfig } from "../stores";
 import useGui from "./useCustomGui";
 import mainFrag from "../webgl/technologyGlsl/main.frag";
-import rainMaskFragmentShader from "../webgl/technologyGlsl/rainMaskFragmentShader.frag";
+import rainMaskFragmentShader from "../webgl/technologyGlsl/floatingParticleMask.frag";
 import mainFrag2 from "../webgl/technologyGlsl/main2.frag";
 // import { LUTCubeLoader } from "three/examples/jsm/loaders/LUTCubeLoader .js";
 import { LUTCubeLoader } from "postprocessing";
@@ -416,6 +416,47 @@ export const usePictureScene = (scene, renderer, camera) => {
     type: FloatType,
   });
 
+  const digitalVertex = `// 顶点着色器
+            // 输入顶点坐标的属性
+
+            varying vec2 vUv;
+
+            // 顶点着色器的主函数
+            void main() {
+                vUv = uv;
+                // 将顶点坐标从模型空间变换到剪裁空间
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+    `;
+
+  const rainMaskMaterial = new ShaderMaterial({
+    name: "rainMask",
+    uniforms: {
+      tDiffuse: { value: grayRt.texture },
+      resolution: { value: renderResolution },
+      faceAera: { value: globalConfig.faceAera },
+      // maskRatio: { value: 0.5 },
+    },
+    transparent: true,
+    vertexShader: digitalVertex,
+    fragmentShader: rainMaskFragmentShader,
+  });
+  const digitalMesh = new Mesh(getFSGeometry(), rainMaskMaterial);
+  // scene.add(digitalMesh);
+  const maskRainRt = new WebGLRenderTarget(
+    renderResolution.x,
+    renderResolution.y,
+    {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      wrapS: ClampToEdgeWrapping,
+      wrapT: ClampToEdgeWrapping,
+      type: FloatType,
+    }
+  );
+
+  globalConfig.maps.maskHumanTexture = maskRainRt.texture;
+
   const eyeBall = new Vector4();
   globalConfig.eyeBall = eyeBall;
 
@@ -502,6 +543,10 @@ export const usePictureScene = (scene, renderer, camera) => {
         renderer.render(depthRenderWrapper, camera);
       }
     }
+
+    renderer.setRenderTarget(maskRainRt);
+    renderer.clear();
+    renderer.render(digitalMesh, camera);
 
     renderer.setRenderTarget(calNormalRt);
     renderer.clear();
@@ -620,8 +665,6 @@ export const usePictureScene = (scene, renderer, camera) => {
     depthRenderRt.setSize(width, height);
     mainRt.setSize(width, height);
     // mainRt2.setSize(width, height);
-    const planeGeometry = new PlaneGeometry(width, height);
-    console.log(planeGeometry);
     lutRt.setSize(width, height);
 
     updateCurrentTexture(_texture);
@@ -659,6 +702,12 @@ export const usePictureScene = (scene, renderer, camera) => {
     });
     downSamplingRts.push(rts);
 
+    const planeGeometry = new PlaneGeometry(
+      globalConfig.maxParticleWidth,
+      globalConfig.maxParticleWidth / ratio
+    );
+    digitalMesh.geometry = planeGeometry;
+    window.digitalMesh = digitalMesh;
     if (globalConfig.debugTexture) {
       show();
     }

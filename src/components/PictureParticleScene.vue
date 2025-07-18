@@ -283,14 +283,21 @@ const createFloatParticles = () => {
   const faceAera = globalConfig.faceAera;
   const centerx = ((faceAera.x + faceAera.z - 1.0) * particle.width) / 2;
   const centery = ((faceAera.y + faceAera.w - 1.0) * particle.height) / 2;
+
+  // 随便更新一下人脸位置
+  const dy = (faceAera.y + faceAera.w) / 2 - 0.5;
+  points.position.y -= dy * points.height;
+
   flaotParticle = new FloatingParticles(
     scene,
-    2000,
-    width / 4,
-    height / 4,
+    400,
+    new Vector3(centerx, centery, 0),
+    50,
+    70,
     // new Vector3(centerx, centery, 0)
-    width / 4
+    50
   );
+  flaotParticle.particles.scale.x = points.width / points.height;
 };
 
 const createBackground = () => {
