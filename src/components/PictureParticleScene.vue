@@ -91,6 +91,8 @@ const faceGeometryAttribute = new BufferAttribute(vertices, 3);
 const renderConfig = globalConfig.config;
 // window.faceGeometryAttribute = faceGeometryAttribute;
 const initThree = (isLocal) => {
+  if (globalConfig.isThreeInit) return;
+  globalConfig.isThreeInit = true;
   // 创建场景
   scene = new Scene();
 
@@ -127,6 +129,7 @@ const initThree = (isLocal) => {
   orbitControls.dampingFactor = 0.25;
   orbitControls.screenSpacePanning = false;
   orbitControls.maxPolarAngle = Math.PI / 2;
+  orbitControls.enabled = globalConfig.isUseOrbital;
 
   // 创建视频纹理
   const video = document.getElementById("video");
@@ -213,7 +216,9 @@ const initThree = (isLocal) => {
       if (!flaotParticle) createFloatParticles();
     }
 
-    orbitControls.update();
+    if (globalConfig.isUseOrbital) {
+      orbitControls.update();
+    }
 
     const delta = clock.getDelta();
     if (globalConfig.isFaceReady) {
