@@ -528,7 +528,6 @@ export default class FloatingParticles {
       // const elapsed = delta - this.introStartTime;
       const progress = Math.min(1, this.time / this.introDuration); // 0 to 1
 
-      console.log(progress);
       for (let i = 0; i < this.particleCount; i++) {
         const i3 = i * 3;
         // Linear interpolation from initial to target position

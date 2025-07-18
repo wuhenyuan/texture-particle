@@ -1,4 +1,4 @@
-import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+import vision from "../mediapipe/tasks-vision@0.10.3";
 const { FaceLandmarker, DrawingUtils, FilesetResolver } = vision;
 import {
   FACE_LANDMARKS_NOSE,
@@ -49,12 +49,10 @@ export default function useMediaPipe() {
   let vision, faceLandmarker, imageSegmenter;
   let labels;
   async function createFaceLandmarker() {
-    vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-    );
+    vision = await FilesetResolver.forVisionTasks("/src/mediapipe/wasm");
     faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+        modelAssetPath: `/src/mediapipe/face_landmarker.task`,
         delegate: "GPU",
       },
       // minDetectionConfidence: 0.001,
@@ -404,6 +402,9 @@ export default function useMediaPipe() {
         globalConfig.eyeBall.set(lx, 1.0 - ly, rx, 1.0 - ry);
         // globalConfig.faceAera.set(minx, miny, maxx, maxy);
         globalConfig.faceAera.set(minx, 1 - maxy, maxx, 1 - miny);
+        //动态调整粒子的宽度
+        const xw = (globalConfig.maxParticleWidth / (maxx - minx)) * 0.3;
+        globalConfig.maxParticleWidth = xw;
       }
       globalConfig.faceDepthMax = max;
       globalConfig.faceDepthMin = min;

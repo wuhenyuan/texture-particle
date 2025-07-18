@@ -5720,5 +5720,4 @@ const getIndex = (map) => {
 };
 
 result.push(...getIndex(FACE_LANDMARKS_LIPS));
-// debugger;
 // console.log(result);

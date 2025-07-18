@@ -169,7 +169,7 @@ export const usePictureScene = (scene, renderer, camera) => {
     globalDepths = arr;
   };
 
-  initDepth();
+  // initDepth();
 
   // 可以作为mask
   // init gray , eliminate background 剔除背景了

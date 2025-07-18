@@ -534,7 +534,6 @@ export const useTechnology = (scene, renderer, camera) => {
     // if (!isInitMask) {
     renderer.setRenderTarget(maskRainRt);
     renderer.clear();
-    // debugger;
     const visibvle = digitalMesh.visible;
     digitalMesh.visible = true;
     digitalMesh.material = rainMaskMaterial;

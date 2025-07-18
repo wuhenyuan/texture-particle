@@ -184,7 +184,7 @@ const initThree = (isLocal) => {
       startFaceDetect();
     }
     updateTexture(videoTexture, video);
-    particle.updateTexture();
+    // particle.updateTexture();
     //   // 使用概率分布图作为采样图
   });
 
@@ -206,7 +206,13 @@ const initThree = (isLocal) => {
 
   // 动画循环
   const animate = () => {
+    // if ()
     requestAnimationFrame(animate);
+    if (globalConfig.isFaceReady) {
+      if (!particle) createParticles();
+      if (!flaotParticle) createFloatParticles();
+    }
+
     orbitControls.update();
 
     const delta = clock.getDelta();
@@ -222,16 +228,9 @@ const initThree = (isLocal) => {
       updateLandMark();
     }
 
-    if (flaotParticle) {
+    if (particle && flaotParticle) {
+      particle.update(delta);
       flaotParticle.update(delta);
-    }
-
-    if (globalConfig.isFaceReady) {
-      if (globalConfig.particleVisible) particle.visible = true;
-      if (!flaotParticle) createFloatParticles();
-    }
-    particle.update(delta);
-    if (particle.isDead) {
     }
 
     if (globalConfig.isUsePostProcessing) {
@@ -259,18 +258,6 @@ const initThree = (isLocal) => {
   preTreatment = _preTreatment;
   updateTexture = _updateTexture;
 
-  // createDigitalHumanWrapper(renderTexture);
-  particle = new Particles(scene, globalConfig.maps.renderTexture);
-  // scene.add(particle);
-  // particle.visible = true;
-  particle.visible = false;
-  // particle.scale.set(0.493, 0.493, 1);
-  const scale = 1;
-  particle.scale.set(scale, scale, 1);
-
-  // globalConfig.particle = particle;
-  window.particle = particle;
-
   // setScale(0.1);
   // if (createBackground) createBackground();
 
@@ -279,14 +266,27 @@ const initThree = (isLocal) => {
   animate();
 };
 
+const createParticles = () => {
+  // createDigitalHumanWrapper(renderTexture);
+  particle = new Particles(scene, globalConfig.maps.renderTexture);
+  particle.visible = globalConfig.particleVisible;
+  // scene.add(particle);
+  // particle.visible = true;
+  // particle.visible = false;
+  // particle.scale.set(0.493, 0.493, 1);
+  // const scale = 1;
+  // particle.scale.set(scale, scale, 1);
+
+  // 更新一下人脸位置
+  const dy = (faceAera.y + faceAera.w) / 2 - 0.5;
+  particle.position.y -= dy * points.height;
+  // globalConfig.particle = particle;
+  // window.particle =  ;
+};
 const createFloatParticles = () => {
   const faceAera = globalConfig.faceAera;
   const centerx = ((faceAera.x + faceAera.z - 1.0) * particle.width) / 2;
   const centery = ((faceAera.y + faceAera.w - 1.0) * particle.height) / 2;
-
-  // 随便更新一下人脸位置
-  const dy = (faceAera.y + faceAera.w) / 2 - 0.5;
-  points.position.y -= dy * points.height;
 
   flaotParticle = new FloatingParticles(
     scene,
@@ -368,14 +368,17 @@ function startFaceDetect() {
   startDetecte();
 }
 
-function detectP() {
-  detectPicture(image);
+function stop() {
+  if (!particles || !flaotParticle) return;
+  particles.stop();
+  flaotParticle.stop();
 }
 
 defineExpose({
   initThree,
   startFaceDetect,
-  detectP,
+  // detectP,
+  stop,
 });
 
 onMounted(() => {

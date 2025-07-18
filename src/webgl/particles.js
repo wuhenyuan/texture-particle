@@ -64,6 +64,7 @@ export default class Particles extends Object3D {
       minSize: { value: 0 },
       eyeIntensity: { value: 0 },
     };
+    this.init(this.texture);
   }
 
   updateTexture() {
@@ -95,7 +96,7 @@ export default class Particles extends Object3D {
     if (this.width > maxWidth && this.width < this.height) {
       const ratio = this.width / this.height;
       this.width = maxWidth;
-      this.height = maxWidth / ratio;
+      this.height = Math.floor(maxWidth / ratio);
     }
     console.log(this.width, this.height);
 

@@ -2,10 +2,9 @@
   <div id="app">
     <ThreeScene ref="threescene" class="three-scene" />
     <div class="control">
-      <button id="startFace" @click="startFace">开始人脸</button>
       <button id="start" @click="start">开始</button>
       <button id="stop" @click="stop">结束</button>
-      <button id="exportButton">导出图片</button>
+      <button id="switch" @click="switch">切换</button>
       <!-- <img id="img" /> -->
       <div class="gender-selector">
         <label>
@@ -43,7 +42,7 @@
         <canvas id="mask"></canvas>
       </div>
       <div id="media">
-        <h2>Media</h2>
+        <!-- <h2>Media</h2> -->
 
         <!-- src="./assets/testVideo.mp4" -->
         <audio id="audio" autoplay="true"></audio>
@@ -92,7 +91,6 @@ export default {
       const config = useGlobalConfig();
       const isLocal = config.isLocal;
       this.$refs.threescene.initThree(isLocal);
-      // debugger;
       if (isLocal) return;
       try {
         if (config.isUseAsr) {
@@ -123,6 +121,8 @@ export default {
       }
       stop();
     },
+
+    switch() {},
     send() {
       uploadToHuman(this.inputValue);
     },
