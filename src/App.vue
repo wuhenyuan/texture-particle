@@ -89,8 +89,8 @@ export default {
     },
     start() {
       const config = useGlobalConfig();
+      this.$refs.threescene.start();
       const isLocal = config.isLocal;
-      this.$refs.threescene.initThree(isLocal);
       if (isLocal) return;
       try {
         if (config.isUseAsr) {
@@ -110,6 +110,14 @@ export default {
       window.stop = stop;
       window.stopAsr = stopAsr;
       const config = useGlobalConfig();
+      config.hasFaceInfo = false;
+      config.canPlay = false;
+      config.isFaceReady = false;
+      config.needRestart = true;
+
+      this.$refs.threescene.stop();
+      const isLocal = config.isLocal;
+      if (isLocal) return;
       try {
         if (config.isUseAsr) {
           stopAsr();

@@ -6,7 +6,7 @@ export const useGlobalConfig = defineStore("app", {
     debugTexture: false,
     showDigital: false,
     particleVisible: true,
-    isLocal: true,
+    isLocal: false,
     isUseAsr: false,
     isUseOrbital: false,
     faceDepthMin: 0,
@@ -28,8 +28,10 @@ export const useGlobalConfig = defineStore("app", {
 
     // 流程状态
     isFaceReady: false,
+    canPlay: false,
     isFaceLamkmardUpdate: false,
     isThreeInit: false,
+    needRestart: false,
     maxWidth: 500,
     maxParticleWidth: 200,
 

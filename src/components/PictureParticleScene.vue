@@ -90,12 +90,10 @@ const faceVertices = vertices;
 const faceGeometryAttribute = new BufferAttribute(vertices, 3);
 const renderConfig = globalConfig.config;
 // window.faceGeometryAttribute = faceGeometryAttribute;
-const initThree = (isLocal) => {
-  if (globalConfig.isThreeInit) return;
-  globalConfig.isThreeInit = true;
+const initThree = () => {
+  const isLocal = globalConfig.isLocal;
   // 创建场景
   scene = new Scene();
-
   // 创建相机
   camera = new PerspectiveCamera(50, ratio, 1, 10000);
   // camera.position.x = -66.84943545428499;
@@ -155,34 +153,36 @@ const initThree = (isLocal) => {
 
   let videoTexture;
   video.addEventListener("loadedmetadata", () => {
+    console.log(
+      "-------------------------loadedMetadata-------------------------"
+    );
     const { videoWidth, videoHeight } = video;
 
     const ratio = videoWidth / videoHeight;
     const texture = new VideoTexture(video);
     console.log(texture);
     // const texture = new VideoTexture(video);
-    texture.minFilter = LinearMipMapLinearFilter;
-    texture.magFilter = LinearFilter;
+    texture.minFilter = NearestFilter;
+    texture.magFilter = NearestFilter;
     texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
-    texture.generateMipmaps = true;
+    // texture.generateMipmaps = true;
 
     videoTexture = texture;
-    const base = 100;
-    const geometry = new PlaneGeometry(base, base / ratio);
-    const material = new MeshBasicMaterial({ map: texture });
+    // const base = 100;
+    // const geometry = new PlaneGeometry(base, base / ratio);
+    // const material = new MeshBasicMaterial({ map: texture });
     // const material = new MeshBasicMaterial({ color: "#ffffff" });
-    const plane = new Mesh(geometry, material);
+    // const plane = new Mesh(geometry, material);
 
     // scene.add(plane);
     // 如果隐藏了需要调用一次播放
     video.play();
   });
 
-  let isInit = false;
   // play 是异步的
   video.addEventListener("canplay", () => {
-    if (isInit) return;
-    isInit = true;
+    if (globalConfig.canPlay) return;
+    globalConfig.canPlay = true;
     if (globalConfig.useFaceDetection) {
       startFaceDetect();
     }
@@ -214,6 +214,9 @@ const initThree = (isLocal) => {
     if (globalConfig.isFaceReady) {
       if (!particle) createParticles();
       if (!flaotParticle) createFloatParticles();
+      if (globalConfig.needRestart) {
+        restartParticle();
+      }
     }
 
     if (globalConfig.isUseOrbital) {
@@ -272,6 +275,7 @@ const initThree = (isLocal) => {
 };
 
 const createParticles = () => {
+  const faceAera = globalConfig.faceAera;
   // createDigitalHumanWrapper(renderTexture);
   particle = new Particles(scene, globalConfig.maps.renderTexture);
   particle.visible = globalConfig.particleVisible;
@@ -303,23 +307,6 @@ const createFloatParticles = () => {
     50
   );
   flaotParticle.particles.scale.x = points.width / points.height;
-};
-
-const createBackground = () => {
-  //   // 创建视频元素
-  const backgroundVideo = document.createElement("video");
-  backgroundVideo.src = "/src/assets/background2.mp4"; // 本地或网络路径
-  backgroundVideo.crossOrigin = "anonymous"; // 如果需要跨域
-  backgroundVideo.loop = true;
-  backgroundVideo.muted = true;
-  backgroundVideo.play(); // 触发播放
-  // 创建 VideoTexture
-  const videoTexture = new VideoTexture(backgroundVideo);
-  videoTexture.minFilter = NearestFilter;
-  videoTexture.magFilter = NearestFilter;
-  videoTexture.format = RGBFormat;
-  // 设置为场景背景
-  scene.background = videoTexture;
 };
 
 const createFaceGeometry = () => {
@@ -373,14 +360,29 @@ function startFaceDetect() {
   startDetecte();
 }
 
+function restartParticle() {
+  particle.start();
+  flaotParticle.start();
+}
+
+function start() {
+  if (globalConfig.isThreeInit) {
+    // 等待视频链接
+    // 模拟视频重连
+  } else {
+    initThree();
+    globalConfig.isThreeInit = true;
+  }
+}
+
 function stop() {
-  if (!particles || !flaotParticle) return;
-  particles.stop();
+  if (!particle || !flaotParticle) return;
+  particle.stop();
   flaotParticle.stop();
 }
 
 defineExpose({
-  initThree,
+  start,
   startFaceDetect,
   // detectP,
   stop,
@@ -391,7 +393,7 @@ onMounted(() => {
   height = threeContainer.value.clientHeight;
   ratio = width / height;
   if (globalConfig.isLocal) {
-    initThree(globalConfig.isLocal);
+    start();
   }
   if (globalConfig.useFaceDetection) {
     const {

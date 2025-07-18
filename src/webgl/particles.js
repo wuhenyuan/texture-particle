@@ -249,6 +249,16 @@ export default class Particles extends Object3D {
     return false;
   }
 
+  stop() {
+    this.visible = false;
+    this.time = 0;
+    this.progress = 0;
+  }
+
+  start() {
+    this.visible = true;
+  }
+
   updateUniforms() {
     const config = this.globalConfig.config;
     this.material.uniforms.uSize.value = config.size;

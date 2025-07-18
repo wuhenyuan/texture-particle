@@ -195,8 +195,10 @@ export default function useMediaPipe() {
   }
 
   async function predictWebcam() {
-    if (!faceLandmarker) return;
+    requestAnimationFrame(predictWebcam);
     if (globalConfig.hasFaceInfo) return;
+    // 如果是中断过程，不需要检查
+    if (!globalConfig.canPlay) return;
     setSize(canvasElement, video);
     setSize(maskCanvasElement, video);
     // Now let's start detecting the stream.
@@ -285,7 +287,6 @@ export default function useMediaPipe() {
       fillArea(landmarks, FACE_LANDMARKS_LEFT_EYE, "red");
     }
 
-    requestAnimationFrame(predictWebcam);
     // Call this function again to keep predicting when the browser is ready.
   }
 
@@ -311,11 +312,14 @@ export default function useMediaPipe() {
     maskCtx.fill();
   };
 
+  let isDetectionInited = false;
   function startDetecte() {
     console.log("-------------startDetecte---------------");
     if (globalConfig.isFaceReady) return;
     if (!faceLandmarker) return;
+    if (isDetectionInited) return;
     requestAnimationFrame(predictWebcam);
+    isDetectionInited = true;
   }
   function updateLandMark() {
     // const faceGeometry2 = globalConfig.faceGeometry as BufferGeometry;

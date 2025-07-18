@@ -512,11 +512,22 @@ export default class FloatingParticles {
     window.float = this.particles;
   }
 
+  stop() {
+    this.time = 0;
+    this.isIntroAnimating = true;
+    this.particles.visible = false;
+  }
+
+  start() {
+    this.particles.visible = true;
+  }
+
   /**
    * Updates the position of each particle, simulating a very subtle random drift
    * within the defined elliptical ring bounds, and reflecting them when they go out of bounds.
    */
   update(delta) {
+    if (!this.particles.visible) return;
     this.material.uniforms.u_color.value.set(this.globalConfig.config.pColor);
     const positionAttribute = this.geometry.attributes.position;
     const velocityAttribute = this.velocities;
