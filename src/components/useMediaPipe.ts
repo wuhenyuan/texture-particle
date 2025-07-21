@@ -186,7 +186,7 @@ export default function useMediaPipe() {
   function setSize(_canvasElement, video) {
     const radio = video.videoHeight / video.videoWidth;
     video.style.width = videoWidth + "px";
-    videoHeight = videoWidth * radio;
+    videoHeight = Math.floor(videoWidth * radio);
     video.style.height = videoHeight + "px";
     _canvasElement.style.width = videoWidth + "px";
     _canvasElement.style.height = videoHeight + "px";
@@ -338,10 +338,11 @@ export default function useMediaPipe() {
     minx = miny = 1;
     maxx = maxy = -1;
     if (results && results.faceLandmarks && needResult) {
+      const faceLandmarks = results.faceLandmarks[0];
+      if (!faceLandmarks?.length) return;
       setTimeout(() => {
         globalConfig.isFaceReady = true;
       });
-      const faceLandmarks = results.faceLandmarks[0];
       // console.log(faceLandmarks);
       needResult = false;
       globalConfig.isFaceLamkmardUpdate = true;
@@ -407,7 +408,8 @@ export default function useMediaPipe() {
         // globalConfig.faceAera.set(minx, miny, maxx, maxy);
         globalConfig.faceAera.set(minx, 1 - maxy, maxx, 1 - miny);
         //动态调整粒子的宽度
-        const xw = (globalConfig.maxParticleWidth / (maxx - minx)) * 0.3;
+        const xw = Math.floor((200 / (maxx - minx)) * 0.3);
+        globalConfig.needUpdateParticleSize = true;
         globalConfig.maxParticleWidth = xw;
       }
       globalConfig.faceDepthMax = max;

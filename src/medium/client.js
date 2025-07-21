@@ -1,7 +1,7 @@
 var pc = null;
 let sessionid = null;
-const url = "http://10.7.3.50:8010";
-// const url = "http://10.7.11.111:8010";
+// const url = "http://10.7.3.50:8010";
+const url = "http://10.7.11.111:8010";
 function negotiate() {
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
@@ -111,6 +111,7 @@ export function stop() {
   // close peer connection
   setTimeout(() => {
     pc.close();
+    console.log("close pc");
   }, 500);
 }
 

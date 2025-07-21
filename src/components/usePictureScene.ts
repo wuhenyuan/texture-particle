@@ -637,6 +637,7 @@ export const usePictureScene = (scene, renderer, camera) => {
       width = _texture.image.width;
       height = _texture.image.height;
     }
+    downSamplingRts.length = 0;
 
     originWidth = width;
     originHeight = height;

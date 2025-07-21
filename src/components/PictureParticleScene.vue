@@ -187,7 +187,6 @@ const initThree = () => {
       startFaceDetect();
     }
     updateTexture(videoTexture, video);
-    // particle.updateTexture();
     //   // 使用概率分布图作为采样图
   });
 
@@ -226,6 +225,11 @@ const initThree = () => {
     const delta = clock.getDelta();
     if (globalConfig.isFaceReady) {
       // faceLine.visible = true;
+    }
+
+    if (globalConfig.needUpdateParticleSize) {
+      particle?.updateTexture();
+      updateHunmen();
     }
 
     if (preTreatment) {
@@ -274,8 +278,14 @@ const initThree = () => {
   animate();
 };
 
-const createParticles = () => {
+function updateHunmen() {
   const faceAera = globalConfig.faceAera;
+  const dy = (faceAera.y + faceAera.w) / 2 - 0.5;
+  particle.position.y -= Math.floor(dy * points.height);
+  console.log(particle.position.y);
+}
+
+const createParticles = () => {
   // createDigitalHumanWrapper(renderTexture);
   particle = new Particles(scene, globalConfig.maps.renderTexture);
   particle.visible = globalConfig.particleVisible;
@@ -287,10 +297,9 @@ const createParticles = () => {
   // particle.scale.set(scale, scale, 1);
 
   // 更新一下人脸位置
-  const dy = (faceAera.y + faceAera.w) / 2 - 0.5;
-  particle.position.y -= dy * points.height;
   // globalConfig.particle = particle;
   // window.particle =  ;
+  updateHunmen();
 };
 const createFloatParticles = () => {
   const faceAera = globalConfig.faceAera;

@@ -113,7 +113,11 @@ export default {
       config.hasFaceInfo = false;
       config.canPlay = false;
       config.isFaceReady = false;
+      config.isTextureInit = false;
+      console.log("isTextureInit", config.isTextureInit);
       config.needRestart = true;
+      config.faceAera.set(0, 0, 0, 0);
+      config.eyeBall.set(0, 0, 0, 0);
 
       this.$refs.threescene.stop();
       const isLocal = config.isLocal;
@@ -122,7 +126,6 @@ export default {
         if (config.isUseAsr) {
           stopAsr();
         }
-        stop();
       } catch (error) {
         console.log(error);
       } finally {
@@ -150,8 +153,8 @@ export default {
 
       // return;
       try {
-        const response = await fetch("http://10.7.3.50:8010/create_human", {
-          // const response = await fetch("http://10.7.11.111:8010/create_human", {
+        // const response = await fetch("http://10.7.3.50:8010/create_human", {
+        const response = await fetch("http://10.7.11.111:8010/create_human", {
           method: "POST",
           body: formData,
         });
@@ -230,6 +233,6 @@ div {
   /* display: none; */
 }
 #video {
-  display: none;
+  /* display: none; */
 }
 </style>

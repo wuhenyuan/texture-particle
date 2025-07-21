@@ -27,6 +27,7 @@ export const useGlobalConfig = defineStore("app", {
     // cameraPosition: [0, 0, 1063],
 
     // 流程状态
+    needUpdateParticleSize: false,
     isFaceReady: false,
     canPlay: false,
     isFaceLamkmardUpdate: false,

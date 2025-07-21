@@ -75,6 +75,7 @@ export default class Particles extends Object3D {
   }
 
   init() {
+    debugger;
     // this.texture = videoTexture;
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
@@ -100,6 +101,7 @@ export default class Particles extends Object3D {
     }
     console.log(this.width, this.height);
 
+    this.globalConfig.needUpdateParticleSize = false;
     this.resolution.set(this.width, this.height);
     this.initPoints(true);
     // this.initHitArea();
@@ -118,6 +120,9 @@ export default class Particles extends Object3D {
 
   initPoints(discard) {
     if (this.instancePoints) {
+      try {
+        this.instancePoints.dispose();
+      } catch (e) {}
       this.remove(this.instancePoints);
       // this.destroy();
     }
@@ -266,8 +271,8 @@ export default class Particles extends Object3D {
     this.uniforms.eyeIntensity.value = config.eyeIntensity;
     // this.material.uniforms.decorationTextuer.value =
     //   this.globalConfig.maps.decorationMap;
-    if (!this.isTextureInit) {
-      this.isTextureInit = true;
+    if (!this.globalConfig.isTextureInit) {
+      this.globalConfig.isTextureInit = true;
       const texture = getCrossTexture(this.width, this.height);
       this.material.uniforms.decorationTextuer.value = texture;
       this.globalConfig.maps.decorationMap = texture;
