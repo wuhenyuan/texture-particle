@@ -1,206 +1,14 @@
 <template>
-  <div id="app">
-    <ThreeScene ref="threescene" class="three-scene" />
-    <div class="control">
-      <button id="start" @click="start">开始</button>
-      <button id="stop" @click="stop">结束</button>
-      <button id="switch" @click="switch">切换</button>
-      <!-- <img id="img" /> -->
-      <div class="gender-selector">
-        <label>
-          <input type="radio" name="gender" value="0" v-model="gender" />
-          女生
-        </label>
-        <label>
-          <input type="radio" name="gender" value="1" v-model="gender" />
-          男生
-        </label>
-      </div>
-      <h2>上传文件</h2>
-      <form @submit.prevent="handleUpload">
-        <input type="file" ref="fileInput" required />
-        <button type="submit" :disabled="loading">
-          {{ loading ? "上传中..." : "上传" }}
-        </button>
-      </form>
-      <p v-if="message">{{ message }}</p>
-      <div>
-        <h3>对话</h3>
-        <input v-model="inputValue" />
-        <button @click="send">发送</button>
-      </div>
-      <div class="asr-result">
-        <textarea
-          rows="10"
-          id="varArea"
-          readonly="true"
-          style="width: 100%; height: 100%"
-        ></textarea>
-      </div>
-      <div id="outputContianer">
-        <canvas id="output"></canvas>
-        <canvas id="mask"></canvas>
-      </div>
-      <div id="media">
-        <!-- <h2>Media</h2> -->
-
-        <!-- src="./assets/testVideo.mp4" -->
-        <audio id="audio" autoplay="true"></audio>
-        <video
-          id="video"
-          style="width: 600px"
-          muted="true"
-          loop="true"
-          autoplay="true"
-          playsinline="true"
-        ></video>
-        <!-- src="./tiger.mp4" -->
-      </div>
-    </div>
+  <div class="fullpage-wrapper">
+    <router-view />
   </div>
 </template>
 
-<script>
-// import ThreeScene from "./components/ParticleScene.vue";
-// import ThreeScene from "./components/TechnologistScene.vue";
-import ThreeScene from "./components/PictureParticleScene.vue";
-import { start, stop, uploadToHuman } from "./medium/client";
-import { startAsr, stopAsr, startConnect } from "./medium/asr";
-import { DebugEnvironment } from "three/examples/jsm/Addons.js";
-import { baseurl } from "./medium/config";
-import { useGlobalConfig } from "@/stores";
-export default {
-  name: "App",
-  components: {
-    ThreeScene,
-  },
-  data() {
-    return {
-      inputValue: "",
-      loading: false,
-      message: "",
-      isVideo: false,
-      gender: 0, // 0女 1男
-      wsInstance: null,
-    };
-  },
-  methods: {
-    startFace() {
-      this.$refs.threescene.startFaceDetect();
-      // this.$refs.threescene.detectP();
-    },
-    start() {
-      const config = useGlobalConfig();
-      this.$refs.threescene.start();
-      const isLocal = config.isLocal;
-      if (isLocal) return;
-      try {
-        if (config.isUseAsr) {
-          startConnect();
-        }
-      } catch (e) {
-        console.log(e);
-      }
-      // return;
-
-      // 开启视频链接;
-
-      start();
-      this.isVideo = true;
-    },
-    stop() {
-      window.stop = stop;
-      window.stopAsr = stopAsr;
-      const config = useGlobalConfig();
-      config.hasFaceInfo = false;
-      config.canPlay = false;
-      config.isFaceReady = false;
-      config.isTextureInit = false;
-      console.log("isTextureInit", config.isTextureInit);
-      config.needRestart = true;
-      config.faceAera.set(0, 0, 0, 0);
-      config.eyeBall.set(0, 0, 0, 0);
-
-      this.$refs.threescene.stop();
-      const isLocal = config.isLocal;
-      if (isLocal) return;
-      try {
-        if (config.isUseAsr) {
-          stopAsr();
-        }
-      } catch (error) {
-        console.log(error);
-      } finally {
-      }
-      stop();
-    },
-
-    switch() {},
-    send() {
-      uploadToHuman(this.inputValue);
-    },
-    async handleUpload() {
-      const globalconfig = useGlobalConfig();
-      const file = this.$refs.fileInput.files[0];
-      if (!file) {
-        message.value = "请先选择文件";
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", this.gender);
-      this.loading = true;
-      this.message = "上传中，请稍候...";
-
-      try {
-        const response = await fetch(`http://${baseurl}/create_human`, {
-          method: "POST",
-          body: formData,
-        });
-        // .then((res) => res.blob())
-        // .then((blob) => createImageBitmap(blob))
-        // .then((bitmap) => {
-        //   globalconfig.depthPictureBitmap = bitmap;
-        // });
-        const blob = await response.blob();
-        const imageBitmap = await createImageBitmap(blob);
-        globalconfig.depthPictureBitmap = imageBitmap;
-
-        if (!response.ok) {
-          throw new Error(`HTTP错误: ${response.status}`);
-        } else {
-          console.log("reponse ok");
-        }
-
-        // if (this.isVideo) {
-        //   this.stop();
-        //   setTimeout(() => {
-        //     this.start();
-        //   }, 1000);
-        // } else {
-        //   this.start();
-        // }
-
-        // const result = await response.json();
-        // this.message = "上传成功: " + JSON.stringify(result);
-        // console.log(this.message);
-      } catch (err) {
-        this.message = "上传失败: " + err.message;
-      } finally {
-        this.loading = false;
-      }
-    },
-  },
-};
+<script setup>
+// 不需要额外代码
 </script>
 
 <style scoped>
-html,
-body,
-div {
-  margin: 0;
-}
 #app {
   width: 100vw;
   height: 100vh;
@@ -213,6 +21,16 @@ div {
   margin: 0 auto;
   padding: 0 !important;
   display: flex;
+}
+.fullpage-wrapper {
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+  height: 100vh; /* 高度撑满整个视口 */
+  width: 100vw;
+  box-sizing: border-box;
+  padding: 0px; /* 可选，防止内容贴边 */
+  margin: 0px;
 }
 .asr-result {
   width: 600px;

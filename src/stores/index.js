@@ -6,7 +6,7 @@ export const useGlobalConfig = defineStore("app", {
     debugTexture: false,
     showDigital: false,
     particleVisible: true,
-    isLocal: false,
+    isLocal: true,
     isUseAsr: false,
     isUseOrbital: false,
     faceDepthMin: 0,
