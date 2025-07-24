@@ -1,7 +1,7 @@
+import { baseurl } from "./config";
 var pc = null;
 let sessionid = null;
-// const url = "http://10.7.3.50:8010";
-const url = "http://10.7.11.111:8010";
+const url = `http://${baseurl}`;
 function negotiate() {
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
@@ -82,6 +82,7 @@ export function uploadToHuman(text) {
 export function start() {
   var config = {
     sdpSemantics: "unified-plan",
+    iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
   };
 
   // if (document.getElementById("use-stun").checked) {
@@ -95,12 +96,31 @@ export function start() {
   let b = document.getElementById("audio");
   // connect audio / video
   pc.addEventListener("track", (evt) => {
+    console.log("start-track");
     if (evt.track.kind == "video") {
       document.getElementById("video").srcObject = evt.streams[0];
     } else {
       document.getElementById("audio").srcObject = evt.streams[0];
     }
   });
+
+  // datachannel;
+  const dataChannel = pc.createDataChannel("datachannel");
+  window.dataChannel = dataChannel;
+  dataChannel.onopen = () => {
+    console.log("Data channel is open.");
+    dataChannel.send("lijialuo data channel send to you");
+  };
+  dataChannel.onmessage = async (event) => {
+    console.log("Received: ", event.data);
+  };
+  dataChannel.onclose = () => {
+    console.log("Data channel is closed.");
+  };
+
+  window.send = (str) => {
+    dataChannel.send(str);
+  };
 
   // document.getElementById("start").style.display = "none";
   negotiate();

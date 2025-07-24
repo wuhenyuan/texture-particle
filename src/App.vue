@@ -67,6 +67,7 @@ import ThreeScene from "./components/PictureParticleScene.vue";
 import { start, stop, uploadToHuman } from "./medium/client";
 import { startAsr, stopAsr, startConnect } from "./medium/asr";
 import { DebugEnvironment } from "three/examples/jsm/Addons.js";
+import { baseurl } from "./medium/config";
 import { useGlobalConfig } from "@/stores";
 export default {
   name: "App",
@@ -80,6 +81,7 @@ export default {
       message: "",
       isVideo: false,
       gender: 0, // 0女 1男
+      wsInstance: null,
     };
   },
   methods: {
@@ -151,10 +153,8 @@ export default {
       this.loading = true;
       this.message = "上传中，请稍候...";
 
-      // return;
       try {
-        // const response = await fetch("http://10.7.3.50:8010/create_human", {
-        const response = await fetch("http://10.7.11.111:8010/create_human", {
+        const response = await fetch(`http://${baseurl}/create_human`, {
           method: "POST",
           body: formData,
         });

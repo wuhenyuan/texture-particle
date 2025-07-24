@@ -407,6 +407,8 @@ export default function useMediaPipe() {
         globalConfig.eyeBall.set(lx, 1.0 - ly, rx, 1.0 - ry);
         // globalConfig.faceAera.set(minx, miny, maxx, maxy);
         globalConfig.faceAera.set(minx, 1 - maxy, maxx, 1 - miny);
+        console.log("--------------face info-----------------");
+        console.log(minx, 1 - maxy, maxx, 1 - miny);
         //动态调整粒子的宽度
         const xw = Math.floor((200 / (maxx - minx)) * 0.3);
         globalConfig.needUpdateParticleSize = true;
