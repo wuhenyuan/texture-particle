@@ -10,6 +10,7 @@ export default function useGui(config) {
 
   // gui.addColor(config, "rainColor").name("粒子颜色");
   gui.addColor(config, "pColor").name("眼睛颜色");
+  gui.addColor(config, "particleColor").name("粒子颜色");
 
   function addGui(key, name, min, max, step) {
     gui

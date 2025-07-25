@@ -61,7 +61,9 @@ export const useGlobalConfig = defineStore("app", {
       lod: 3.0,
       edgeColor: 0x6363d2,
       keyColor: 0x5959cf,
-      pColor: 0x7d7878,
+      // 浮动粒子颜色
+      pColor: 0x7bc9dc,
+      particleColor: 0xffffff,
       offset: 0.2,
       bias: -1,
       scale: 5,

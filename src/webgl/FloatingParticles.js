@@ -1,7 +1,18 @@
 import * as THREE from "three";
 import { toRaw } from "vue";
 import { useGlobalConfig } from "../stores";
+import { Vector2 } from "three/webgpu";
 
+/**
+ * Helper function to pick a value based on probabilities.
+ * @param {any} val1 - Value 1.
+ * @param {any} val2 - Value 2.
+ * @param {any} val3 - Value 3.
+ * @param {number} prob1 - Probability for val1.
+ * @param {number} prob2 - Probability for val2.
+ * @param {number} prob3 - Probability for val3.
+ * @returns {any} The selected value.
+ */
 function pickByProbability(val1, val2, val3, prob1, prob2, prob3) {
   const rand = Math.random(); // [0, 1)
   if (rand < prob1) {
@@ -12,6 +23,7 @@ function pickByProbability(val1, val2, val3, prob1, prob2, prob3) {
     return val3;
   }
 }
+
 export default class FloatingParticles {
   /**
    * Constructor, initializes the particle system.
@@ -39,8 +51,8 @@ export default class FloatingParticles {
 
     // Animation state for intro
     this.isIntroAnimating = true;
-    this.introStartTime = null;
-    this.introDuration = 4.5; // 3秒开场动画
+    this.introStartTime = null; // Will be set in update if needed
+    this.introDuration = 4.5; // 4.5秒开场动画
 
     // Store particle positions (x, y, z)
     this.positions = new Float32Array(this.particleCount * 3);
@@ -51,6 +63,13 @@ export default class FloatingParticles {
     // Store the UV start coordinates (u, v) for each particle in the texture atlas
     this.uvs = new Float32Array(this.particleCount * 2);
 
+    // 新增：粒子的当前生命周期阶段 (0.0 - 1.0)
+    this.lifespans = new Float32Array(this.particleCount);
+    // 新增：粒子的总生命周期时长 (秒)
+    this.totalLifespans = new Float32Array(this.particleCount);
+    // 新增：粒子是否活跃 (主要用于入场动画后，确保粒子开始正常循环)
+    this.activeParticles = new Array(this.particleCount).fill(true);
+
     // Store initial and target positions for intro animation
     this.initialParticlePositions = new Float32Array(this.particleCount * 3);
     this.targetParticlePositions = new Float32Array(this.particleCount * 3);
@@ -58,8 +77,10 @@ export default class FloatingParticles {
     // Temporary vectors for calculations to avoid creating new objects in loop
     this.particlePosition = new THREE.Vector3();
     this.direction = new THREE.Vector3(); // Re-purposed for direction vector from origin
-    this.time = 0;
+    this.time = 0; // Cumulative time for animation
     this.globalConfig = useGlobalConfig();
+
+    this.resolution = new Vector2();
     this.initParticles();
     this.createParticleSystem();
   }
@@ -67,6 +88,7 @@ export default class FloatingParticles {
   /**
    * Initializes the initial position, velocity, size, and texture UVs of particles.
    * Particles are initialized randomly within the defined elliptical ring area.
+   * Also initializes lifespan and total lifespan for each particle.
    */
   initParticles() {
     // Define UV start coordinates for each shape in the texture atlas
@@ -100,17 +122,13 @@ export default class FloatingParticles {
 
       // Set initial position far outside the ring in all directions (X, Y, Z)
       // This creates the "fly in from all directions" effect
-      const introSpawnDistance = this.ringOuterRadius * 2.5; // 确保粒子从环外足够远的地方开始
+      const introSpawnDistance = this.ringOuterRadius * 2.5; // Ensure particles start far enough outside the ring
       this.initialParticlePositions[i3] =
-        this.origin.x + (Math.random() - 0.5) * introSpawnDistance * 2; // X方向随机偏移
+        this.origin.x + (Math.random() - 0.5) * introSpawnDistance * 2; // Random X offset
       this.initialParticlePositions[i3 + 1] =
-        this.origin.y + (Math.random() - 0.5) * introSpawnDistance * 2; // Y方向随机偏移
+        this.origin.y + (Math.random() - 0.5) * introSpawnDistance * 2; // Random Y offset
       this.initialParticlePositions[i3 + 2] =
-        this.origin.z + (Math.random() - 0.5) * introSpawnDistance * 2; // Z方向随机偏移
-
-      // this.positions[i3] = this.origin.x + radialDist * Math.cos(angle); // x
-      // this.positions[i3 + 1] = yPos; // y
-      // this.positions[i3 + 2] = this.origin.z + radialDist * Math.sin(angle); // z
+        this.origin.z + (Math.random() - 0.5) * introSpawnDistance * 2; // Random Z offset
 
       // Initially set current positions to initial positions for the start of the animation
       this.positions[i3] = this.initialParticlePositions[i3];
@@ -123,14 +141,21 @@ export default class FloatingParticles {
       this.velocities[i3 + 2] = (Math.random() - 0.5) * 0.001;
 
       // Randomly set particle size - Further increased for better visibility
-
       const randomScale = pickByProbability(1, 3, 5, 0.8, 0.1, 0.1);
-      this.sizes[i] = 1 + randomScale; // Max size 2.0
+      this.sizes[i] = 1 + randomScale; // Max size 6.0 (1 + 5)
 
       // Randomly select a texture shape
       const randomTextureIndex = Math.floor(Math.random() * textureUVs.length);
       this.uvs[i2] = textureUVs[randomTextureIndex].u;
       this.uvs[i2 + 1] = textureUVs[randomTextureIndex].v;
+
+      // 新增：初始化生命周期
+      // 初始时随机分配生命周期进度，避免所有粒子同时出现和消失
+      this.lifespans[i] = Math.random();
+      // 随机总生命周期，例如 3-8 秒，让粒子有不同的存活时间
+      this.totalLifespans[i] = Math.random() * 5 + 3;
+      // 初始所有粒子都活跃
+      this.activeParticles[i] = true;
     }
   }
 
@@ -151,6 +176,11 @@ export default class FloatingParticles {
       "uvOffset",
       new THREE.BufferAttribute(this.uvs, 2)
     ); // Custom UV offset attribute
+    // 新增属性：粒子的当前生命周期阶段
+    this.geometry.setAttribute(
+      "lifespan",
+      new THREE.BufferAttribute(this.lifespans, 1)
+    );
 
     // Create a Canvas as a texture atlas, drawing multiple shapes
     const canvas = document.createElement("canvas");
@@ -346,7 +376,7 @@ export default class FloatingParticles {
       );
     });
 
-    // 7. Watch (手表) - Reusing simplified version, ensuring white on transparent
+    // 7. Watch (手表)
     drawShape(2, 1, (ctx, size, border) => {
       ctx.fillStyle = "white";
       const watchBodyWidth = size * 0.6;
@@ -385,7 +415,7 @@ export default class FloatingParticles {
       ctx.fill();
     });
 
-    // 8. Camera (相机) - Reusing simplified version, ensuring white on transparent
+    // 8. Camera (相机)
     drawShape(3, 1, (ctx, size, border) => {
       ctx.fillStyle = "white";
       const cameraBodyWidth = size * 0.8;
@@ -441,65 +471,104 @@ export default class FloatingParticles {
 
     // Define vertex shader code
     const vertexShader = `
-                    attribute float size;       // Size of each particle
-                    attribute vec2 uvOffset;    // UV start coordinates for each particle in the texture atlas
+      attribute float size;       // Size of each particle
+      attribute vec2 uvOffset;    // UV start coordinates for each particle in the texture atlas
+      attribute float lifespan;   // Particle's current lifespan progress (0.0 to 1.0)
 
-                    varying vec2 vUvOffset;    // Pass UV offset to fragment shader
+      varying vec2 vUvOffset;    // Pass UV offset to fragment shader
+      varying float vLifespan;    // Pass lifespan to fragment shader
 
-                    void main() {
-                        vUvOffset = uvOffset; // Pass UV offset to fragment shader
+      void main() {
+        vUvOffset = uvOffset; // Pass UV offset to fragment shader
+        vLifespan = lifespan; // Pass lifespan to fragment shader
 
-                        // Calculate particle position in model-view space
-                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        // Calculate particle position in model-view space
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
 
-                        // Calculate particle size on screen, considering perspective
-                        gl_PointSize = size * (400.0 / -mvPosition.z); 
+        // Calculate particle size on screen, considering perspective
+        // Adjust 400.0 for desired base size at a certain distance
+        gl_PointSize = size * (400.0 / -mvPosition.z); 
 
-                        gl_Position = projectionMatrix * mvPosition; // Use mvPosition to calculate final position
-                    }
-                `;
+        gl_Position = projectionMatrix * mvPosition; // Use mvPosition to calculate final position
+      }
+    `;
 
     // Define fragment shader code
-    const fragmentShader = `
-                    uniform sampler2D u_particleTexture; // Particle texture atlas
-                    uniform vec3 u_color;                // Particle color (main particle color, usually white)
-                    uniform float u_opacity;             // Particle opacity
-                    uniform vec2 u_uvScale;              // UV size of each shape in the texture atlas (e.g., 0.25, 0.5)
+    const fragmentShader = /*glsl*/ `
+      uniform sampler2D u_particleTexture; // Particle texture atlas
+      uniform sampler2D u_maskTexture;
+      uniform vec2 resolution;
+      uniform vec3 u_color;              // Main particle color (from global config)
+      uniform vec3 u_flashColor;         // 新增：闪烁颜色
+      uniform vec2 u_uvScale;            // UV size of each shape in the texture atlas (e.g., 0.25, 0.5)
+      uniform float progress;
+      varying vec2 vUvOffset;            // UV offset passed from vertex shader
+      varying float vLifespan;            // Lifespan passed from vertex shader
 
-                    varying vec2 vUvOffset;             // UV offset passed from vertex shader
+      void main() {
+        // gl_PointCoord is the UV coordinate of the current pixel within the particle point (0.0 to 1.0)
+        // vUvOffset is the starting UV coordinate for this particle in the texture atlas
+        // u_uvScale is the UV size of a single texture in the atlas
+        // (1.0 - gl_PointCoord.y) is because Three.js UV Y-axis direction might be opposite to gl_PointCoord's Y-axis
+        vec2 fuv = vec2(vUvOffset.x + gl_PointCoord.x * u_uvScale.x,
+                       vUvOffset.y + (1.0 - gl_PointCoord.y) * u_uvScale.y);
 
-                    void main() {
-                        // gl_PointCoord is the UV coordinate of the current pixel within the particle point (0.0 to 1.0)
-                        // vUvOffset is the starting UV coordinate for this particle in the texture atlas
-                        // u_uvScale is the UV size of a single texture in the atlas
-                        // (1.0 - gl_PointCoord.y) is because Three.js UV Y-axis direction might be opposite to gl_PointCoord's Y-axis
-                        vec2 uv = vec2(vUvOffset.x + gl_PointCoord.x * u_uvScale.x,
-                                       vUvOffset.y + (1.0 - gl_PointCoord.y) * u_uvScale.y);
+        vec4 texColor = texture2D(u_particleTexture, fuv);
 
-                        vec4 texColor = texture2D(u_particleTexture, uv);
 
-                        // Final color = texture color * particle color * particle opacity
-                        gl_FragColor = texColor * vec4(u_color, u_opacity);
+        vec2 uv = gl_FragCoord.xy / resolution;
+        vec4 mask = texture2D(u_maskTexture, uv);
 
-                        // Discard pixel if texture's alpha channel is 0 (for transparent backgrounds)
-                        if (gl_FragColor.a < 0.0001) discard;
-                    }
-                `;
+        if (mask.r > 0.1 && progress >= 1.0) {
+          discard;
+        }
+            
+        // 根据生命周期调整不透明度 (渐入渐出效果)
+        float opacity = 0.0;
+        // 粒子生命周期前 20% 渐入
+        if (vLifespan < 0.2) {
+            opacity = mix(0.0, 1.0, vLifespan / 0.2);
+        } 
+        // 粒子生命周期后 20% 渐出
+        else if (vLifespan > 0.8) {
+            opacity = mix(1.0, 0.0, (vLifespan - 0.8) / 0.2);
+        } 
+        // 中间阶段完全不透明
+        else {
+            opacity = 1.0;
+        }
+
+        // 根据生命周期调整颜色 (在主颜色和闪烁颜色之间混合)
+        // 使用 sin 函数创建周期性颜色波动，让粒子有闪烁感
+        vec3 finalColor = mix(u_color, u_flashColor, sin(vLifespan * 3.1415926535 * 2.0)); // 乘以 2PI 使其在一个周期内完成两次闪烁
+
+        // Final color = texture color * final particle color * calculated opacity
+        gl_FragColor = texColor * vec4(finalColor, opacity * 0.2);
+
+        // Discard pixel if texture's alpha channel is 0 (for transparent backgrounds)
+        // 或者如果计算出的不透明度太低也丢弃，提高性能
+        if (gl_FragColor.a < 0.0001) discard;
+      }
+    `;
 
     // Define uniforms (global variables) for the shader material
     const uniforms = {
       u_particleTexture: { value: particleTexture },
-      u_color: { value: new THREE.Color(0x7d7878) }, // Main particle color is white
-      u_opacity: { value: 0.5 }, // Increased opacity for better visibility
+      u_maskTexture: { value: null },
+      resolution: { value: this.resolution },
+      progress: { value: 0 },
+      u_color: { value: new THREE.Color(0x7d7878) }, // Main particle color, will be updated by globalConfig
+      u_flashColor: { value: new THREE.Color(0xb2ff) }, // 新增：闪烁颜色，例如青色
       u_uvScale: { value: new THREE.Vector2(0.25, 0.5) }, // Texture atlas is 4x2 grid, so each texture occupies 0.25x0.5 UV space
     };
 
     this.material = new THREE.ShaderMaterial({
+      name: "floating-particles",
       uniforms: uniforms,
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
       transparent: true,
-      blending: THREE.AdditiveBlending, // Additive blending mode
+      blending: THREE.AdditiveBlending, // Additive blending mode for glow effect
       depthWrite: false, // Disable depth writing to prevent display issues with particles overlapping
     });
 
@@ -508,40 +577,77 @@ export default class FloatingParticles {
     this.scene.add(this.particles);
 
     // Apply initial rotation to the particle system to make the ring visible from the front
-    this.particles.rotation.x = Math.PI / 2; // Rotate 30 degrees around X-axis
-    window.float = this.particles;
+    this.particles.rotation.x = Math.PI / 2; // Rotate 90 degrees around X-axis
+    window.float = this.particles; // For debugging access
   }
 
+  /**
+   * Stops the particle system, resetting its state for intro animation.
+   */
   stop() {
     this.time = 0;
     this.isIntroAnimating = true;
     this.particles.visible = false;
-  }
-
-  start() {
-    this.particles.visible = true;
+    // Reset particles to initial positions for next intro animation
+    for (let i = 0; i < this.particleCount; i++) {
+      const i3 = i * 3;
+      this.positions[i3] = this.initialParticlePositions[i3];
+      this.positions[i3 + 1] = this.initialParticlePositions[i3 + 1];
+      this.positions[i3 + 2] = this.initialParticlePositions[i3 + 2];
+      this.lifespans[i] = 0.0; // Reset lifespan for intro
+    }
+    this.geometry.attributes.position.needsUpdate = true;
+    this.geometry.attributes.lifespan.needsUpdate = true;
   }
 
   /**
-   * Updates the position of each particle, simulating a very subtle random drift
-   * within the defined elliptical ring bounds, and reflecting them when they go out of bounds.
+   * Starts the particle system, making it visible and initiating intro animation if needed.
+   */
+  start() {
+    this.particles.visible = true;
+    // When starting, ensure intro animation is active and time is reset
+    this.time = 0;
+    this.isIntroAnimating = true;
+    this.initParticles(); // Re-initialize particles for a fresh start
+    this.geometry.attributes.position.needsUpdate = true;
+    this.geometry.attributes.lifespan.needsUpdate = true;
+    this.geometry.attributes.uvOffset.needsUpdate = true;
+    this.geometry.attributes.size.needsUpdate = true;
+  }
+
+  updatetUniforms() {
+    this.material.uniforms.u_maskTexture.value = toRaw(
+      this.globalConfig.maps.maskHumanTexture
+    );
+
+    // Update main particle color from global config
+    this.material.uniforms.u_color.value.set(this.globalConfig.config.pColor);
+    this.material.uniforms.progress.value = this.progress;
+    console.log(this.material.uniforms.progress.value);
+  }
+
+  /**
+   * Updates the position, lifespan, and other properties of each particle.
+   * Handles intro animation, normal floating logic, and particle respawn.
+   * @param {number} delta - Time elapsed since last frame (in seconds).
    */
   update(delta) {
     if (!this.particles.visible) return;
-    this.material.uniforms.u_color.value.set(this.globalConfig.config.pColor);
+    this.updatetUniforms();
     const positionAttribute = this.geometry.attributes.position;
+    const lifespanAttribute = this.geometry.attributes.lifespan;
     const velocityAttribute = this.velocities;
-    this.time += delta;
-    if (this.isIntroAnimating) {
-      // if (!this.introStartTime) {
-      //   this.introStartTime = delta;
-      // }
-      // const elapsed = delta - this.introStartTime;
-      const progress = Math.min(1, this.time / this.introDuration); // 0 to 1
+    const sizeAttribute = this.geometry.attributes.size; // Get size attribute
+    const uvAttribute = this.geometry.attributes.uvOffset; // Get uvOffset attribute
 
+    this.time += delta;
+
+    if (this.isIntroAnimating) {
+      const progress = Math.min(1, this.time / this.introDuration); // 0 to 1
+      this.progress = progress;
       for (let i = 0; i < this.particleCount; i++) {
         const i3 = i * 3;
-        // Linear interpolation from initial to target position
+        // Linear interpolation from initial to target position for intro animation
         this.positions[i3] =
           this.initialParticlePositions[i3] +
           (this.targetParticlePositions[i3] -
@@ -557,16 +663,22 @@ export default class FloatingParticles {
           (this.targetParticlePositions[i3 + 2] -
             this.initialParticlePositions[i3 + 2]) *
             progress;
+
+        // 在入场动画期间，将 progress 直接赋值给 lifespan，让 shader 处理渐入效果
+        this.lifespans[i] = progress;
       }
 
       if (progress >= 1) {
         this.isIntroAnimating = false;
-        // Ensure particles are exactly at target positions when animation ends
+        // 确保粒子在动画结束时精确地位于目标位置，并重置生命周期
         for (let i = 0; i < this.particleCount; i++) {
           const i3 = i * 3;
           this.positions[i3] = this.targetParticlePositions[i3];
           this.positions[i3 + 1] = this.targetParticlePositions[i3 + 1];
           this.positions[i3 + 2] = this.targetParticlePositions[i3 + 2];
+          // 重置为随机初始生命周期，以便开始正常的循环动画
+          this.lifespans[i] = Math.random();
+          this.activeParticles[i] = true; // 确保粒子活跃
         }
       }
     } else {
@@ -576,9 +688,57 @@ export default class FloatingParticles {
       const verticalReflectionDamping = 0.8;
       const randomNudge = 0.0025;
 
+      // Define UV start coordinates for each shape in the texture atlas (needed for respawn)
+      const textureUVs = [
+        { u: 0.0, v: 0.0 },
+        { u: 0.25, v: 0.0 },
+        { u: 0.5, v: 0.0 },
+        { u: 0.75, v: 0.0 },
+        { u: 0.0, v: 0.5 },
+        { u: 0.25, v: 0.5 },
+        { u: 0.5, v: 0.5 },
+        { u: 0.75, v: 0.5 },
+      ];
+
       for (let i = 0; i < this.particleCount; i++) {
         const i3 = i * 3;
+        const i2 = i * 2;
 
+        // 更新生命周期
+        this.lifespans[i] += delta / this.totalLifespans[i]; // 生命周期阶段 = 经过时间 / 总生命周期
+
+        // 如果粒子生命周期结束，重新初始化粒子
+        if (this.lifespans[i] >= 1.0) {
+          // 重新初始化粒子属性，使其在环形区域内重生
+          const radialDist =
+            this.ringInnerRadius +
+            Math.random() * (this.ringOuterRadius - this.ringInnerRadius);
+          const angle = Math.random() * Math.PI * 2;
+          const yPos = this.origin.y + (Math.random() - 0.5) * this.ringHeight;
+
+          this.positions[i3] = this.origin.x + radialDist * Math.cos(angle);
+          this.positions[i3 + 1] = yPos;
+          this.positions[i3 + 2] = this.origin.z + radialDist * Math.sin(angle);
+
+          this.velocities[i3] = (Math.random() - 0.5) * 0.001;
+          this.velocities[i3 + 1] = (Math.random() - 0.5) * 0.001;
+          this.velocities[i3 + 2] = (Math.random() - 0.5) * 0.001;
+
+          this.sizes[i] = 1 + pickByProbability(1, 3, 5, 0.8, 0.1, 0.1); // 重置大小
+
+          // 重新选择纹理UV
+          const randomTextureIndex = Math.floor(
+            Math.random() * textureUVs.length
+          );
+          this.uvs[i2] = textureUVs[randomTextureIndex].u;
+          this.uvs[i2 + 1] = textureUVs[randomTextureIndex].v;
+
+          this.lifespans[i] = 0.0; // 重置生命周期阶段为0
+          this.totalLifespans[i] = Math.random() * 5 + 3; // 重新随机总生命周期
+          this.activeParticles[i] = true; // 确保粒子活跃
+        }
+
+        // 物理更新逻辑 (只有当粒子活跃时才进行)
         this.particlePosition.set(
           positionAttribute.array[i3],
           positionAttribute.array[i3 + 1],
@@ -627,8 +787,11 @@ export default class FloatingParticles {
         positionAttribute.array[i3 + 2] += velocityAttribute[i3 + 2];
       }
     }
-    positionAttribute.needsUpdate = true; // Always update position attribute
+
+    // 标记需要更新的 BufferAttribute
+    positionAttribute.needsUpdate = true;
+    lifespanAttribute.needsUpdate = true;
+    sizeAttribute.needsUpdate = true; // 因为粒子重生时大小可能变化
+    uvAttribute.needsUpdate = true; // 因为粒子重生时纹理可能变化
   }
 }
-
-// --- Main program logic ---

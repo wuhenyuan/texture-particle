@@ -26,6 +26,7 @@ import { useGlobalConfig } from "../stores";
 
 // import TouchTexture from "./TouchTexture";
 import getCrossTexture from "./../components/getCrossTexture";
+import { Color } from "three/webgpu";
 
 export default class Particles extends Object3D {
   constructor(scene, renderTexture, ratio) {
@@ -48,6 +49,7 @@ export default class Particles extends Object3D {
     this.texture = renderTexture;
     this.resolution = new Vector2(this.width, this.height);
     this.globalConfig = useGlobalConfig();
+    this.particleColor = new Color(0xffffff);
     this.uniforms = {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
@@ -63,6 +65,7 @@ export default class Particles extends Object3D {
       faceAera: { value: this.globalConfig.faceAera },
       minSize: { value: 0 },
       eyeIntensity: { value: 0 },
+      uParticleColor: { value: this.particleColor },
     };
     this.init(this.texture);
   }
@@ -75,7 +78,6 @@ export default class Particles extends Object3D {
   }
 
   init() {
-    debugger;
     // this.texture = videoTexture;
     this.texture.minFilter = NearestFilter;
     this.texture.magFilter = NearestFilter;
@@ -142,7 +144,7 @@ export default class Particles extends Object3D {
       fragmentShader: particleFrag,
       depthTest: false,
       transparent: true,
-      // blending: AdditiveBlending,
+      blending: AdditiveBlending,
     });
     material.onBeforeRender = () => {};
 
@@ -269,6 +271,7 @@ export default class Particles extends Object3D {
     this.material.uniforms.uSize.value = config.size;
     this.uniforms.minSize.value = config.minSize;
     this.uniforms.eyeIntensity.value = config.eyeIntensity;
+    this.particleColor.set(config.particleColor);
     // this.material.uniforms.decorationTextuer.value =
     //   this.globalConfig.maps.decorationMap;
     if (!this.globalConfig.isTextureInit) {
@@ -291,7 +294,9 @@ export default class Particles extends Object3D {
     this.time += t;
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
-      this.progress = this.time / 4.5;
+      // this.progress = this.time / 4.5;
+      this.progress = this.time;
+
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
     } else {

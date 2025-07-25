@@ -47,19 +47,22 @@ export default function usePostprocessing(scene, renderer, camera) {
   });
 
   const toneMappingEffect = new ToneMappingEffect({
-    mode: ToneMappingMode.ACES_FILMIC,
+    mode: ToneMappingMode.LINEAR,
     resolution: 1024,
     whitePoint: 16.0,
     middleGrey: 1,
     minLuminance: 0.01,
-    averageLuminance: 0.01,
+    averageLuminance: 0.1,
     adaptationRate: 1.0,
   });
 
   // toneMappingEffect.
   window.composer = composer;
 
-  const bloomComposer = new EffectComposer(renderer);
+  const bloomComposer = new EffectComposer(renderer, {
+    multisampling: 0,
+    type: FloatType,
+  });
   const getBloomBloomPassMaterial = () => {
     const fragmentShader = /*glsl*/ `
     uniform sampler2D baseTexture;

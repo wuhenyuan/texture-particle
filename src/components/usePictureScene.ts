@@ -475,6 +475,8 @@ export const usePictureScene = (scene, renderer, camera) => {
     calNormalMaterial.uniforms.depthMap.value = depthRenderRt.texture;
     // calNormalMaterial.uniforms.depthMap.value = globalDepthTexture;
 
+    rainMaskMaterial.uniforms.tDiffuse.value = lutRt.texture;
+
     const depthMap = depthRenderRt.texture;
 
     mainMaterial.uniforms.blurMap.value = depthMap;
@@ -533,36 +535,36 @@ export const usePictureScene = (scene, renderer, camera) => {
     renderer.clear();
     renderer.render(grayWrapper, camera);
 
-    if (globalConfig.useFaceDetection) {
-      renderer.setRenderTarget(depthRenderRt);
-      renderer.clear();
-      if (globalConfig.isUseGlobalDepth) {
-        renderer.render(depthCopyWrapper, camera);
-      }
-      if (globalConfig.isRenderDepth) {
-        renderer.render(depthRenderWrapper, camera);
-      }
-    }
+    // if (globalConfig.useFaceDetection) {
+    //   renderer.setRenderTarget(depthRenderRt);
+    //   renderer.clear();
+    //   if (globalConfig.isUseGlobalDepth) {
+    //     renderer.render(depthCopyWrapper, camera);
+    //   }
+    //   if (globalConfig.isRenderDepth) {
+    //     renderer.render(depthRenderWrapper, camera);
+    //   }
+    // }
 
-    renderer.setRenderTarget(maskRainRt);
-    renderer.clear();
-    renderer.render(digitalMesh, camera);
+    // renderer.setRenderTarget(calNormalRt);
+    // renderer.clear();
+    // renderer.render(calNormalWrapper, camera);
 
-    renderer.setRenderTarget(calNormalRt);
-    renderer.clear();
-    renderer.render(calNormalWrapper, camera);
+    // renderer.setRenderTarget(baseNormaRt);
+    // renderer.clear();
+    // renderer.render(baseNormalWrapper, camera);
 
-    renderer.setRenderTarget(baseNormaRt);
-    renderer.clear();
-    renderer.render(baseNormalWrapper, camera);
-
-    renderer.setRenderTarget(mainRt);
-    renderer.clear();
-    renderer.render(mainWrapper, camera);
+    // renderer.setRenderTarget(mainRt);
+    // renderer.clear();
+    // renderer.render(mainWrapper, camera);
 
     renderer.setRenderTarget(lutRt);
     renderer.clear();
     renderer.render(lutWrapper, camera);
+
+    renderer.setRenderTarget(maskRainRt);
+    renderer.clear();
+    renderer.render(digitalMesh, camera);
 
     renderer.setRenderTarget(null);
   }

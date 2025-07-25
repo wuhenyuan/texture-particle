@@ -1,11 +1,12 @@
 <!-- src/components/ThreeScene.vue -->
 <template>
   <div ref="threeContainer" class="three-container">
-    <div class="video-bg">
-      <video autoplay loop muted playsinline>
+    <!-- <div class="video-bg"> -->
+    <!-- <video autoplay loop muted playsinline>
         <source src="../assets/background1.mp4" type="video/mp4" />
-      </video>
-    </div>
+      </video> -->
+    <!-- <img src="../assets/background.png" alt="" /> -->
+    <!-- </div> -->
     <div ref="imageContainer" class="image-container"></div>
     <canvas ref="canvasRef" class=".three-canvas"></canvas>
   </div>
@@ -65,7 +66,7 @@ import { useGlobalConfig } from "@/stores/index";
 
 const globalConfig = useGlobalConfig();
 
-let preTreatment, updateTexture, getRenderResultTexture;
+let preTreatment, updatePipelineConfig, getRenderResultTexture;
 
 let globalTexture;
 let scene;
@@ -89,6 +90,10 @@ const vertices = new Float32Array(NUM_KEYPOINTS * 3); // 每个点有 x, y, z �
 const faceVertices = vertices;
 const faceGeometryAttribute = new BufferAttribute(vertices, 3);
 const renderConfig = globalConfig.config;
+
+let videoTexture;
+// 创建视频纹理
+let video = document.getElementById("video");
 // window.faceGeometryAttribute = faceGeometryAttribute;
 const initThree = () => {
   const isLocal = globalConfig.isLocal;
@@ -128,9 +133,7 @@ const initThree = () => {
   orbitControls.screenSpacePanning = false;
   orbitControls.maxPolarAngle = Math.PI / 2;
   orbitControls.enabled = globalConfig.isUseOrbital;
-
-  // 创建视频纹理
-  const video = document.getElementById("video");
+  video = document.getElementById("video");
 
   if (isLocal) {
     // video.src = "/src/assets/testVideo.mp4"; // 设置视频路径
@@ -151,7 +154,8 @@ const initThree = () => {
   // test particle
   const textureLoader = new TextureLoader();
 
-  let videoTexture;
+  // const background = textureLoader.load("/src/assets/background.png");
+
   video.addEventListener("loadedmetadata", () => {
     console.log(
       "-------------------------loadedMetadata-------------------------"
@@ -186,7 +190,6 @@ const initThree = () => {
     if (globalConfig.useFaceDetection) {
       startFaceDetect();
     }
-    updateTexture(videoTexture, video);
     //   // 使用概率分布图作为采样图
   });
 
@@ -228,6 +231,8 @@ const initThree = () => {
     }
 
     if (globalConfig.needUpdateParticleSize) {
+      debugger;
+      updatePipelineConfig(videoTexture, video);
       particle?.updateTexture();
       updateHunmen();
     }
@@ -244,11 +249,18 @@ const initThree = () => {
       particle.update(delta);
       flaotParticle.update(delta);
     }
+    if (backgroundMesh) {
+      backgroundMesh.material.uniforms.uTime.value += delta;
+    }
 
     if (globalConfig.isUsePostProcessing) {
+      // scene.background = null;
+      backgroundMesh.visible = false;
       composer.updatePostprocessing(renderConfig);
       renderer.setClearAlpha(0);
       bloomComposer.render();
+      backgroundMesh.visible = true;
+      // scene.background = background;
       composer.render();
     } else {
       renderer.render(scene, camera);
@@ -256,6 +268,7 @@ const initThree = () => {
   };
 
   scene = scene;
+  // scene.background = background;
   camera = camera;
   renderer = renderer;
 
@@ -268,10 +281,10 @@ const initThree = () => {
     config,
   } = usePictureScene(scene, renderer, camera, globalTexture);
   preTreatment = _preTreatment;
-  updateTexture = _updateTexture;
+  updatePipelineConfig = _updateTexture;
 
   // setScale(0.1);
-  // if (createBackground) createBackground();
+  if (createBackground) createBackground();
 
   const isWebGL2 = renderer.capabilities.isWebGL2;
   console.log("WebGL2?", isWebGL2);
@@ -286,6 +299,7 @@ function updateHunmen() {
 }
 
 const createParticles = () => {
+  updatePipelineConfig(videoTexture, video);
   // createDigitalHumanWrapper(renderTexture);
   particle = new Particles(scene, globalConfig.maps.renderTexture);
   particle.visible = globalConfig.particleVisible;
@@ -308,13 +322,15 @@ const createFloatParticles = () => {
 
   flaotParticle = new FloatingParticles(
     scene,
-    400,
+    1200,
     new Vector3(centerx, centery, 0),
-    50,
+    10,
     70,
     // new Vector3(centerx, centery, 0)
     50
   );
+  flaotParticle.resolution.set(width, height);
+  flaotParticle.particles.scale.y = 0.8;
   flaotParticle.particles.scale.x = points.width / points.height;
 };
 
@@ -373,6 +389,85 @@ function restartParticle() {
   particle.start();
   flaotParticle.start();
 }
+
+let backgroundMesh;
+const createBackground = () => {
+  const shaderMaterial = new ShaderMaterial({
+    uniforms: {
+      // 颜色更接近初始版本，柔和且过渡自然
+      uColor1: { value: new Color(0xcadedb) }, // 中心浅青绿色
+      uColor2: { value: new Color(0xd1e7dd) }, // 过渡浅青绿
+      uColor3: { value: new Color(0xdceaeb) }, // 过渡浅蓝白
+      uColor4: { value: new Color(0xe0f2fe) }, // 边缘浅蓝色
+      uTime: { value: 0 }, // 时间变量
+      uResolution: {
+        value: new Vector2(width, height),
+      },
+    },
+    transparent: true,
+    vertexShader: `
+    void main() {
+      gl_Position = vec4(position, 1.0); // 全屏覆盖
+    }
+  `,
+    fragmentShader: `
+    uniform vec3 uColor1;
+    uniform vec3 uColor2;
+    uniform vec3 uColor3;
+    uniform vec3 uColor4;
+    uniform float uTime;
+    uniform vec2 uResolution;
+
+    // 平滑过渡函数
+    float smoothStep(float edge0, float edge1, float x) {
+      float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+      return t * t * (3.0 - 2.0 * t);
+    }
+
+    void main() {
+      // 计算UV坐标
+      vec2 uv = gl_FragCoord.xy / uResolution;
+      
+      // 轻微扭曲效果，保持柔和
+      uv.x += sin(uv.y * 4.0 + uTime * 0.15) * 0.008;
+      uv.y += cos(uv.x * 4.0 + uTime * 0.2) * 0.008;
+      
+      // 计算到中心的距离
+      float dist = distance(uv, vec2(0.5, 0.5));
+      
+      // 调整过渡范围，保持初始风格的过渡比例
+      vec3 color = mix(uColor1, uColor2, smoothStep(0.0, 0.25, dist));
+      color = mix(color, uColor3, smoothStep(0.2, 0.5, dist));
+      color = mix(color, uColor4, smoothStep(0.4, 0.9, dist));
+      
+      // 减弱色彩波动，保持柔和感
+      color.r += sin(dist * 8.0 + uTime) * 0.05;
+      color.g += cos(dist * 6.0 + uTime * 0.7) * 0.05;
+      color.b += sin(dist * 10.0 + uTime * 1.0) * 0.05;
+      
+      gl_FragColor = vec4(color, 0.2);
+    }
+  `,
+  });
+  const getFSGeometry = () => {
+    let fsGeometry;
+    if (fsGeometry && !fsGeometry._isDisposed) return fsGeometry;
+    fsGeometry = new BufferGeometry();
+    fsGeometry.__name = "fsGeometry";
+    fsGeometry.setAttribute(
+      "position",
+      new Float32BufferAttribute([-1, 3, 0, -1, -1, 0, 3, -1, 0], 3)
+    );
+    fsGeometry.setAttribute(
+      "uv",
+      new Float32BufferAttribute([0, 2, 0, 0, 2, 0], 2)
+    );
+
+    return fsGeometry;
+  };
+  backgroundMesh = new Mesh(getFSGeometry(), shaderMaterial);
+  scene.add(backgroundMesh);
+};
 
 function start() {
   if (globalConfig.isThreeInit) {
@@ -440,10 +535,10 @@ onMounted(() => {
   z-index: 0;
   filter: blur(10px);
   overflow: hidden;
-  display: none;
+  /* display: none; */
 }
 
-.video-bg video {
+.video-bg image {
   /* width: 100%;
   height: 100%; */
   object-fit: cover;

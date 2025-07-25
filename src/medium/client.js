@@ -78,6 +78,7 @@ export function uploadToHuman(text) {
     method: "POST",
   });
 }
+window.sendToHuman = uploadToHuman;
 
 export function start() {
   var config = {
@@ -96,11 +97,29 @@ export function start() {
   let b = document.getElementById("audio");
   // connect audio / video
   pc.addEventListener("track", (evt) => {
-    console.log("start-track");
+    console.log("start-track", evt.track.kind);
     if (evt.track.kind == "video") {
       document.getElementById("video").srcObject = evt.streams[0];
     } else {
       document.getElementById("audio").srcObject = evt.streams[0];
+    }
+  });
+
+  pc.addEventListener("connectionstatechange", (evt) => {
+    console.log("connectionstatechange", evt);
+    switch (pc.connectionState) {
+      case "connected":
+        console.log("✅ 已连接");
+        break;
+      case "disconnected":
+        console.log("⚠️ 连接断开（可能是网络临时问题）");
+        break;
+      case "failed":
+        console.log("❌ 连接失败（ICE 协商失败或网络不可达）");
+        break;
+      case "closed":
+        console.log("✅ 连接已正常关闭");
+        break;
     }
   });
 
@@ -109,11 +128,8 @@ export function start() {
   window.dataChannel = dataChannel;
   dataChannel.onopen = () => {
     console.log("Data channel is open.");
-    dataChannel.send("lijialuo data channel send to you");
   };
-  dataChannel.onmessage = async (event) => {
-    console.log("Received: ", event.data);
-  };
+  window.dataChannel = dataChannel;
   dataChannel.onclose = () => {
     console.log("Data channel is closed.");
   };
@@ -134,7 +150,8 @@ export function stop() {
     console.log("close pc");
   }, 500);
 }
-
+window.start = start;
+window.stop = stop;
 window.onunload = function (event) {
   // 在这里执行你想要的操作
   setTimeout(() => {

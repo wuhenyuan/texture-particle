@@ -6,6 +6,7 @@ uniform sampler2D uTexture;
 uniform sampler2D decorationTextuer;
 uniform sampler2D uPTexture;
 uniform vec2 uTextureSize;
+uniform vec3 uParticleColor;
 
 uniform vec4 faceAera;
 
@@ -44,7 +45,7 @@ void main() {
         // float alpha = smoothstep(0.2, 0.8, colA.r);
         float alpha = colA.r;
         // alpha = mix(0.2, 0.4, alpha);
-        gl_FragColor = vec4(vec3(colorB.rgb * colorB.a), alpha * directionMask);
+        gl_FragColor = vec4(vec3(uParticleColor * colorB.rgb * colorB.a), alpha * directionMask);
         // gl_FragColor = vec4(1.0);
     }
 }

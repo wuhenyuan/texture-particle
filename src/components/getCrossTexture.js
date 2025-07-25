@@ -65,9 +65,12 @@ export default function getCrossTexture(width, height) {
         offsetY,
         Math.max(w, h) / 2
       );
-      gradient.addColorStop(0.0, "rgba(224, 224, 224, 1)");
-      gradient.addColorStop(0.4, "rgba(224, 224, 224, 0.6)");
-      gradient.addColorStop(1.0, "rgba(224, 224, 224, 0.1)");
+      let base = 224;
+      gradient.addColorStop(0.0, `rgba(${base}, ${base}, ${base}, 1)`);
+      base *= 0.6;
+      gradient.addColorStop(0.4, `rgba(${base}, ${base}, ${base}, 1)`);
+      base *= 0.1;
+      gradient.addColorStop(1.0, `rgba(${base}, ${base}, ${base}, 1)`);
 
       ctx.fillStyle = gradient;
       ctx.fillRect(-w / 2 + offsetX, -h / 2 + offsetY, w, h);
