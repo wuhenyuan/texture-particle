@@ -144,11 +144,19 @@ uniform float eyeIntensity;
 uniform vec4 faceAera;
 
 // 新增 uniform 变量
-uniform float uBreathStrength; // 呼吸强度，例如 0.05
-uniform float uBreathSpeed;    // 呼吸速度，例如 2.0
-uniform float uJitterStrength; // 抖动强度，例如 0.2
-uniform float uJitterScale;    // 抖动噪声频率，例如 0.05 (值越小，噪声变化越平缓)
-uniform float uJitterSpeed;    // 抖动噪声演变速度，例如 1.0
+uniform float uBreathStrength;
+uniform float uBreathSpeed;
+uniform float uJitterStrength;
+uniform float uJitterScale;
+uniform float uJitterSpeed;
+
+uniform float uHeadMoveStrength; // 头部平移强度
+uniform float uHeadMoveSpeed;    // 头部平移速度
+uniform float uHeadRotateStrength; // 头部旋转强度 (弧度)
+uniform float uHeadRotateSpeed;    // 头部旋转速度
+uniform float uNodActive; // 新增：控制点头效果是否激活 (0.0 或 1.0)
+
+varying float vFlowAlpha; // 这个 varying 也要加进来！
 
 varying vec2 vPUv;
 varying vec2 vUv;
@@ -161,13 +169,22 @@ float maskEye(vec3 maskColor) {
   return step(0.1, diff);
 }
 
-float maskFace(vec3 maskColor, vec2 uv) {
-  float diff = 1. - distance(maskColor, FACE_COLOR);
-  float center = (faceAera.y + faceAera.w) * 0.5;
-  float yMask = uv.y > center ? 1. : 0.;
-  return step(0.1, diff + yMask);
-  return step(0.1, diff);
+// 修正 maskFace 函数，使其返回二进制权重 (0.0 或 1.0)
+float maskFace(vec3 maskColor, vec2 puv) {
+  float diff = 1. - distance(maskColor, FACE_COLOR); // 颜色相似度
 
+                // 计算 faceAera 的垂直中心
+  float center_y_uv = (faceAera.y + faceAera.w) * 0.5;
+
+                // yMask：如果粒子在 faceAera 垂直中心之上，则为 1.0，否则为 0.0
+  float yMask = step(center_y_uv, puv.y); 
+
+                // 结合颜色相似度和 yMask
+                // 如果颜色相似度 + yMask 超过 0.1，则认为属于头部
+                // 这意味着：
+                // 1. 如果颜色非常匹配 (diff 接近 1.0)，即使 yMask 为 0.0 (在中心之下)，也可能通过
+                // 2. 如果颜色不是特别匹配 (diff 较低)，但 yMask 为 1.0 (在中心之上)，也可能通过
+  return step(0.1, diff + yMask);
 }
 
 void main() {
@@ -252,6 +269,32 @@ void main() {
   float eMask = maskEye(maskColor);
   float fMask = maskFace(maskColor, puv);
 
+  float headWeight = maskFace(maskColor, puv); // 获取头部的权重 (0-1)
+
+  float headWave = sin(uTime * uHeadMoveSpeed); // 使用同一个波形作为平移和旋转的周期基准
+  vec3 rotatedPosition = position;
+ // 只有在头部区域的粒子才进行微动 (headWeight == 1.0)
+  if(headWeight > 0.5) { 
+
+    // 1. 随机平移
+    // 直接使用 headWave 控制平移方向和大小
+    float headMoveX_offset = headWave * uHeadMoveStrength * 0.2 * uNodActive;
+    float headMoveY_offset = headWave * uHeadMoveStrength * uNodActive; // 也可以调整Y轴强度
+
+    mixedPosition.x += headMoveX_offset;
+    mixedPosition.y += headMoveY_offset;
+
+    // 2. 旋转
+    // 直接使用 headWave 控制旋转角度
+    float headRotateAngle_X = headWave * uHeadRotateStrength * uNodActive;
+
+    float cosAngleX = cos(headRotateAngle_X);
+    float sinAngleX = sin(headRotateAngle_X);
+    float tempY = rotatedPosition.y;
+    rotatedPosition.y = rotatedPosition.y * cosAngleX - rotatedPosition.z * sinAngleX;
+    rotatedPosition.z = tempY * sinAngleX + rotatedPosition.z * cosAngleX;
+  }
+
   fMask = clamp(fMask + 0.8, 0., 1.);
   luminalScale *= fMask;
   // luminalScale = (luminalScale, eyeIntensity, eMask);
@@ -267,7 +310,7 @@ void main() {
 
   // final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
-  mvPosition.xyz += position * psize;
+  mvPosition.xyz += rotatedPosition * psize;
   vec4 finalPosition = projectionMatrix * mvPosition;
 
   gl_Position = finalPosition;

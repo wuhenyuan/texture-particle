@@ -412,7 +412,6 @@ export default function useMediaPipe() {
         //动态调整粒子的宽度
         const xw = Math.floor((200 / (maxx - minx)) * 0.3);
         globalConfig.needUpdateParticleSize = true;
-        debugger;
         globalConfig.maxParticleWidth = xw;
       }
       globalConfig.faceDepthMax = max;

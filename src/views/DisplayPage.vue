@@ -106,6 +106,7 @@ onMounted(() => {
 <style>
 #video-container {
   position: absolute;
+  top: 1040px;
 }
 #media {
   display: none;

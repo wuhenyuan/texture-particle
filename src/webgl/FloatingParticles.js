@@ -628,8 +628,10 @@ export default class FloatingParticles {
 
     // Update main particle color from global config
     this.material.uniforms.u_color.value.set(this.globalConfig.config.pColor);
+    this.material.uniforms.u_flashColor.value.set(
+      this.globalConfig.config.flashColor
+    );
     this.material.uniforms.progress.value = this.progress;
-    console.log(this.material.uniforms.progress.value);
   }
 
   /**

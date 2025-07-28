@@ -17,7 +17,7 @@ export const useGlobalConfig = defineStore("app", {
     useFaceDetection: true,
     isUseHalf: false,
     isUsePostProcessing: true,
-    drawFaceDetection: false,
+    drawFaceDetection: true,
     helperLineVisible: false,
     helperMeshVisible: false,
     helperPointVisible: false,
@@ -63,6 +63,8 @@ export const useGlobalConfig = defineStore("app", {
       keyColor: 0x5959cf,
       // 浮动粒子颜色
       pColor: 0x7bc9dc,
+      // 变换颜色
+      flashColor: 0xb2ff,
       particleColor: 0xffffff,
       offset: 0.2,
       bias: -1,
@@ -78,6 +80,18 @@ export const useGlobalConfig = defineStore("app", {
       size: 1.5,
       minSize: 0.6,
       eyeIntensity: 0,
+
+      // 呼吸
+      uBreathStrength: 0.02,
+      uBreathSpeed: 0.1,
+      uJitterStrength: 0.02,
+      uJitterScale: 0.02,
+      uJitterSpeed: 0.1,
+
+      // 头部微动
+      uHeadMoveStrength: 0.5,
+      uHeadMoveSpeed: 1,
+      uHeadRotateStrength: 0.35,
     },
     // lutParticle config
     // config: {

@@ -107,9 +107,16 @@ export const usePictureScene = (scene, renderer, camera) => {
   const lutLoader = new LUTCubeLoader();
   const digitTexture = generateDigitTextureAtlas();
   const { addGui } = useGui(config);
-  function addConfig(key, name, min, max, step) {
+  function addConfig(
+    key,
+    name,
+    min,
+    max,
+    step,
+    file: string | undefined = undefined
+  ) {
     // config[key] = defaultValue;
-    addGui(key, name, min, max, step);
+    addGui(key, name, min, max, step, file);
   }
 
   addConfig("size", "size", 0.5, 5, 0.01);
@@ -119,6 +126,33 @@ export const usePictureScene = (scene, renderer, camera) => {
   addConfig("minSize", "minSize", 0, 1, 0.01);
   addConfig("eyeIntensity", "eyeIntensity", 0, 1, 0.01);
   // addConfig("normalThreshold", "normalThreshold", 0, 1, 0.01);
+
+  // uBreathStrength: 0.02,
+  // uBreathSpeed: 0.1,
+  // uJitterStrength: 0.02,
+  // uJitterScale: 0.02,
+  // uJitterSpeed: 0.1,
+
+  addConfig("uBreathStrength", "uBreathStrength", 0.01, 0.2, 0.01, "呼吸抖动");
+  addConfig("uBreathSpeed", "uBreathSpeed", 1, 3, 0.1, "呼吸抖动");
+  addConfig("uJitterStrength", "uJitterStrength", 0.1, 0.5, 0.1, "呼吸抖动");
+  addConfig("uJitterScale", "uJitterScale", 0.01, 0.1, 0.01, "呼吸抖动");
+  addConfig("uJitterSpeed", "uJitterSpeed", 0.5, 2, 0.1, "呼吸抖动");
+
+  // // 头部微动
+  // uHeadMoveStrength: 0.75,
+  // uHeadMoveSpeed: 1,
+  // uHeadRotateStrength: 0.8,
+  addConfig("uHeadMoveStrength", "uHeadMoveStrength", 0.1, 1, 0.01, "头部微动");
+  addConfig("uHeadMoveSpeed", "uHeadMoveSpeed", 0.1, 1, 0.01, "头部微动");
+  addConfig(
+    "uHeadRotateStrength",
+    "uHeadRotateStrength",
+    0.1,
+    1,
+    0.01,
+    "头部微动"
+  );
 
   let width,
     height,

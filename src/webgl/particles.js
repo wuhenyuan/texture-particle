@@ -50,6 +50,11 @@ export default class Particles extends Object3D {
     this.resolution = new Vector2(this.width, this.height);
     this.globalConfig = useGlobalConfig();
     this.particleColor = new Color(0xffffff);
+    this.nextNodTime = 0;
+    this.isNodding = true;
+    this.nodStartTimestamp = 0;
+    this.nextNodDelayTime = 0;
+    this.nodeTimeMark = 0;
     this.uniforms = {
       uTime: { value: 0 },
       uRandom: { value: 0.0 },
@@ -66,13 +71,27 @@ export default class Particles extends Object3D {
       minSize: { value: 0 },
       eyeIntensity: { value: 0 },
       uParticleColor: { value: this.particleColor },
+
+      // --- 新增的呼吸和抖动效果的 Uniforms ---
+      uBreathStrength: { value: 0.02 }, // 呼吸效果的强度，比如 0.01 到 0.2
+      uBreathSpeed: { value: 0.1 }, // 呼吸效果的速度，比如 1.0 到 3.0
+      uJitterStrength: { value: 0.02 }, // 粒子抖动的强度，比如 0.1 到 0.5
+      uJitterScale: { value: 0.02 }, // 抖动噪声的频率，值越小噪声变化越平缓（0.01到0.1）
+      uJitterSpeed: { value: 0.1 }, // 抖动噪声演变速度，比如 0.5 到 2.0
+
+      // 头部微动效果
+      uNodActive: { value: 1.0 },
+      uHeadMoveStrength: { value: 0.75 }, // 头部平移强度 (像素单位)
+      uHeadMoveSpeed: { value: 1 }, // 头部平移速度
+      uHeadRotateStrength: { value: 0.8 }, // 头部旋转强度 (弧度，例如 0.02 弧度 ≈ 1.1 度)
+      // uHeadRotateSpeed: { value: 0.8 }, // 头部旋转速度
     };
     // 添加新的 uniform 变量
-    this.uniforms.uBreathStrength = { value: 0.005 }; // 呼吸效果的强度
-    this.uniforms.uBreathSpeed = { value: 0.1 }; // 呼吸效果的速度
-    this.uniforms.uJitterStrength = { value: 0.2 }; // 粒子抖动的强度
-    this.uniforms.uJitterScale = { value: 0.05 }; // 粒子抖动噪声的频率 (值越小，抖动范围越大，变化越平缓)
-    this.uniforms.uJitterSpeed = { value: 0.1 }; // 粒子抖动噪声的演变速度
+    // this.uniforms.uBreathStrength = { value: 0.005 }; // 呼吸效果的强度
+    // this.uniforms.uBreathSpeed = { value: 0.1 }; // 呼吸效果的速度
+    // this.uniforms.uJitterStrength = { value: 0.2 }; // 粒子抖动的强度
+    // this.uniforms.uJitterScale = { value: 0.05 }; // 粒子抖动噪声的频率 (值越小，抖动范围越大，变化越平缓)
+    // this.uniforms.uJitterSpeed = { value: 0.1 }; // 粒子抖动噪声的演变速度
     this.init(this.texture);
   }
 
@@ -292,21 +311,66 @@ export default class Particles extends Object3D {
     this.material.uniforms.maskFaceTexture.value = toRaw(
       this.globalConfig.maps.maskFaceTexture
     );
+    // uBreathStrength: 0.02,
+    // uBreathSpeed: 0.1,
+    // uJitterStrength: 0.02,
+    // uJitterScale: 0.02,
+    // uJitterSpeed: 0.1,
+
+    // // 头部微动
+    // uHeadMoveStrength: 0.75,
+    // uHeadMoveSpeed: 1,
+    // uHeadRotateStrength: 0.8,
+    this.uniforms.uBreathStrength.value = config.uBreathStrength;
+    this.uniforms.uBreathSpeed.value = config.uBreathSpeed;
+    this.uniforms.uJitterStrength.value = config.uJitterStrength;
+    this.uniforms.uJitterScale.value = config.uJitterScale;
+    this.uniforms.uJitterSpeed.value = config.uJitterSpeed;
+    this.uniforms.uHeadMoveStrength.value = config.uHeadMoveStrength;
+    this.uniforms.uHeadMoveSpeed.value = config.uHeadMoveSpeed;
+    this.uniforms.uHeadRotateStrength.value = config.uHeadRotateStrength;
   }
   update(t) {
     if (this.visible === false) return;
     if (!this.material) return;
     this.updateUniforms();
-    this.time += t;
+    this.nodeTimeMark += t;
+    console.log(this.isNodding);
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
       // this.progress = this.time / 4.5;
-      this.progress = this.time;
+      this.progress = this.nodeTimeMark;
 
       // console.log(this.progress);
       this.material.uniforms.uProgress.value = this.progress;
+      return;
     } else {
       this.material.uniforms.uProgress.value = 1;
+    }
+
+    const uniforms = this.uniforms;
+    if (this.isNodding) {
+      this.time += t;
+      const nodVisualDuration =
+        uniforms.uHeadMoveSpeed.value > 0.001
+          ? (2 * Math.PI) / uniforms.uHeadMoveSpeed.value
+          : 2.0; // 如果速度极慢 (接近0)，给一个默认时长，避免除以零
+      if (this.nodeTimeMark >= this.nodStartTimestamp + nodVisualDuration) {
+        // 点头动画已完成一个完整的视觉周期，进入冷却期
+        this.isNodding = false;
+        // uniforms.uNodActive.value = 0.0; // 关闭着色器中的点头效果
+        // 设置下一次点头开始前的随机冷却时间 (当前时间 + 随机延迟 0-2秒)
+        this.nextNodDelayTime =
+          this.nodeTimeMark +
+          Math.min((Math.random() * nodVisualDuration) / 2, 2);
+      }
+    } else {
+      if (this.nodeTimeMark >= this.nextNodDelayTime) {
+        // 达到下一次点头的开始时间，激活点头动画
+        this.isNodding = true;
+        this.nodStartTimestamp = this.nodeTimeMark; // 记录点头开始的时间
+        // uniforms.uNodActive.value = 1.0; // 激活着色器中的点头效果
+      }
     }
   }
 

@@ -231,7 +231,6 @@ const initThree = () => {
     }
 
     if (globalConfig.needUpdateParticleSize) {
-      debugger;
       updatePipelineConfig(videoTexture, video);
       particle?.updateTexture();
       updateHunmen();
