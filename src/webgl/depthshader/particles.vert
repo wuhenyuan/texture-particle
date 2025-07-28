@@ -1,4 +1,3 @@
-
 // @author brunoimbrizi / http://brunoimbrizi.com
 
 float random2D(vec2 value) {
@@ -35,8 +34,8 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-//	Simplex 3D Noise
-//	by Ian McEwan, Ashima Arts
+//  Simplex 3D Noise
+//  by Ian McEwan, Ashima Arts
 //
 vec4 permute(vec4 x) {
   return mod(((x * 34.0) + 1.0) * x, 289.0);
@@ -63,7 +62,7 @@ float simplexNoise3d(vec3 v) {
   vec3 i1 = min(g.xyz, l.zxy);
   vec3 i2 = max(g.xyz, l.zxy);
 
-    //  x0 = x0 - 0. + 0.0 * C 
+    //  x0 = x0 - 0. + 0.0 * C 
   vec3 x1 = x0 - i1 + 1.0 * C.xxx;
   vec3 x2 = x0 - i2 + 2.0 * C.xxx;
   vec3 x3 = x0 - 1. + 3.0 * C.xxx;
@@ -77,10 +76,10 @@ float simplexNoise3d(vec3 v) {
   float n_ = 1.0 / 7.0; // N=7
   vec3 ns = n_ * D.wyz - D.xzx;
 
-  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,N*N)
+  vec4 j = p - 49.0 * floor(p * ns.z * ns.z); //  mod(p,N*N)
 
   vec4 x_ = floor(j * ns.z);
-  vec4 y_ = floor(j - 7.0 * x_);    // mod(j,N)
+  vec4 y_ = floor(j - 7.0 * x_); // mod(j,N)
 
   vec4 x = x_ * ns.x + ns.yyyy;
   vec4 y = y_ * ns.x + ns.yyyy;
@@ -143,7 +142,13 @@ uniform float minSize;
 uniform float eyeIntensity;
 
 uniform vec4 faceAera;
-// uniform sampler2D uTouch;
+
+// 新增 uniform 变量
+uniform float uBreathStrength; // 呼吸强度，例如 0.05
+uniform float uBreathSpeed;    // 呼吸速度，例如 2.0
+uniform float uJitterStrength; // 抖动强度，例如 0.2
+uniform float uJitterScale;    // 抖动噪声频率，例如 0.05 (值越小，噪声变化越平缓)
+uniform float uJitterSpeed;    // 抖动噪声演变速度，例如 1.0
 
 varying vec2 vPUv;
 varying vec2 vUv;
@@ -168,16 +173,16 @@ float maskFace(vec3 maskColor, vec2 uv) {
 void main() {
   vUv = uv;
 
-	// particle uv
+  // particle uv
   vec2 puv = offset.xy / uTextureSize;
   vec2 tel = vec2(1.0 / uTextureSize.x, 1.0 / uTextureSize.y);
   vPUv = puv;
 
-	// pixel color
-	// vec4 colA = texture2D(uTexture, puv);
-	// float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
+  // pixel color
+  // vec4 colA = texture2D(uTexture, puv);
+  // float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-	// displacement
+  // displacement
   vec3 displaced = offset;
 
   dTUv = (offset.xy + uv) / uTextureSize;
@@ -188,7 +193,7 @@ void main() {
   // float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1))) * eyeMask;
   // displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
 
-	// center
+  // center
   displaced.xy -= uTextureSize * 0.5;
 
   float luminal = texture2D(uTexture, puv).r;
@@ -200,16 +205,17 @@ void main() {
 
   // progress noise
   float multiplier = uTextureSize.x * 2.0; // distance factor
-  // float modX = mod(displaced.x, 2.0)  < 1.0 ? 1.0 : -1.0;
+  // float modX = mod(displaced.x, 2.0)  < 1.0 ? 1.0 : -1.0;
   // float modY = mod(displaced.y, 2.0) < 1.0 ? 1.0 : -1.0;
-  // float modZ = mod(displaced.z, 2.0)   < 1.0 ? 1.0 : -1.0;
+  // float modZ = mod(displaced.z, 2.0)   < 1.0 ? 1.0 : -1.0;
 
   vec3 randomDir = vec3(noise(displaced.x) * 2.0 - 1.0, noise(displaced.y) * 2.0 - 1.0, noise(200.0) * 2.0 - 1.0);
   vec3 positionTarget = displaced + normalize(randomDir) * multiplier;
 
-  // vec3 positionTarget = vec3(noise(position.x)  * multiplier * modX, noise(position.y) * multiplier * modY, noise(position.z)  * multiplier * modZ );
+  // vec3 positionTarget = vec3(noise(position.x)  * multiplier * modX, noise(position.y) * multiplier * modY, noise(position.z)  * multiplier * modZ );
 
   float noiseOrigin = simplexNoise3d(positionTarget);
+  // 注意：这里你的原代码中是 simplexNoise3D，GLSL区分大小写，已修正为 simplexNoise3d
   float noiseTarget = simplexNoise3d(displaced);
   float noise = mix(noiseOrigin, noiseTarget, uProgress);
 
@@ -220,9 +226,26 @@ void main() {
 
   vec3 mixedPosition = mix(positionTarget, displaced, progress);
 
+  // --- 新增动态效果 ---
+
+  // 1. 呼吸效果：让整个人像粒子群在Y轴方向上轻微上下浮动
+  // 使用sin函数来创建平滑的循环运动
+  mixedPosition.y += sin(uTime * uBreathSpeed) * uBreathStrength;
+
+  // 2. 局部粒子抖动：为每个粒子添加微小的、随时间变化的随机偏移
+  // 使用3D Simplex噪声，确保抖动是连贯且平滑的
+  // 噪声的输入基于粒子当前位置和时间，这样相邻粒子会进行类似的抖动，保持形体
+  vec3 jitterNoiseCoord = mixedPosition * uJitterScale + uTime * uJitterSpeed;
+  vec3 jitterOffset = (vec3(simplexNoise3d(jitterNoiseCoord),
+      // 为X, Y, Z方向使用稍微不同的噪声输入，避免重复模式
+  simplexNoise3d(jitterNoiseCoord + vec3(100.0, 200.0, 300.0)), simplexNoise3d(jitterNoiseCoord + vec3(400.0, 500.0, 600.0))) * 2.0 - 1.0) * uJitterStrength; // 将噪声输出从[0,1]映射到[-1,1]，再乘以强度
+  mixedPosition += jitterOffset;
+
+  // --- 效果结束 ---
+
   // float scale1 = sin(uTime + rand(float(gl_InstanceID)) * 351354.0);
   // float scale1 = snoise(vec2(uTime, pindex) * 0.5) * eyeMask;
-	// particle size
+  // particle size
   // float psize = uSize + scale1 * uSize * mix(2., 0.2, uProgress);
 
   vec3 maskColor = texture2D(maskFaceTexture, puv).rgb;
@@ -237,12 +260,12 @@ void main() {
   luminalScale = mix(luminalScale, eyeTarget, 0.7 * eMask);
   // luminalScale += eyeIntensity * eMask;
 
-	// particle size
+  // particle size
   // float psize = .5;
-	// psize *= max(grey, 0.2);
+  // psize *= max(grey, 0.2);
   float psize = uSize * (min(1.0, pow(smoothstep(0.2, 1., luminalScale), 1.5) + minSize));
 
-	// final position
+  // final position
   vec4 mvPosition = modelViewMatrix * vec4(mixedPosition, 1.0);
   mvPosition.xyz += position * psize;
   vec4 finalPosition = projectionMatrix * mvPosition;

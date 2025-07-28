@@ -67,6 +67,12 @@ export default class Particles extends Object3D {
       eyeIntensity: { value: 0 },
       uParticleColor: { value: this.particleColor },
     };
+    // 添加新的 uniform 变量
+    this.uniforms.uBreathStrength = { value: 0.005 }; // 呼吸效果的强度
+    this.uniforms.uBreathSpeed = { value: 0.1 }; // 呼吸效果的速度
+    this.uniforms.uJitterStrength = { value: 0.2 }; // 粒子抖动的强度
+    this.uniforms.uJitterScale = { value: 0.05 }; // 粒子抖动噪声的频率 (值越小，抖动范围越大，变化越平缓)
+    this.uniforms.uJitterSpeed = { value: 0.1 }; // 粒子抖动噪声的演变速度
     this.init(this.texture);
   }
 
