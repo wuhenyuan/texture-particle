@@ -3,8 +3,8 @@ uniform vec4 faceAera;
 varying vec2 vUv;
 
 void main() {
-    float mask = texture2D(tDiffuse, vUv).r;
-    mask = step(0.01, mask);
+    vec4 diffuse = texture2D(tDiffuse, vUv);
+    vec4 mask = step(0.01, diffuse);
     // mask = step(0.5, mask);
     float validValue = 1.0;
 
@@ -17,8 +17,8 @@ void main() {
     float directionMask = 1.0 - smoothstep(radius, aera * 1.5, directionlDist);
     directionMask = step(0.01, directionMask);
 
-    validValue = mask * validValue * directionMask;
-    gl_FragColor = vec4(validValue);
+    validValue = mask.r * validValue * directionMask;
+    gl_FragColor = vec4(diffuse * validValue);
     // gl_FragColor = vec4(mask);
     // gl_FragColor = vec4(0.5);
 }

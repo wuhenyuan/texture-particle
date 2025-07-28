@@ -519,9 +519,11 @@ export default class FloatingParticles {
         vec2 uv = gl_FragCoord.xy / resolution;
         vec4 mask = texture2D(u_maskTexture, uv);
 
-        if (mask.r > 0.1 && progress >= 1.0) {
-          discard;
-        }
+        bool isBright = mask.r > 0.1;
+
+        // if ( isBright && progress >= 1.0) {
+        //   discard;
+        // }
             
         // 根据生命周期调整不透明度 (渐入渐出效果)
         float opacity = 0.0;
@@ -545,6 +547,10 @@ export default class FloatingParticles {
         // Final color = texture color * final particle color * calculated opacity
         gl_FragColor = texColor * vec4(finalColor, opacity * 0.2);
 
+
+        // if (mask.r > 0.1 && progress >= 1.0) {
+        //   gl_FragColor = vec4(0.6);
+        // }
         // Discard pixel if texture's alpha channel is 0 (for transparent backgrounds)
         // 或者如果计算出的不透明度太低也丢弃，提高性能
         if (gl_FragColor.a < 0.0001) discard;
@@ -633,7 +639,11 @@ export default class FloatingParticles {
    */
   update(delta) {
     if (!this.particles.visible) return;
+
+    // 移除 this.updatetUniforms(); 因为该方法未定义，且 u_color 更新已在下方处理
+    // Update main particle color from global config
     this.updatetUniforms();
+
     const positionAttribute = this.geometry.attributes.position;
     const lifespanAttribute = this.geometry.attributes.lifespan;
     const velocityAttribute = this.velocities;
@@ -644,7 +654,7 @@ export default class FloatingParticles {
 
     if (this.isIntroAnimating) {
       const progress = Math.min(1, this.time / this.introDuration); // 0 to 1
-      this.progress = progress;
+      // 移除 this.progress = progress; 因为它没有被使用
       for (let i = 0; i < this.particleCount; i++) {
         const i3 = i * 3;
         // Linear interpolation from initial to target position for intro animation
@@ -664,8 +674,9 @@ export default class FloatingParticles {
             this.initialParticlePositions[i3 + 2]) *
             progress;
 
-        // 在入场动画期间，将 progress 直接赋值给 lifespan，让 shader 处理渐入效果
-        this.lifespans[i] = progress;
+        // 在入场动画期间，将 lifespan 固定在中间值，确保粒子完全不透明
+        // 这样粒子在入场时是完全可见的，而不是渐入的
+        this.lifespans[i] = 0.5;
       }
 
       if (progress >= 1) {
@@ -676,7 +687,7 @@ export default class FloatingParticles {
           this.positions[i3] = this.targetParticlePositions[i3];
           this.positions[i3 + 1] = this.targetParticlePositions[i3 + 1];
           this.positions[i3 + 2] = this.targetParticlePositions[i3 + 2];
-          // 重置为随机初始生命周期，以便开始正常的循环动画
+          // 重置为随机初始生命周期，以便开始正常的循环动画（包含渐入渐出）
           this.lifespans[i] = Math.random();
           this.activeParticles[i] = true; // 确保粒子活跃
         }

@@ -324,7 +324,7 @@ const createFloatParticles = () => {
     scene,
     1200,
     new Vector3(centerx, centery, 0),
-    10,
+    40,
     70,
     // new Vector3(centerx, centery, 0)
     50
