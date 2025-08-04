@@ -49,7 +49,7 @@ import {
 } from "three";
 import { edgeDetection } from "../webgl/edgedetection";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { onMounted, ref, render } from "vue";
+import { onMounted, ref, render, toRaw } from "vue";
 import generateDigitTextureAtlas from "./useNumberTexture";
 import usePostprocessing from "./usePostprocessing";
 
@@ -250,6 +250,23 @@ const initThree = () => {
     }
     if (backgroundMesh) {
       backgroundMesh.material.uniforms.uTime.value += delta;
+      backgroundMesh.visible = toRaw(globalConfig.config.isShowBackground);
+      // bColor1: 0xcadedb,
+      // bColor2: 0xd1e7dd,
+      // bColor3: 0xdceaeb,
+      // bColor4: 0xe0f2fe,
+      backgroundMesh.material.uniforms.uColor1.value.set(
+        globalConfig.config.bColor1
+      );
+      backgroundMesh.material.uniforms.uColor2.value.set(
+        globalConfig.config.bColor2
+      );
+      backgroundMesh.material.uniforms.uColor3.value.set(
+        globalConfig.config.bColor3
+      );
+      backgroundMesh.material.uniforms.uColor4.value.set(
+        globalConfig.config.bColor4
+      );
     }
 
     if (globalConfig.isUsePostProcessing) {
@@ -258,7 +275,9 @@ const initThree = () => {
       composer.updatePostprocessing(renderConfig);
       renderer.setClearAlpha(0);
       bloomComposer.render();
-      backgroundMesh.visible = true;
+      // backgroundMesh.visible = true;
+
+      backgroundMesh.visible = toRaw(globalConfig.config.isShowBackground);
       // scene.background = background;
       composer.render();
     } else {

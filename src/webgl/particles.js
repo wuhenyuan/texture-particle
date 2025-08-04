@@ -335,7 +335,7 @@ export default class Particles extends Object3D {
     if (!this.material) return;
     this.updateUniforms();
     this.nodeTimeMark += t;
-    console.log(this.isNodding);
+
     this.material.uniforms.uTime.value = this.time;
     if (this.progress < 1) {
       // this.progress = this.time / 4.5;

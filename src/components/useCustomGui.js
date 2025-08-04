@@ -13,6 +13,18 @@ export default function useGui(config) {
   gui.addColor(config, "pColor").name("漂浮颜色1");
   gui.addColor(config, "flashColor").name("漂浮颜色2");
 
+  const backGui = gui.addFolder("背景");
+
+  // bColor1: 0xcadedb,
+  // bColor2: 0xd1e7dd,
+  // bColor3: 0xdceaeb,
+  // bColor4: 0xe0f2fe,
+  backGui.add(config, "isShowBackground").name("背景");
+  backGui.addColor(config, "bColor1").name("背景颜色1");
+  backGui.addColor(config, "bColor2").name("背景颜色2");
+  backGui.addColor(config, "bColor3").name("背景颜色3");
+  backGui.addColor(config, "bColor4").name("背景颜色4");
+
   let map = new Map();
   function addGui(key, name, min, max, step, file) {
     let target = gui;

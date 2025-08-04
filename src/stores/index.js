@@ -6,7 +6,7 @@ export const useGlobalConfig = defineStore("app", {
     debugTexture: false,
     showDigital: false,
     particleVisible: true,
-    isLocal: true,
+    isLocal: false,
     isUseAsr: false,
     isUseOrbital: false,
     faceDepthMin: 0,
@@ -92,6 +92,13 @@ export const useGlobalConfig = defineStore("app", {
       uHeadMoveStrength: 0.5,
       uHeadMoveSpeed: 1,
       uHeadRotateStrength: 0.35,
+
+      // 背景
+      isShowBackground: true,
+      bColor1: 0xcadedb,
+      bColor2: 0xd1e7dd,
+      bColor3: 0xdceaeb,
+      bColor4: 0xe0f2fe,
     },
     // lutParticle config
     // config: {
